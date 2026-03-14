@@ -187,7 +187,9 @@
         </div>
 
         <div id="my-folders-view" class="hidden">
-          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="folder-list"></div>
+          <div class="folder-grid-container">
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="folder-list"></div>
+          </div>
         </div>
 
         <div id="my-files-view">
@@ -332,7 +334,7 @@
   <div id="toast-container"></div>
   <script src="app.js?v=45"></script>
   <div id="folder-explorer-modal" class="modal hidden">
-    <div class="modal-content" style="max-width: 900px; width: 95vw; min-height: 60vh;">
+    <div class="modal-content" style="max-width: 98vw; width: 96vw; height: 92vh; display: flex; flex-direction: column;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
         <div>
           <h3 id="explorer-folder-name" style="margin:0; font-size: 1.5rem; color: #fff;">Folder Hub</h3>
@@ -344,14 +346,14 @@
         </div>
       </div>
       
-      <div class="file-list" style="margin-top: 0; background: transparent; border: none;">
+      <div class="file-list" style="margin-top: 0; background: transparent; border: none; flex: 1; display: flex; flex-direction: column;">
         <div class="file-row explorer-row header" style="background: rgba(255,255,255,0.02); padding: 15px 20px 15px 35px; border-radius: 20px; margin-bottom: 20px;">
           <span>Identifier</span>
           <span>Type</span>
           <span>Size</span>
-          <span>Operations</span>
+          <span style="text-align: right">Operations</span>
         </div>
-        <div id="explorer-file-list" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
+        <div id="explorer-file-list" style="flex: 1; overflow-y: auto; padding-right: 5px;"></div>
       </div>
     </div>
   </div>

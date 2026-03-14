@@ -405,10 +405,7 @@ function openFolder(id, name, date) {
   document.getElementById("folder-explorer-modal").classList.remove("hidden");
   
   const uploadBtn = document.getElementById("explorer-upload-btn");
-  uploadBtn.onclick = () => {
-    showUploadModal();
-    document.getElementById("upload-folder-select").value = id;
-  };
+  uploadBtn.onclick = () => showUploadModal(id);
   
   renderFolderExplorer(id);
 }
@@ -612,11 +609,12 @@ async function deleteSharedLink(id) {
 // UPLOAD logic
 // ==========================================
 
-function showUploadModal() { 
+function showUploadModal(preselectFolderId = null) { 
   document.getElementById("upload-modal").classList.remove("hidden");
-  // Auto-detect current folder context
   const select = document.getElementById("upload-folder-select");
-  if (select) select.value = currentFolderId || "";
+  if (select) {
+    select.value = preselectFolderId || currentFolderId || "";
+  }
 }
 
 document.getElementById("upload-form").addEventListener("submit", async (e) => {

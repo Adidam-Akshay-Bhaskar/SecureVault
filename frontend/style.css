@@ -317,6 +317,14 @@ input[type="checkbox"]:checked::after {
 .folder-name { font-weight: 800; font-size: 1.2rem; color: #fff; margin: 0; }
 .folder-count { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; font-weight: 600; }
 
+.folder-grid-container {
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.01);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 32px;
+  margin-top: 1rem;
+}
+
 /* CUSTOM SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
