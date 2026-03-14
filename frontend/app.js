@@ -638,7 +638,10 @@ async function deleteSharedLink(id) {
 // UPLOAD logic
 // ==========================================
 
-function showUploadModal(preselectFolderId = null) { 
+async function showUploadModal(preselectFolderId = null) {
+  const verified = await verifyPIN();
+  if (!verified) return;
+
   document.getElementById("upload-modal").classList.remove("hidden");
   const select = document.getElementById("upload-folder-select");
   if (select) {
