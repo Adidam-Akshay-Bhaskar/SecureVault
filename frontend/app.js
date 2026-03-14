@@ -436,7 +436,7 @@ async function renderFiles() {
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
               <span>Share</span>
             </button>
-            <button class="action-btn delete" onclick="deleteFile(${f.file_id})">
+            <button class="action-btn delete" onclick="deleteFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
               <span>Delete</span>
             </button>
@@ -471,14 +471,58 @@ async function renderFiles() {
   }
 }
 
-async function deleteFile(id) {
-  const conf = await showConfirm("Delete this record permanently?");
+async function deleteFile(id, keyStr, filename) {
+  const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete "${filename}"?`);
   if (!conf) return;
+  const verified = await verifyPIN();
+  if (!verified) return;
+  
+  showToast("Downloading backup before terminal deletion...");
+  await downloadFile(id, keyStr, filename, true); // true = skip PIN in shared helper if already verified
+  
   await fetch(`${API_URL}/delete-file`, { 
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
     body: JSON.stringify({ fileId: id })
   });
   loadFiles();
+}
+
+function verifyPIN() {
+  return new Promise((resolve) => {
+    document.getElementById("pin-modal").classList.remove("hidden");
+    const pinInput = document.getElementById("modal-pin-input");
+    const verifyBtn = document.getElementById("pin-verify-btn");
+    pinInput.value = ""; pinInput.focus();
+
+    const onVerify = async () => {
+      const pin = pinInput.value;
+      if (!pin) return showToast("PIN Required", "error");
+      try {
+        const res = await fetch(`${API_URL}/verify-file-pin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+          body: JSON.stringify({ securityPin: pin })
+        });
+        const data = await res.json();
+        if (data.success) {
+          closeModal("pin-modal");
+          verifyBtn.onclick = null;
+          resolve(true);
+        } else {
+          showToast(data.message || "Invalid PIN", "error");
+        }
+      } catch (err) { resolve(false); }
+    };
+
+    const onAbort = () => {
+      closeModal("pin-modal");
+      verifyBtn.onclick = null;
+      resolve(false);
+    };
+
+    verifyBtn.onclick = onVerify;
+    window.abortPIN = onAbort;
+  });
 }
 
 async function deleteSharedLink(id) {
@@ -536,8 +580,16 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
 // DOWNLOAD & VIEW (Stripped down/adapted)
 // ==========================================
 
-async function downloadFile(fileId, encryptedKeyStr, filename) {
+async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready = false) {
   try {
+    if (!verifiedAlready) {
+      const conf = await showConfirm(`Are you sure you want to download "${filename}"?`);
+      if (!conf) return;
+      const verified = await verifyPIN();
+      if (!verified) return;
+    }
+
+    showToast("Decrypting secure stream...");
     const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${fileId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
     const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
     const [ivHex, keyBase64] = encryptedKeyStr.split(":");
@@ -545,11 +597,15 @@ async function downloadFile(fileId, encryptedKeyStr, filename) {
     const fk = await decryptKey(base64ToArrayBuffer(keyBase64), mk, hexToBytes(ivHex));
     const dec = await decryptFile(new Uint8Array(encryptedBlob), fk);
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([dec])); a.download = filename; a.click();
-  } catch {}
+    showToast("Download Initialized");
+  } catch (err) { showToast("Download failed", "error"); }
 }
 
 async function viewMyFile(id, keyStr, name, size) {
-  showToast("Pre-calculating decryption...", "info");
+  const verified = await verifyPIN();
+  if (!verified) return;
+
+  showToast("Establishing secure preview...", "info");
   try {
     const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
     const blob = await (await fetch(downloadUrl)).arrayBuffer();
@@ -557,9 +613,25 @@ async function viewMyFile(id, keyStr, name, size) {
     const mk = await getClientMasterKey();
     const fk = await decryptKey(base64ToArrayBuffer(keyB64), mk, hexToBytes(ivHex));
     const dec = await decryptFile(new Uint8Array(blob), fk);
-    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([dec])); a.target = "_blank"; a.click();
-    showToast("File Open in Secure Tab");
-  } catch {}
+    
+    document.getElementById("view-filename").textContent = name;
+    document.getElementById("file-view-modal").classList.remove("hidden");
+    const viewer = document.getElementById("view-content");
+    viewer.innerHTML = "";
+    
+    const ext = name.split('.').pop().toLowerCase();
+    if (["jpg", "jpeg", "png", "gif", "svg"].includes(ext)) {
+      const img = document.createElement("img"); img.src = URL.createObjectURL(new Blob([dec]));
+      img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; viewer.appendChild(img);
+    } else if (ext === "pdf") {
+      const fr = document.createElement("iframe"); fr.src = URL.createObjectURL(new Blob([dec], { type: "application/pdf" }));
+      fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none"; viewer.appendChild(fr);
+    } else {
+      const pre = document.createElement("pre"); pre.textContent = new TextDecoder().decode(dec);
+      pre.style.color = "#fff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; viewer.appendChild(pre);
+    }
+    showToast("File Decrypted Successfully");
+  } catch (err) { showToast("Decryption Error", "error"); }
 }
 
 // ==========================================
@@ -689,7 +761,10 @@ function getMimeType(ext) {
   return Map[ext] || "application/octet-stream";
 }
 let currentShareFile = null;
-function openShareModal(id, name, keyStr) {
+async function openShareModal(id, name, keyStr) {
+  const verified = await verifyPIN();
+  if (!verified) return;
+  
   currentShareFile = { id, name, keyStr };
   document.getElementById("share-modal").classList.remove("hidden");
   document.getElementById("share-step-input").classList.remove("hidden");

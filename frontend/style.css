@@ -254,3 +254,8 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
+#view-content pre { font-family: 'Courier New', monospace; font-size: 0.9rem; line-height: 1.6; }
+#view-content::-webkit-scrollbar { width: 8px; }
+#view-content::-webkit-scrollbar-track { background: #000; }
+#view-content::-webkit-scrollbar-thumb { background: #222; border-radius: 4px; }
+#view-content::-webkit-scrollbar-thumb:hover { background: #333; }

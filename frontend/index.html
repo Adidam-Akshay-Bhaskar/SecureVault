@@ -259,6 +259,10 @@
       <h3 style="margin-bottom: 2rem;">Secure Transmission</h3>
       <div id="share-step-input">
         <div class="input-box"><input type="email" id="share-email" placeholder="Recipient address" required /></div>
+        <div style="margin-bottom: 2rem; display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" id="share-downloadable" checked style="width:20px; height:20px;" />
+          <label for="share-downloadable" style="color:var(--text-dim); font-size:0.8rem;">Enable Receipt Download</label>
+        </div>
         <div style="display:flex; gap:15px;">
           <button class="action-btn" style="flex:1" onclick="closeModal('share-modal')">Cancel</button>
           <button class="primary-btn" style="flex:2" onclick="generateShareLink(this)">Generate Key</button>
@@ -292,6 +296,30 @@
       <div style="display:flex; gap:15px;">
         <button class="action-btn" style="flex:1" onclick="closeModal('folder-modal')">Cancel</button>
         <button class="primary-btn" style="flex:2" onclick="createFolder()">Initialize Folder</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pin-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 2rem;">Security Verification</h3>
+      <p style="color:#666; font-size:0.8rem; margin-bottom: 1.5rem;">Enter Security PIN to authorize access.</p>
+      <div class="input-box"><input type="password" id="modal-pin-input" placeholder="Security PIN" maxlength="6" /></div>
+      <div style="display:flex; gap:15px;">
+        <button class="action-btn" style="flex:1" onclick="abortPIN()">Abort</button>
+        <button class="primary-btn" style="flex:2" id="pin-verify-btn">Verify & Transmit</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="file-view-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 90%; width: 1000px; height: 80vh; display: flex; flex-direction: column;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
+        <h3 id="view-filename" style="margin:0;">File Display</h3>
+        <button class="action-btn" onclick="closeModal('file-view-modal')">Close Access</button>
+      </div>
+      <div id="view-content" style="flex: 1; background: #000; border-radius: 12px; overflow: auto; display: flex; align-items: center; justify-content: center; border: 1px solid #151518; padding: 20px;">
+        <p style="color:#444;">Decrypting stream...</p>
       </div>
     </div>
   </div>
