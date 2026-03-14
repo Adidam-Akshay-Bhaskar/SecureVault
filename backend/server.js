@@ -579,6 +579,7 @@ app.get("/api/files", authenticateToken, (req, res) => {
             link_id: row.link_id,
             file_id: row.file_id,
             file_uuid: row.file_uuid,
+            folder_id: row.folder_id,
             created_at: row.created_at,
             encrypted_metadata: row.encrypted_metadata.toString("base64"),
             iv: row.iv,
