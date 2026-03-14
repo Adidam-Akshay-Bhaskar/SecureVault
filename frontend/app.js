@@ -684,7 +684,8 @@ async function generateShareLink(btn) {
 
 function copyShareLink() {
   navigator.clipboard.writeText(document.getElementById("generated-share-link").textContent);
-  showToast("Link Key Copied"); closeModal("share-modal");
+  showToast("Link Key Copied"); 
+  closeModal("share-modal");
 }
 
 // ==========================================
@@ -692,36 +693,51 @@ function copyShareLink() {
 // ==========================================
 
 async function loadProfile() {
-  const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-  const data = await res.json();
-  document.getElementById("profile-username-display").textContent = data.username;
-  document.getElementById("profile-email-full").textContent = data.email;
-  document.getElementById("profile-email-display").textContent = data.email;
-  document.getElementById("welcome-message").textContent = data.username;
-  
-  const initial = data.username[0].toUpperCase();
-  document.getElementById("avatar-initials").textContent = initial;
-  document.getElementById("profile-initials").textContent = initial;
-  
-  if (data.profile_photo) {
-    document.getElementById("header-avatar-img").src = data.profile_photo;
-    document.getElementById("header-avatar-img").classList.remove("hidden");
-    document.getElementById("profile-avatar-img").src = data.profile_photo;
-    document.getElementById("profile-avatar-img").classList.remove("hidden");
-  }
+  try {
+    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data || !data.username) return;
+
+    if (document.getElementById("profile-username-display")) document.getElementById("profile-username-display").textContent = data.username;
+    if (document.getElementById("profile-email-full")) document.getElementById("profile-email-full").textContent = data.email;
+    if (document.getElementById("profile-email-display")) document.getElementById("profile-email-display").textContent = data.email;
+    if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = data.username;
+    
+    if (data.username) {
+      const initial = data.username[0].toUpperCase();
+      if (document.getElementById("avatar-initials")) document.getElementById("avatar-initials").textContent = initial;
+      if (document.getElementById("profile-initials")) document.getElementById("profile-initials").textContent = initial;
+      if (document.getElementById("header-avatar")) document.getElementById("header-avatar").textContent = initial;
+    }
+    
+    if (data.profile_photo) {
+      ["header-avatar-img", "profile-avatar-img"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) { el.src = data.profile_photo; el.classList.remove("hidden"); }
+      });
+    }
+  } catch (err) { console.warn("Profile sync deferred:", err); }
 }
 
 async function toggleTheme() {
-  const b = document.body;
-  b.classList.toggle("theme-dark");
-  b.classList.toggle("theme-light");
+  document.body.classList.toggle("theme-dark");
+  document.body.classList.toggle("theme-light");
 }
 
 // Init
 (async function init() {
-  if (localStorage.getItem("token")) {
-    try { await loadProfile(); showView("my-vault"); } catch { logout(); }
+  const token = localStorage.getItem("token");
+  if (token) {
+    try { 
+      await loadProfile(); 
+      showView("my-vault"); 
+    } catch (err) { 
+      console.error("Session restoration failed:", err);
+      logout(); 
+    }
   } else {
     document.getElementById("auth-section").classList.remove("hidden");
+    toggleAuthMode("login");
   }
 })();
