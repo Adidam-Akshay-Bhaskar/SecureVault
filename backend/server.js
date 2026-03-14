@@ -311,23 +311,33 @@ app.get("/api/health", (req, res) => {
 
 // RECOVERY REQUEST (Sends Email)
 app.post("/api/auth/recover-request", (req, res) => {
-  const { email, type } = req.body; // type: 'password' or 'pin'
+  const { email, type } = req.body; 
   if (!email || !type) return res.status(400).json({ message: "Email and recovery type are required." });
 
   const normalizedEmail = email.trim().toLowerCase();
-  db.query("SELECT user_id, username FROM users WHERE email = ?", [normalizedEmail], async (err, results) => {
-    if (results.length === 0) return res.status(200).json({ message: "If an account exists, a recovery link will be sent." });
+  db.query("SELECT user_id, username, email FROM users WHERE email = ?", [normalizedEmail], (err, results) => {
+    if (err) {
+      console.error("Recovery DB Error (Lookup):", err);
+      return res.status(500).json({ message: "Database synchronization error." });
+    }
+    
+    if (!results || results.length === 0) {
+      return res.json({ message: "If an account exists, a recovery link will be dispatched." });
+    }
 
     const user = results[0];
     const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
-    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+    const expiry = new Date(Date.now() + 15 * 60 * 1000);
 
     db.query(
       "INSERT INTO recovery_tokens (user_id, token_hash, type, expires_at) VALUES (?, ?, ?, ?)",
       [user.user_id, tokenHash, type, expiry],
       (err) => {
-        if (err) return res.status(500).json({ message: "DB Error" });
+        if (err) {
+          console.error("Recovery DB Error (Token):", err);
+          return res.status(500).json({ message: "Security token generation failed." });
+        }
 
         const resetLink = `${req.protocol}://${req.get("host")}/?recovery_token=${token}&type=${type}`;
         
@@ -336,21 +346,21 @@ app.post("/api/auth/recover-request", (req, res) => {
           to: user.email,
           subject: `SecureVault - ${type.toUpperCase()} Reset Link`,
           html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333;">
-              <h2>Vault Recovery Protocol</h2>
+            <div style="font-family: sans-serif; padding: 20px; color: #333; background: #f9f9f9; border-radius: 12px; border: 1px solid #eee;">
+              <h2 style="color: #00f2ff; margin-bottom: 20px;">Vault Recovery Protocol</h2>
               <p>Hello, <strong>${user.username}</strong>.</p>
-              <p>We received a request to reset your <strong>${type}</strong>. This link will expire in 15 minutes.</p>
-              <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background: #00f2ff; color: #000; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset ${type}</a>
-              <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">If you did not request this, please ignore this email.</p>
+              <p>We received a request to reset your <strong>${type}</strong>. This secure link will expire in 15 minutes.</p>
+              <div style="margin: 30px 0;">
+                <a href="${resetLink}" style="display: inline-block; padding: 14px 28px; background: #00f2ff; color: #000; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase;">Reset ${type}</a>
+              </div>
+              <p style="font-size: 0.8rem; color: #888; border-top: 1px solid #eee; padding-top: 15px;">If you did not request this, please secure your account immediately. This is an automated transmission.</p>
             </div>
           `
         };
 
-        emailTransporter.sendMail(mailOptions, (error, info) => {
-          if (error) {
-            console.error("Email Error:", error);
-            // Even if email fails to SEND, we tell user it's sent for security
-          }
+        emailTransporter.sendMail(mailOptions, (error) => {
+          if (error) console.error("SMTP Transmission Error:", error);
+          // Always return success for security
           res.json({ message: "Recovery link dispatched to your email." });
         });
       }
