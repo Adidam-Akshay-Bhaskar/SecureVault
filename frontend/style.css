@@ -202,20 +202,24 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 .tab-btn.active { color: #fff; border-bottom-color: var(--accent-cyan); }
 
 .file-list { 
-  margin-top: 3rem; background: rgba(255,255,255,0.02); 
-  border-top: 1px solid #151518; border-left: none; border-right: none; border-bottom: none;
+  margin-top: 3rem; background: transparent; 
+  border: none;
   overflow: hidden; 
 }
 .file-row {
   display: grid; 
   grid-template-columns: minmax(200px, 3.5fr) minmax(60px, 0.7fr) minmax(80px, 1fr) minmax(100px, 1.2fr) minmax(420px, 3.5fr); 
   align-items: center; justify-items: stretch;
-  padding: 20px 12px; border-bottom: 1px solid #151518; transition: 0.3s;
+  padding: 16px 20px 16px 35px; border: 1px solid rgba(255,255,255,0.02); 
+  border-radius: 16px; margin-bottom: 10px;
+  background: rgba(255, 255, 255, 0.015);
+  transition: 0.3s;
 }
-.file-row:hover { background: rgba(255, 255, 255, 0.03); }
+.file-row:hover { background: rgba(255, 255, 255, 0.03); border-color: rgba(0, 242, 255, 0.1); }
 .file-row.header { 
   background: rgba(255,255,255,0.03); font-weight: 700; color: var(--text-dim); 
-  font-size: 0.75rem; border-bottom: 1px solid #151518;
+  font-size: 0.75rem; border: none; border-radius: 20px;
+  padding: 15px 20px 15px 35px;
 }
 .file-row p, .file-row span { margin: 0; text-align: left; display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 

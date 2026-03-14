@@ -437,7 +437,7 @@ async function renderFolderExplorer(folderId) {
       const displayTitle = truncateName(meta.filename);
 
       container.innerHTML += `
-        <div class="file-row explorer-row" style="background: rgba(255,255,255,0.015); padding: 16px 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.03);">
+        <div class="file-row explorer-row" style="background: rgba(255,255,255,0.015); padding: 16px 20px 16px 35px; border-radius: 20px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.03);">
           <div style="min-width:0; width:100%;">
             <p class="file-name" title="${meta.filename}" style="font-weight:600; font-size:0.95rem;">${displayTitle}</p>
           </div>
@@ -529,7 +529,7 @@ async function renderFiles() {
 
   for (const f of allFiles.sharedFiles) {
     shBody.innerHTML += `
-      <div class="file-row" style="grid-template-columns: minmax(200px, 3.5fr) minmax(130px, 1.5fr) minmax(100px, 1fr) minmax(300px, 3.5fr);">
+      <div class="file-row" style="grid-template-columns: minmax(200px, 3.5fr) minmax(130px, 1.5fr) minmax(100px, 1fr) minmax(300px, 3.5fr); padding: 16px 20px 16px 35px;">
         <div class="file-info">
           <p style="font-weight:600;">Encrypted Record</p>
         </div>
