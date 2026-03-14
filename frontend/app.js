@@ -417,7 +417,6 @@ async function renderFiles() {
       myBody.innerHTML += `
         <div class="file-row">
           <div class="file-info">
-            <div class="file-icon">📄</div>
             <div style="min-width:0;">
               <p class="file-name" title="${meta.filename}">${meta.filename}</p>
               <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Encrypted</p>
@@ -455,7 +454,6 @@ async function renderFiles() {
     shBody.innerHTML += `
       <div class="file-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
         <div class="file-info">
-          <div class="file-icon">🔒</div>
           <p style="font-weight:600;">Encrypted Record</p>
         </div>
         <p style="color:var(--text-muted); font-size:0.8rem;">${f.sender_email}</p>
