@@ -454,7 +454,7 @@ async function renderFolderExplorer(folderId) {
           </div>
           <p style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
-          <div class="btn-group" style="justify-content: flex-end;">
+          <div class="btn-group" style="justify-content: flex-start;">
             <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})" style="background:rgba(0,242,255,0.05); color:var(--accent-cyan); border-color:rgba(0,242,255,0.1);">
               <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px; height:14px;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
               View
@@ -553,7 +553,7 @@ async function renderFiles() {
 
   for (const f of allFiles.sharedFiles) {
     shBody.innerHTML += `
-      <div class="file-row" style="grid-template-columns: minmax(200px, 3.5fr) minmax(130px, 1.5fr) minmax(100px, 1fr) minmax(300px, 3.5fr); padding: 16px 20px 16px 35px;">
+      <div class="file-row" style="grid-template-columns: 2.5fr 1fr 1fr 3.5fr; padding: 16px 20px 16px 35px;">
         <div class="file-info">
           <p style="font-weight:600;">Encrypted Record</p>
         </div>
