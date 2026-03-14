@@ -117,13 +117,17 @@ function showToast(message, type = "success") {
   setTimeout(() => toast.remove(), 4000);
 }
 
-function showConfirm(message) {
+function showConfirm(message, destructive = false) {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
     document.getElementById("confirm-msg").textContent = message;
     modal.classList.remove("hidden");
     const ok = document.getElementById("confirm-ok-btn");
     const cancel = document.getElementById("confirm-cancel-btn");
+    
+    if (destructive) ok.classList.add("danger");
+    else ok.classList.remove("danger");
+
     const handler = (val) => {
       ok.removeEventListener("click", okHandler);
       cancel.removeEventListener("click", cancelHandler);
@@ -472,7 +476,7 @@ async function renderFiles() {
 }
 
 async function deleteFile(id, keyStr, filename) {
-  const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete "${filename}"?`);
+  const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete "${filename}"?`, true);
   if (!conf) return;
   const verified = await verifyPIN();
   if (!verified) return;
@@ -583,7 +587,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
 async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready = false) {
   try {
     if (!verifiedAlready) {
-      const conf = await showConfirm(`Are you sure you want to download "${filename}"?`);
+      const conf = await showConfirm(`Are you sure you want to download "${filename}"?`, true);
       if (!conf) return;
       const verified = await verifyPIN();
       if (!verified) return;

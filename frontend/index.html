@@ -246,9 +246,9 @@
           <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name" />
           <p id="file-label" style="color:#666;">Drop record or click to browse</p>
         </div>
-        <div style="display:flex; gap:15px;">
-          <button type="button" class="action-btn" style="flex:1" onclick="closeModal('upload-modal')">Abort</button>
-          <button type="submit" class="primary-btn" style="flex:2" id="upload-submit-btn">Transmit</button>
+        <div class="btn-row">
+          <button type="button" class="modal-secondary-btn" onclick="closeModal('upload-modal')">Abort</button>
+          <button type="submit" class="primary-btn" id="upload-submit-btn">Transmit</button>
         </div>
       </form>
     </div>
@@ -258,14 +258,14 @@
     <div class="modal-content">
       <h3 style="margin-bottom: 2rem;">Secure Transmission</h3>
       <div id="share-step-input">
-        <div class="input-box"><input type="email" id="share-email" placeholder="Recipient address" required /></div>
+        <div class="input-box"><input type="email" id="share-email" placeholder="Recipient address" class="modal-input" required /></div>
         <div style="margin-bottom: 2rem; display:flex; align-items:center; gap:10px;">
           <input type="checkbox" id="share-downloadable" checked style="width:20px; height:20px;" />
           <label for="share-downloadable" style="color:var(--text-dim); font-size:0.8rem;">Enable Receipt Download</label>
         </div>
-        <div style="display:flex; gap:15px;">
-          <button class="action-btn" style="flex:1" onclick="closeModal('share-modal')">Cancel</button>
-          <button class="primary-btn" style="flex:2" onclick="generateShareLink(this)">Generate Key</button>
+        <div class="btn-row">
+          <button class="modal-secondary-btn" onclick="closeModal('share-modal')">Cancel</button>
+          <button class="primary-btn" onclick="generateShareLink(this)">Generate Key</button>
         </div>
       </div>
       <div id="share-step-result" class="hidden">
@@ -279,9 +279,9 @@
   <div id="confirm-modal" class="modal hidden">
     <div class="modal-content" style="text-align:center;">
       <h3 id="confirm-msg" style="margin-bottom: 2rem;">Confirm Operation?</h3>
-      <div style="display:flex; gap:15px;">
-        <button id="confirm-cancel-btn" class="action-btn" style="flex:1">Abort</button>
-        <button id="confirm-ok-btn" class="primary-btn" style="flex:1; background:var(--danger); color:#fff;">Confirm</button>
+      <div class="btn-row">
+        <button id="confirm-cancel-btn" class="modal-secondary-btn">Abort</button>
+        <button id="confirm-ok-btn" class="primary-btn danger">Confirm</button>
       </div>
     </div>
   </div>
@@ -293,9 +293,9 @@
         <label>Folder Name</label>
         <input type="text" id="new-folder-name" placeholder="e.g. Confidential Records" />
       </div>
-      <div style="display:flex; gap:15px;">
-        <button class="action-btn" style="flex:1" onclick="closeModal('folder-modal')">Cancel</button>
-        <button class="primary-btn" style="flex:2" onclick="createFolder()">Initialize Folder</button>
+      <div class="btn-row">
+        <button class="modal-secondary-btn" onclick="closeModal('folder-modal')">Cancel</button>
+        <button class="primary-btn" onclick="createFolder()">Initialize Folder</button>
       </div>
     </div>
   </div>
@@ -304,10 +304,10 @@
     <div class="modal-content">
       <h3 style="margin-bottom: 2rem;">Security Verification</h3>
       <p style="color:#666; font-size:0.8rem; margin-bottom: 1.5rem;">Enter Security PIN to authorize access.</p>
-      <div class="input-box"><input type="password" id="modal-pin-input" placeholder="Security PIN" maxlength="6" /></div>
-      <div style="display:flex; gap:15px;">
-        <button class="action-btn" style="flex:1" onclick="abortPIN()">Abort</button>
-        <button class="primary-btn" style="flex:2" id="pin-verify-btn">Verify & Transmit</button>
+      <div class="input-box"><input type="password" id="modal-pin-input" placeholder="Security PIN" class="modal-input" maxlength="6" /></div>
+      <div class="btn-row">
+        <button class="modal-secondary-btn" onclick="abortPIN()">Abort</button>
+        <button class="primary-btn" id="pin-verify-btn">Verify & Transmit</button>
       </div>
     </div>
   </div>
