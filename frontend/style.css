@@ -26,9 +26,10 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .preloader-gateway { position: relative; text-align: center; }
 .scanned-text {
   font-family: var(--font-heading); font-size: 5.5rem; font-weight: 900;
-  display: flex; gap: 0; opacity: 0; transform: scale(0.95); transition: all 0.5s ease;
+  display: flex; gap: 0; opacity: 0; transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity; transform-style: preserve-3d;
 }
-.scanned-text.visible { opacity: 1; transform: scale(1); }
+.scanned-text.visible { opacity: 1; transform: scale(1) translateZ(0); }
 
 .logo-group { display: flex; align-items: baseline; }
 .initial { color: #fff; }
@@ -37,7 +38,8 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .filling {
   display: inline-block;
   max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; color: #fff;
-  transition: max-width 0.8s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.4s ease;
+  transition: max-width 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  will-change: max-width, opacity;
 }
 
 #preloader.expanded .filling { max-width: 400px; opacity: 1; }
@@ -62,8 +64,9 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 }
 
 #preloader.zoom-through .preloader-gateway {
-  transform: scale(120); opacity: 0; filter: blur(30px);
-  transition: transform 1.2s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.8s;
+  transform: scale(100) translateZ(0); opacity: 0; filter: blur(20px);
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s;
+  will-change: transform, opacity;
 }
 
 /* --- SPACE BACKGROUND --- */
@@ -75,8 +78,8 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .nebula.purple { background: radial-gradient(#4c1d95, transparent); top: -200px; left: -200px; }
 .nebula.blue { background: radial-gradient(#1e40af, transparent); bottom: -200px; right: -200px; }
 @keyframes drift { from { transform: translate(0,0); } to { transform: translate(100px, 50px); } }
-.star { position: absolute; background: #fff; border-radius: 50%; }
-@keyframes star-blink { from { opacity: 0.2; } to { opacity: 1; } }
+.star { position: absolute; background: #fff; border-radius: 50%; pointer-events: none; }
+@keyframes star-blink { from { opacity: 0.1; transform: scale(0.8); } to { opacity: 0.6; transform: scale(1); } }
 
 /* --- CLEAN LOGIN CARD --- */
 #auth-section {

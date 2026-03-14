@@ -776,10 +776,9 @@ async function toggleTheme() {
       document.body.classList.add("sidebar-collapsed");
     }
   }
-
   const token = localStorage.getItem("token");
   
-  // High-Speed Cinematic Timeline
+  // Turbo-Charged Cinematic Timeline
   setTimeout(() => {
     // 1. Reveal "SV"
     if (revealTarget) revealTarget.classList.add("visible");
@@ -816,9 +815,9 @@ async function toggleTheme() {
             } else {
               toggleAuthMode("login");
             }
-          }, 800); // Wait for zoom-through duration
-        }, 1200); // Scanning beam duration
-      }, 600); // Wait for expansion to feel solid
-    }, 1000); // Wait for SV reveal
-  }, 400); // Fast initial start
+          }, 600); 
+        }, 800); 
+      }, 300); 
+    }, 600); 
+  }, 200); 
 })();
