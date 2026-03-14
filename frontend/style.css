@@ -118,21 +118,22 @@ input:focus, select:focus { border-color: var(--accent-cyan); background: rgba(2
   padding: 3rem 1.5rem; display: flex; flex-direction: column; transition: 0.4s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .sidebar.collapsed { width: 80px; padding: 3rem 0.5rem; }
-.sidebar-header { margin-bottom: 4rem; display: flex; align-items: center; justify-content: center; position: relative; }
-#sidebar-brand { font-family: var(--font-heading); font-size: 1.5rem; letter-spacing: 5px; font-weight: 900; color: #fff; transition: 0.3s; }
-.sidebar.collapsed #sidebar-brand { opacity: 0; pointer-events: none; }
-
-/* REDESIGNED TOGGLE BUTTONS */
-.sidebar-toggle {
-  position: absolute; top: 20px; right: -15px; width: 30px; height: 30px;
-  background: var(--accent-cyan); color: #000; border: none; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center; cursor: pointer;
-  box-shadow: 0 4px 10px rgba(0, 242, 255, 0.3); z-index: 100;
-  transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1); font-weight: 900; font-size: 1.1rem;
+.sidebar-header { 
+  margin-bottom: 4rem; display: flex; align-items: center; justify-content: space-between; 
+  padding: 0 10px;
 }
-.sidebar-toggle:hover { transform: scale(1.1); box-shadow: 0 6px 15px rgba(0, 242, 255, 0.5); }
-.sidebar.collapsed .sidebar-toggle { right: 25px; transform: rotate(180deg); background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); box-shadow: none; }
-.sidebar.collapsed .sidebar-toggle:hover { background: var(--accent-cyan); color: #000; }
+#sidebar-brand { font-family: var(--font-heading); font-size: 1.5rem; letter-spacing: 5px; font-weight: 900; color: #fff; transition: 0.3s; }
+.sidebar.collapsed #sidebar-brand { opacity: 0; pointer-events: none; width: 0; display: none; }
+
+/* REDESIGNED TOGGLE: 3 LINES */
+.sidebar-toggle {
+  background: none; border: none; width: 24px; height: 18px;
+  display: flex; flex-direction: column; justify-content: space-between; 
+  cursor: pointer; padding: 0; transition: 0.3s;
+}
+.sidebar-toggle span { display: block; width: 100%; height: 2px; background: #fff; border-radius: 2px; transition: 0.3s; }
+.sidebar-toggle:hover span { background: var(--accent-cyan); box-shadow: 0 0 10px var(--accent-cyan); }
+.sidebar.collapsed .sidebar-header { justify-content: center; }
 
 .nav-item {
   display: flex; align-items: center; gap: 18px; padding: 18px 24px; color: var(--text-dim);

@@ -122,8 +122,12 @@
   <!-- DASHBOARD UI -->
   <div id="view-dashboard" class="hidden" style="display: flex; width: 100%;">
     <aside class="sidebar">
-      <button class="sidebar-toggle" onclick="toggleSidebar()">⟨</button>
-      <h2 id="sidebar-brand">VAULT</h2>
+      <div class="sidebar-header">
+        <h2 id="sidebar-brand">VAULT</h2>
+        <button class="sidebar-toggle" onclick="toggleSidebar()">
+          <span></span><span></span><span></span>
+        </button>
+      </div>
       <nav>
         <div class="nav-item active" onclick="showView('my-vault')">
           <span>📦</span> <span class="nav-text">Vault Base</span>
