@@ -775,45 +775,49 @@ async function toggleTheme() {
       sidebar.classList.add("collapsed");
       document.body.classList.add("sidebar-collapsed");
     }
+  }
   const token = localStorage.getItem("token");
   
-  // Ultra-Smooth High-Fidelity Timeline
+  // Turbo-Charged Cinematic Timeline
   setTimeout(() => {
+    // 1. Reveal "SV"
     if (revealTarget) revealTarget.classList.add("visible");
     
     setTimeout(() => {
+      // 2. Expand to "SecureVault"
       if (preloader) preloader.classList.add("expanded");
       if (gatewayLine) gatewayLine.classList.add("active");
       
       setTimeout(() => {
+        // 3. Scan the full text
         if (scanningBeam) scanningBeam.classList.add("active");
         
         setTimeout(() => {
+          // 4. ZOOM THROUGH THE TEXT
           if (preloader) preloader.classList.add("zoom-through");
           
-          // Seamless Transition: Reveal auth card half-way through the zoom
-          setTimeout(() => {
+          setTimeout(async () => {
+            // 5. Reveal Auth Card
+            if (preloader) preloader.classList.add("hidden");
             if (authSection) {
               authSection.classList.remove("hidden");
-              setTimeout(() => authSection.classList.add("visible"), 100);
+              setTimeout(() => authSection.classList.add("visible"), 50);
             }
-          }, 400); 
-
-          // Final Cleanup: Hide preloader once the zoom is cinematic
-          setTimeout(async () => {
-            if (preloader) preloader.classList.add("hidden");
             
             if (token) {
               try { 
                 await loadProfile(); 
                 showView("my-vault"); 
-              } catch (err) { logout(); }
+              } catch (err) { 
+                console.error("Session restoration failed:", err);
+                logout(); 
+              }
             } else {
               toggleAuthMode("login");
             }
-          }, 1500); // Wait for full smooth zoom duration
-        }, 1200); 
-      }, 800); 
-    }, 1000); 
-  }, 400); 
+          }, 600); 
+        }, 800); 
+      }, 300); 
+    }, 600); 
+  }, 200); 
 })();

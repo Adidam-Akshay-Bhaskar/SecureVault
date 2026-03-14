@@ -26,7 +26,7 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .preloader-gateway { position: relative; text-align: center; }
 .scanned-text {
   font-family: var(--font-heading); font-size: 5.5rem; font-weight: 900;
-  display: flex; gap: 0; opacity: 0; transform: scale(0.92); transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; gap: 0; opacity: 0; transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity; transform-style: preserve-3d;
 }
 .scanned-text.visible { opacity: 1; transform: scale(1) translateZ(0); }
@@ -38,7 +38,7 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .filling {
   display: inline-block;
   max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; color: #fff;
-  transition: max-width 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s ease;
+  transition: max-width 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
   will-change: max-width, opacity;
 }
 
@@ -64,8 +64,8 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 }
 
 #preloader.zoom-through .preloader-gateway {
-  transform: scale(120) translateZ(0); opacity: 0; filter: blur(40px);
-  transition: transform 1.5s cubic-bezier(0.16, 1, 0.3, 1), opacity 1.2s ease-in;
+  transform: scale(100) translateZ(0); opacity: 0; filter: blur(20px);
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s;
   will-change: transform, opacity;
 }
 
@@ -77,17 +77,17 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 }
 .nebula.purple { background: radial-gradient(#4c1d95, transparent); top: -200px; left: -200px; }
 .nebula.blue { background: radial-gradient(#1e40af, transparent); bottom: -200px; right: -200px; }
-@keyframes drift { from { transform: translate(0,0); } to { transform: translate(150px, 80px) rotate(2deg); } }
+@keyframes drift { from { transform: translate(0,0); } to { transform: translate(100px, 50px); } }
 .star { position: absolute; background: #fff; border-radius: 50%; pointer-events: none; }
 @keyframes star-blink { from { opacity: 0.1; transform: scale(0.8); } to { opacity: 0.6; transform: scale(1); } }
 
 /* --- CLEAN LOGIN CARD --- */
 #auth-section {
   width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
-  position: relative; z-index: 10; opacity: 0; transform: translateY(20px) scale(0.98);
-  transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative; z-index: 10; opacity: 0; transform: scale(0.98);
+  transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
 }
-#auth-section.visible { opacity: 1; transform: translateY(0) scale(1); }
+#auth-section.visible { opacity: 1; transform: scale(1); }
 
 .auth-container { width: 100%; max-width: 440px; position: relative; z-index: 20; }
 .auth-card-premium {
