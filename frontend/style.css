@@ -184,7 +184,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .file-row {
   display: grid; 
-  grid-template-columns: minmax(0, 2.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 2fr); 
+  grid-template-columns: minmax(0, 3fr) minmax(0, 0.6fr) minmax(0, 0.6fr) minmax(0, 1fr) minmax(0, 4fr); 
   align-items: center; justify-items: start;
   padding: 20px 24px; border-bottom: 1px solid #151518; transition: 0.3s;
 }
