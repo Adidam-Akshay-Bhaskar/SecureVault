@@ -179,11 +179,10 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 .stat-card {
   background: rgba(15, 15, 20, 0.6); backdrop-filter: blur(20px);
   border: 1px solid #1a1a1f; border-radius: 28px; padding: 2.5rem;
-  transition: 0.4s; position: relative; overflow: hidden;
+  transition: 0.4s; position: relative; overflow: hidden; cursor: pointer;
 }
 .stat-card:hover { transform: translateY(-5px); border-color: var(--accent-cyan); box-shadow: 0 20px 40px rgba(0, 242, 255, 0.05); }
 .stat-card p { color: var(--text-dim); font-weight: 700; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1.5px; }
-.stat-card[style*="cursor:pointer"] p { color: #fff; }
 .stat-value { font-size: 3rem; font-weight: 900; font-family: var(--font-heading); margin-top: 10px; }
 
 .tab-btn {
