@@ -707,10 +707,18 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
 async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null) {
   let dec = decBuffer;
   if (!alreadyDecrypted) {
-    const verified = await verifyPIN();
-    if (!verified) return;
+    document.getElementById("view-filename").textContent = truncateName(name);
+    document.getElementById("file-view-modal").classList.remove("hidden");
+    const viewer = document.getElementById("view-content");
+    viewer.innerHTML = '<p style="color:#444;">Awaiting Identity Verification...</p>';
 
-    showToast("Establishing secure preview...", "info");
+    const verified = await verifyPIN();
+    if (!verified) {
+      closeModal('file-view-modal');
+      return;
+    }
+
+    viewer.innerHTML = '<p style="color:#444;">Establishing Secure Feed...</p>';
     try {
       const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
       const blob = await (await fetch(downloadUrl)).arrayBuffer();
@@ -722,8 +730,6 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
   }
 
   try {
-    document.getElementById("view-filename").textContent = truncateName(name);
-    document.getElementById("file-view-modal").classList.remove("hidden");
     const viewer = document.getElementById("view-content");
     viewer.innerHTML = "";
     
@@ -822,13 +828,16 @@ function getMimeType(ext) {
 }
 let currentShareFile = null;
 async function openShareModal(id, name, keyStr) {
-  const verified = await verifyPIN();
-  if (!verified) return;
-  
   currentShareFile = { id, name, keyStr };
   document.getElementById("share-modal").classList.remove("hidden");
   document.getElementById("share-step-input").classList.remove("hidden");
   document.getElementById("share-step-result").classList.add("hidden");
+
+  const verified = await verifyPIN();
+  if (!verified) {
+    closeModal('share-modal');
+    return;
+  }
 }
 
 async function generateShareLink(btn) {
