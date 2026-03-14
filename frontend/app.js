@@ -315,7 +315,11 @@ function showView(view) {
   document.getElementById("auth-section").classList.add("hidden");
   document.getElementById("view-dashboard").classList.remove("hidden");
 
-  if (view === "my-vault") { loadFolders(); loadFiles(); }
+  if (view === "my-vault") { 
+    loadFolders(); 
+    loadFiles();
+    toggleVaultSubView('folders');
+  }
   if (view === "incoming") loadFiles();
 }
 
@@ -460,13 +464,12 @@ async function renderFolderExplorer(folderId) {
 // ==========================================
 
 async function loadFiles() {
-  try {
-    const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-    const data = await res.json();
-    allFiles = data;
-    renderFiles();
-    if (currentExplorerFolderId) renderFolderExplorer(currentExplorerFolderId);
-  } catch (e) { console.error(e); }
+  const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+  allFiles = await res.json();
+  renderFiles();
+  if (currentExplorerFolderId) {
+    renderFolderExplorer(currentExplorerFolderId);
+  }
 }
 
 async function renderFiles() {
