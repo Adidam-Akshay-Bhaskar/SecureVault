@@ -144,11 +144,11 @@
     <main class="main-wrapper">
       <header>
         <div>
-          <h1 id="view-title" style="font-size: 2.5rem; font-weight: 800;">Vault Base</h1>
-          <p id="view-subtitle" style="color:#555;">Operator: <span id="welcome-message" style="color:#fff;">Agent</span></p>
+          <h1 id="view-title">Vault Base</h1>
+          <p id="view-subtitle">Operator: <span id="welcome-message">Agent</span></p>
         </div>
-        <div style="display:flex; align-items:center; gap:20px;">
-           <span id="profile-email-display" style="color:#444; font-size: 0.8rem; font-weight: 600;"></span>
+        <div class="user-info">
+           <span id="profile-email-display"></span>
            <div class="auth-logo-box" id="header-avatar" style="width:40px; height:40px; font-size:1rem; cursor:pointer;" onclick="showView('profile')">?</div>
         </div>
       </header>
@@ -157,15 +157,15 @@
       <div id="section-my-vault">
         <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:24px; margin-bottom: 3rem;">
           <div class="stat-card">
-            <p style="color:#444; font-weight:700; font-size:0.75rem; text-transform:uppercase;">Volume Records</p>
+            <p>Volume Records</p>
             <p class="stat-value" id="stat-file-count">0</p>
           </div>
           <div class="stat-card">
-            <p style="color:#444; font-weight:700; font-size:0.75rem; text-transform:uppercase;">Folders Defined</p>
+            <p>Folders Defined</p>
             <p class="stat-value" id="stat-folder-count">0</p>
           </div>
           <div class="stat-card" style="border-color:#fff; cursor:pointer;" onclick="showUploadModal()">
-            <p style="color:#fff; font-weight:700; font-size:0.75rem; text-transform:uppercase;">Initialize Upload</p>
+            <p>Initialize Upload</p>
             <p class="stat-value" style="color:#fff;">+</p>
           </div>
         </div>
