@@ -4,78 +4,87 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SecureVault | Zero Knowledge Cloud</title>
-  <link rel="stylesheet" href="style.css?v=42" />
+  <link rel="stylesheet" href="style.css?v=43" />
 </head>
 <body>
   <!-- AUTH SECTION (Modern Split UI) -->
-  <!-- AUTH SECTION (Immersive Centered UI) -->
+  <!-- AUTH SECTION (High-Fidelity 620px UI) -->
   <div id="auth-section">
-    <div class="auth-card">
-      <div class="auth-hero">
-        <div class="hero-logo">V</div>
-        <h1>SecureVault</h1>
-        <p>Zero-Knowledge E2E Encryption Protocol</p>
+    <div class="auth-container">
+      <!-- PANEL A: IMMERSIVE BRANDING -->
+      <div class="auth-hero-panel">
+        <div class="vault-logo">V</div>
+        <div class="hero-text">
+          <h1>Universal Security</h1>
+          <p>The sovereign protocol for end-to-end encrypted storage. Zero-knowledge by design, unrivaled by architecture.</p>
+        </div>
+        <div class="vault-stats">
+          <div class="stat-box">
+            <h4>Encryption</h4>
+            <p>AES-256-GCM</p>
+          </div>
+          <div class="stat-box">
+            <h4>Privacy</h4>
+            <p>Zero-Knowledge</p>
+          </div>
+        </div>
       </div>
 
-      <div class="auth-forms">
-        <!-- Login Form -->
+      <!-- PANEL B: AUTH FLOW -->
+      <div class="auth-form-panel">
+        <!-- LOGIN -->
         <div id="login-form-container">
-          <div class="form-header">
+          <div class="form-title">
             <h2>Welcome Back</h2>
-            <p>Access your private encrypted records</p>
+            <p>Authenticate to unseal your vault.</p>
           </div>
           <form id="login-form">
-            <div class="input-box">
-              <input type="email" id="login-email" placeholder="Access ID (Email)" required />
+            <div class="input-group">
+              <input type="email" id="login-email" placeholder="Identity Core (Email)" required />
             </div>
-            <div class="input-box">
+            <div class="input-group">
               <input type="password" id="login-password" placeholder="Passkey" required />
             </div>
-            <button type="submit" class="primary-btn">Initialize Session</button>
+            <button type="submit" class="auth-primary-btn">Initialize Session</button>
           </form>
-          <div class="auth-footer">
-            No secure vault? <a href="#" onclick="toggleAuthMode('register')">Create One</a>
+          <div class="auth-secondary-footer">
+            New entity? <a href="#" onclick="toggleAuthMode('register')">Provision Vault</a>
           </div>
         </div>
 
-        <!-- Register Form -->
+        <!-- REGISTER -->
         <div id="register-form-container" class="hidden">
-          <div class="form-header">
+          <div class="form-title">
             <h2>New Vault</h2>
-            <p>Define your personal encryption parameters</p>
+            <p>Define your personal encryption parameters.</p>
           </div>
           <form id="register-form">
-            <div class="input-box"><input type="text" id="reg-username" placeholder="Identity Name" required /></div>
-            <div class="input-box"><input type="email" id="reg-email" placeholder="Email (Root ID)" required /></div>
-            <div class="input-box"><input type="password" id="reg-password" placeholder="Master Passkey" required /></div>
-            <div class="input-box"><input type="password" id="reg-pin" placeholder="Security PIN (Numeric)" required /></div>
-            <button type="submit" class="primary-btn">Provision Vault</button>
+            <div class="input-group"><input type="text" id="reg-username" placeholder="Alias Name" required /></div>
+            <div class="input-group"><input type="email" id="reg-email" placeholder="Identity Core (Email)" required /></div>
+            <div class="input-group"><input type="password" id="reg-password" placeholder="Master Passkey" required /></div>
+            <div class="input-group"><input type="password" id="reg-pin" placeholder="Security PIN (Numeric)" maxlength="6" required /></div>
+            <button type="submit" class="auth-primary-btn">Launch Protocol</button>
           </form>
-          <div class="auth-footer">
-            Existing protocol? <a href="#" onclick="toggleAuthMode('login')">Access Vault</a>
+          <div class="auth-secondary-footer">
+            Active protocol? <a href="#" onclick="toggleAuthMode('login')">Access Core</a>
           </div>
         </div>
 
-        <!-- PIN Verification Form (2FA) -->
+        <!-- PIN VERIFY (2FA) -->
         <div id="verify-form-container" class="hidden">
-          <div class="form-header">
-            <h2>Verify PIN</h2>
-            <p>Enter your numeric sequence to decrypt the vault key</p>
+          <div class="form-title" style="text-align:center;">
+            <h2>Verify Identity</h2>
+            <p>Enter your unique numeric sequence.</p>
           </div>
           <form id="verify-pin-form">
-            <div class="input-box">
-              <input type="password" id="verify-pin-input" placeholder="Security PIN" maxlength="6" style="text-align:center; letter-spacing:10px;" required />
+            <div class="input-group">
+              <input type="password" id="verify-pin-input" placeholder="••••" maxlength="6" required />
             </div>
-            <button type="submit" class="primary-btn">Decrypt Identity</button>
-            <button type="button" class="action-btn" onclick="cancelVerify()" style="width:100%; margin-top:10px; border-color:#222; background:transparent; color:#fff; border-radius:14px; padding:12px; cursor:pointer;">Abort</button>
+            <button type="submit" class="auth-primary-btn">Decrypt Records</button>
+            <button type="button" onclick="logout()" style="width:100%; margin-top:15px; background:transparent; border:1px solid #222; color:#555; padding:12px; border-radius:12px; cursor:pointer; font-size:0.8rem;">Abort Sequence</button>
           </form>
         </div>
       </div>
-    </div>
-    
-    <div class="background-blobs">
-      <div class="blob blob-1"></div>
-      <div class="blob blob-2"></div>
     </div>
   </div>
 
@@ -240,6 +249,6 @@
   </div>
 
   <div id="toast-container"></div>
-  <script src="app.js?v=42"></script>
+  <script src="app.js?v=43"></script>
 </body>
 </html>
