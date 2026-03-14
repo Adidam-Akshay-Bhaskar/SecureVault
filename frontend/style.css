@@ -232,24 +232,27 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .modal-content {
   background: #0d0d10; border: none; border-top: 1px solid rgba(255,255,255,0.05); border-radius: 40px;
-  padding: 4rem; width: 100%; max-width: 580px; box-shadow: 0 50px 100px rgba(0,0,0,0.8);
+  padding: 3rem 3.5rem; width: 100%; max-width: 580px; box-shadow: 0 50px 100px rgba(0,0,0,0.8);
 }
-.modal h3 { font-family: var(--font-heading); font-size: 2.2rem; font-weight: 850; margin-bottom: 1.5rem; letter-spacing: -1px; }
+.modal h3 { font-family: var(--font-heading); font-size: 1.4rem; font-weight: 500; margin-bottom: 1.5rem; letter-spacing: 0; line-height: 1.5; color: #eee; }
 
 /* MODAL BUTTONS REDESIGN */
 .modal .btn-row { display: flex; gap: 20px; align-items: center; margin-top: 2rem; }
 .modal-secondary-btn {
   background: rgba(255,255,255,0.05); color: #fff; border: none; border-radius: 20px;
-  padding: 22px 35px; font-weight: 800; font-size: 0.9rem; cursor: pointer; transition: 0.3s;
+  padding: 20px 30px; font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: 0.3s;
   flex: 1; text-transform: uppercase;
 }
 .modal-secondary-btn:hover { background: rgba(255,255,255,0.1); }
 
 .modal .primary-btn {
-  flex: 2; margin-top: 0; padding: 22px; border-radius: 20px; font-size: 1rem;
+  flex: 2; margin-top: 0; padding: 20px; border-radius: 20px; font-size: 0.9rem; font-weight: 700;
 }
 .modal .primary-btn.danger { background: #ff3b30; color: #fff; }
-.modal .primary-btn.danger:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(255, 59, 48, 0.3); }
+.modal .primary-btn.danger:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(255, 59, 48, 0.4); }
+
+.modal .primary-btn.success { background: #34c759; color: #fff; }
+.modal .primary-btn.success:hover { transform: translateY(-3px); box-shadow: 0 15px 35px rgba(52, 199, 89, 0.4); }
 
 /* CUSTOM CHECKBOX */
 input[type="checkbox"] {
