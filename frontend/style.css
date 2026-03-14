@@ -259,6 +259,9 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
   position: fixed; inset: 0; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(10px);
   z-index: 1000; display: flex; align-items: center; justify-content: center;
 }
+#upload-modal, #confirm-modal, #share-modal, #folder-modal, #unlock-modal {
+  z-index: 2000;
+}
 .modal-content {
   background: #0d0d10; border: none; border-top: 1px solid rgba(255,255,255,0.05); border-radius: 40px;
   padding: 3rem 3.5rem; width: 100%; max-width: 580px; box-shadow: 0 50px 100px rgba(0,0,0,0.8);
