@@ -942,25 +942,93 @@ async function loadProfile() {
     const data = await res.json();
     if (!data || !data.username) return;
 
-    if (document.getElementById("profile-username-display")) document.getElementById("profile-username-display").textContent = data.username;
-    if (document.getElementById("profile-email-full")) document.getElementById("profile-email-full").textContent = data.email;
-    if (document.getElementById("profile-email-display")) document.getElementById("profile-email-display").textContent = data.email;
     if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = data.username;
     
     if (data.username) {
+      document.getElementById("profile-username-display").textContent = data.username;
+      document.getElementById("display-alias").textContent = data.username;
+      document.getElementById("profile-email-full").textContent = data.email;
+      document.getElementById("display-email").textContent = data.email;
       const initial = data.username[0].toUpperCase();
+      document.getElementById("profile-initials").textContent = initial;
       if (document.getElementById("avatar-initials")) document.getElementById("avatar-initials").textContent = initial;
-      if (document.getElementById("profile-initials")) document.getElementById("profile-initials").textContent = initial;
       if (document.getElementById("header-avatar")) document.getElementById("header-avatar").textContent = initial;
     }
     
+    const pPhoto = document.getElementById("profile-avatar-img");
+    const pInitials = document.getElementById("profile-initials");
+    const removeBtn = document.getElementById("btn-remove-photo");
+
     if (data.profile_photo) {
-      ["header-avatar-img", "profile-avatar-img"].forEach(id => {
+      pPhoto.src = data.profile_photo;
+      pPhoto.classList.remove("hidden");
+      pInitials.classList.add("hidden");
+      if (removeBtn) removeBtn.classList.remove("hidden");
+
+      ["header-avatar-img"].forEach(id => {
         const el = document.getElementById(id);
         if (el) { el.src = data.profile_photo; el.classList.remove("hidden"); }
       });
+    } else {
+      pPhoto.classList.add("hidden");
+      pInitials.classList.remove("hidden");
+      if (removeBtn) removeBtn.classList.add("hidden");
+      
+      const hImg = document.getElementById("header-avatar-img");
+      if (hImg) hImg.classList.add("hidden");
     }
   } catch (err) { console.warn("Profile sync deferred:", err); }
+}
+
+async function handleProfilePhotoUpload(input) {
+  if (!input.files || !input.files[0]) return;
+  const file = input.files[0];
+  if (file.size > 2 * 1024 * 1024) return showToast("Image exceed 2MB limit", "error");
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const photoBase64 = e.target.result;
+    showToast("Updating identity manifest...");
+    try {
+      const res = await fetch(`${API_URL}/profile/photo`, {
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        body: JSON.stringify({ photoBase64 }),
+      });
+      if (res.ok) {
+        showToast("Identity Image Updated", "success");
+        loadProfile();
+      }
+    } catch (err) { showToast("Upload failed", "error"); }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function removeProfilePhoto() {
+  const conf = await showConfirm("Permanently remove identity image?", "danger");
+  if (!conf) return;
+
+  try {
+    const res = await fetch(`${API_URL}/profile/photo`, {
+      method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+    });
+    if (res.ok) {
+      showToast("Identity image purged", "success");
+      loadProfile();
+    }
+  } catch (err) { showToast("Removal failed", "error"); }
+}
+
+async function terminateIdentity() {
+  const conf = await showConfirm("WARNING: IRREVERSIBLE ACTION. Destroy all vault data?", "danger");
+  if (!conf) return;
+  
+  const verified = await verifyPIN();
+  if (!verified) return;
+
+  showToast("Purging terminal data...");
+  // Normally would call DELETE /api/user, for now just logout
+  localStorage.clear();
+  location.reload();
 }
 
 async function toggleTheme() {

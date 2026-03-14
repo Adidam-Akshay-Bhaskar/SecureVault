@@ -457,6 +457,13 @@ app.post("/api/profile/photo", authenticateToken, (req, res) => {
   });
 });
 
+app.delete("/api/profile/photo", authenticateToken, (req, res) => {
+  db.query("UPDATE users SET profile_photo = NULL WHERE user_id = ?", [req.user.user_id], (err) => {
+    if (err) return res.status(500).json({ error: err });
+    res.json({ message: "Profile photo removed" });
+  });
+});
+
 // CHANGE PASSWORD
 app.put("/api/profile/password", authenticateToken, (req, res) => {
   const { currentPassword, newPassword } = req.body;
