@@ -122,9 +122,21 @@ input:focus, select:focus { border-color: var(--accent-cyan); background: rgba(2
 #sidebar-brand { font-family: var(--font-heading); font-size: 1.5rem; letter-spacing: 5px; font-weight: 900; color: #fff; transition: 0.3s; }
 .sidebar.collapsed #sidebar-brand { opacity: 0; pointer-events: none; }
 
+/* REDESIGNED TOGGLE BUTTONS */
+.sidebar-toggle {
+  position: absolute; top: 20px; right: -15px; width: 30px; height: 30px;
+  background: var(--accent-cyan); color: #000; border: none; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center; cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 242, 255, 0.3); z-index: 100;
+  transition: 0.3s cubic-bezier(0.16, 1, 0.3, 1); font-weight: 900; font-size: 1.1rem;
+}
+.sidebar-toggle:hover { transform: scale(1.1); box-shadow: 0 6px 15px rgba(0, 242, 255, 0.5); }
+.sidebar.collapsed .sidebar-toggle { right: 25px; transform: rotate(180deg); background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); box-shadow: none; }
+.sidebar.collapsed .sidebar-toggle:hover { background: var(--accent-cyan); color: #000; }
+
 .nav-item {
   display: flex; align-items: center; gap: 18px; padding: 18px 24px; color: var(--text-dim);
-  cursor: pointer; border-radius: 16px; transition: 0.3s; margin-bottom: 8px; font-weight: 600;
+  cursor: pointer; border-radius: 16px; transition: 0.3s; margin-bottom: 20px; font-weight: 600;
 }
 .nav-item:hover { background: rgba(255, 255, 255, 0.03); color: #fff; }
 .nav-item.active { background: rgba(0, 242, 255, 0.08); color: var(--accent-cyan); }
