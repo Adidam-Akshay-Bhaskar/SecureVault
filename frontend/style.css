@@ -184,7 +184,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .file-row {
   display: grid; 
-  grid-template-columns: 3.5fr 0.7fr 1fr 1.2fr 3.5fr;
+  grid-template-columns: minmax(200px, 3.5fr) minmax(60px, 0.7fr) minmax(80px, 1fr) minmax(100px, 1.2fr) minmax(380px, 3.5fr); 
   align-items: center; justify-items: stretch;
   padding: 20px 12px; border-bottom: 1px solid #151518; transition: 0.3s;
 }
@@ -193,7 +193,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
   background: rgba(255,255,255,0.03); font-weight: 700; color: var(--text-dim); 
   font-size: 0.75rem; border-bottom: 2px solid #151518;
 }
-.file-row p, .file-row span { margin: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-row p, .file-row span { margin: 0; text-align: left; display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .file-row:last-child { border-bottom: none; }
 
 .file-info { display: flex; align-items: center; gap: 15px; text-align: left; min-width: 0; }
