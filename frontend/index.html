@@ -4,101 +4,78 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SecureVault | Zero Knowledge Cloud</title>
-  <link rel="stylesheet" href="style.css?v=41" />
+  <link rel="stylesheet" href="style.css?v=42" />
 </head>
 <body>
   <!-- AUTH SECTION (Modern Split UI) -->
+  <!-- AUTH SECTION (Immersive Centered UI) -->
   <div id="auth-section">
-    <div class="auth-container">
-      <!-- LEFT PANEL: Branding & Decoration -->
-      <div class="auth-left">
-        <div class="auth-brand">
-          <div class="auth-logo-box">V</div>
-          <h1 class="auth-title">Secure-vault</h1>
-        </div>
-        <p class="auth-desc">
-          Your ultimate platform to host and master end-to-end encryption. 
-          Zero-knowledge cloud storage with client-side cryptography. 
-          Unrivaled security for your most sensitive records.
-        </p>
-
-        <div class="feature-grid">
-          <div class="feature-mini">
-            <h4 style="font-size: 0.9rem;">Structured</h4>
-            <p>Master vaults sequentially</p>
-          </div>
-          <div class="feature-mini">
-            <h4 style="font-size: 0.9rem;">Protocol Focus</h4>
-            <p>Advanced AES-256-GCM encryption</p>
-          </div>
-        </div>
-
-        <p style="margin-top:auto; font-size: 0.8rem; color: #444;">Made by Adidam Akshay Bhaskar</p>
+    <div class="auth-card">
+      <div class="auth-hero">
+        <div class="hero-logo">V</div>
+        <h1>SecureVault</h1>
+        <p>Zero-Knowledge E2E Encryption Protocol</p>
       </div>
 
-      <!-- RIGHT PANEL: Forms -->
-      <div class="auth-right">
-        <!-- LOGIN -->
+      <div class="auth-forms">
+        <!-- Login Form -->
         <div id="login-form-container">
-          <div class="auth-header-right">
-            <span class="hello-badge">HELLO</span>
-            <h2 class="welcome-text">Welcome Back</h2>
-            <p style="color:#555; margin-top:5px;">Sign in to unlock your vault</p>
+          <div class="form-header">
+            <h2>Welcome Back</h2>
+            <p>Access your private encrypted records</p>
           </div>
-          
           <form id="login-form">
             <div class="input-box">
-              <input type="email" id="login-email" placeholder="Email address" required />
+              <input type="email" id="login-email" placeholder="Access ID (Email)" required />
             </div>
             <div class="input-box">
-              <input type="password" id="login-password" placeholder="Passcode" required />
+              <input type="password" id="login-password" placeholder="Passkey" required />
             </div>
-            <button type="submit" class="primary-btn">Sign In</button>
+            <button type="submit" class="primary-btn">Initialize Session</button>
           </form>
-
           <div class="auth-footer">
-            Don't have an account? <a href="#" onclick="toggleAuthMode('register')">Sign Up</a>
+            No secure vault? <a href="#" onclick="toggleAuthMode('register')">Create One</a>
           </div>
         </div>
 
-        <!-- REGISTER -->
+        <!-- Register Form -->
         <div id="register-form-container" class="hidden">
-          <div class="auth-header-right">
-            <span class="hello-badge">SECURE</span>
-            <h2 class="welcome-text">Create Account</h2>
+          <div class="form-header">
+            <h2>New Vault</h2>
+            <p>Define your personal encryption parameters</p>
           </div>
-          
           <form id="register-form">
-            <div class="input-box"><input type="text" id="reg-username" placeholder="Alias / Username" required /></div>
-            <div class="input-box"><input type="email" id="reg-email" placeholder="Email address" required /></div>
-            <div class="input-box"><input type="password" id="reg-password" placeholder="Create Passcode" required /></div>
-            <div class="input-box"><input type="password" id="reg-pin" placeholder="Security PIN (4-6 digits)" maxlength="6" required /></div>
-            <button type="submit" class="primary-btn">Initialize Vault</button>
+            <div class="input-box"><input type="text" id="reg-username" placeholder="Identity Name" required /></div>
+            <div class="input-box"><input type="email" id="reg-email" placeholder="Email (Root ID)" required /></div>
+            <div class="input-box"><input type="password" id="reg-password" placeholder="Master Passkey" required /></div>
+            <div class="input-box"><input type="password" id="reg-pin" placeholder="Security PIN (Numeric)" required /></div>
+            <button type="submit" class="primary-btn">Provision Vault</button>
           </form>
-
           <div class="auth-footer">
-            Already registered? <a href="#" onclick="toggleAuthMode('login')">Sign In</a>
+            Existing protocol? <a href="#" onclick="toggleAuthMode('login')">Access Vault</a>
           </div>
         </div>
 
-        <!-- VERIFY PIN (2FA) -->
+        <!-- PIN Verification Form (2FA) -->
         <div id="verify-form-container" class="hidden">
-          <div class="auth-header-right">
-            <span class="hello-badge">SECURITY</span>
-            <h2 class="welcome-text">Enter PIN</h2>
-            <p style="color:#555; margin-top:5px;">Protocol Alpha verification required</p>
+          <div class="form-header">
+            <h2>Verify PIN</h2>
+            <p>Enter your numeric sequence to decrypt the vault key</p>
           </div>
           <form id="verify-pin-form">
             <div class="input-box">
-              <input type="password" id="verify-pin-input" placeholder="••••" maxlength="6" style="text-align:center; letter-spacing:10px;" required />
+              <input type="password" id="verify-pin-input" placeholder="Security PIN" maxlength="6" style="text-align:center; letter-spacing:10px;" required />
             </div>
-            <button type="submit" class="primary-btn">Authenticate</button>
+            <button type="submit" class="primary-btn">Decrypt Identity</button>
+            <button type="button" class="action-btn" onclick="cancelVerify()" style="width:100%; margin-top:10px; border-color:#222; background:transparent; color:#fff; border-radius:14px; padding:12px; cursor:pointer;">Abort</button>
           </form>
-          <div class="auth-footer">
-            <a href="#" onclick="logout()" style="color:#444;">Cancel Protocol</a>
-          </div>
         </div>
       </div>
+    </div>
+    
+    <div class="background-blobs">
+      <div class="blob blob-1"></div>
+      <div class="blob blob-2"></div>
     </div>
   </div>
 
@@ -263,6 +240,6 @@
   </div>
 
   <div id="toast-container"></div>
-  <script src="app.js?v=41"></script>
+  <script src="app.js?v=42"></script>
 </body>
 </html>
