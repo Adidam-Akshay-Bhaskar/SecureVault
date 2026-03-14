@@ -447,7 +447,7 @@ app.get("/api/profile", authenticateToken, (req, res) => {
   // FIX: COALESCE so profile always returns masterKey even if user_keys is empty
   const sql = `
     SELECT u.username, u.email, u.profile_photo, u.theme_preference,
-      COALESCE(k.encryption_key, u.client_master_key) as masterKey
+      COALESCE(k.encryption_key, u.client_master_key) as "masterKey"
     FROM users u
     LEFT JOIN user_keys k ON u.user_id = k.user_id
     WHERE u.user_id = ?
