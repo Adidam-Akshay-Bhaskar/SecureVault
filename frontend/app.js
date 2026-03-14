@@ -365,12 +365,16 @@ async function loadFolders() {
     allFolders.forEach(f => {
       const disp = truncateName(f.name);
       const dateStr = new Date(f.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+      const fCount = allFiles.myFiles ? allFiles.myFiles.filter(file => file.folder_id === f.folder_id).length : 0;
+      
       grid.innerHTML += `
-        <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}')">
-          <span class="folder-icon">📂</span>
-          <p class="folder-name">${disp}</p>
-          <p class="folder-count">${dateStr}</p>
-          <button class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
+        <div class="folder-row-item" style="margin-bottom:0;">
+          <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}')">
+            <span class="folder-icon">📂</span>
+            <p class="folder-name">${disp}</p>
+            <p class="folder-count">${fCount} Files • ${dateStr}</p>
+            <button class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
+          </div>
         </div>
       `;
       select.innerHTML += `<option value="${f.folder_id}">${disp}</option>`;
@@ -470,6 +474,7 @@ async function loadFiles() {
   if (currentExplorerFolderId) {
     renderFolderExplorer(currentExplorerFolderId);
   }
+  loadFolders();
 }
 
 async function renderFiles() {
