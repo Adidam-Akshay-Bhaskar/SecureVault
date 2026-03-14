@@ -1,0 +1,1016 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SecureVault | Cosmic Access</title>
+    <link rel="stylesheet" href="style.css?v=16" />
+  </head>
+  <body>
+    <!-- AUTH / LANDING SECTION -->
+    <div id="auth-section" class="section hidden">
+      <div class="auth-container">
+        <!-- Left: Hero -->
+        <!-- Left: Redesigned Hero Section -->
+        <div class="hero-section">
+          <div class="hero-content">
+            <div class="logo-wrapper">
+              <h1 class="mega-hero-title">Secure<span class="text-gradient">Vault</span></h1>
+            </div>
+            
+            <p class="hero-subtitle">
+              Your Files. <span class="highlight-pill">Safely Shared.</span><br>
+              <span class="typing-effect">Zero Knowledge. Max Speed.</span>
+            </p>
+
+            <!-- Floating Status Card (Animated) -->
+            <div class="status-card-3d glass-card animate-float">
+              <div class="status-header">
+                <div class="pulsing-dot-container">
+                  <span class="ping-wave"></span>
+                  <span class="ping-solid"></span>
+                </div>
+                <span class="status-label">SYSTEM ONLINE</span>
+              </div>
+              
+              <div class="status-grid">
+                <div class="stat-row">
+                  <span class="icon">🔒</span>
+                  <span class="text">Unbreakable Privacy</span>
+                </div>
+                 <div class="stat-row">
+                  <span class="icon">⚡</span>
+                  <span class="text">Lightning Fast Speed</span>
+                </div>
+                 <div class="stat-row">
+                  <span class="icon">🔑</span>
+                  <span class="text">Zero Digital Footprint</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Forms -->
+        <div class="auth-form-card glass-card">
+          <div class="auth-tabs" id="auth-tabs-container">
+            <button
+              id="tab-login"
+              class="tab-pill active"
+              onclick="switchAuthTab('login')"
+            >
+              Login
+            </button>
+            <button
+              id="tab-register"
+              class="tab-pill"
+              onclick="switchAuthTab('register')"
+            >
+              Register
+            </button>
+
+            <button id="tab-verify" class="tab-pill hidden">Verify PIN</button>
+            <button id="tab-reset" class="tab-pill hidden">Reset</button>
+          </div>
+
+          <!-- Login Form -->
+          <form id="login-form">
+            <input
+              type="email"
+              id="login-email"
+              placeholder="Access Email"
+              required
+            />
+            <input
+              type="password"
+              id="login-password"
+              placeholder="Passcode"
+              required
+            />
+            <button type="submit" class="primary-btn" style="width: 100%">
+              Access Dashboard
+            </button>
+            <div style="text-align: center; margin-top: 1rem">
+              <a
+                href="#"
+                onclick="switchAuthTab('reset')"
+                style="
+                  color: var(--primary-glow);
+                  font-size: 0.9rem;
+                  text-decoration: none;
+                  border-bottom: 1px dotted var(--primary-glow);
+                "
+                >Forgot Password?</a
+              >
+            </div>
+          </form>
+
+          <!-- PIN Verification Form (Step 2) -->
+          <form id="verify-pin-form" class="hidden">
+            <div style="text-align: center; margin-bottom: 0.5rem">
+              <span
+                style="font-size: 1.5rem; display: block; margin-bottom: 0.2rem"
+                >🔒</span
+              >
+              <p style="color: var(--text-muted); font-size: 0.8rem">
+                Enter Security PIN
+              </p>
+            </div>
+            <input
+              type="password"
+              id="verify-pin-input"
+              placeholder="••••"
+              maxlength="6"
+              style="
+                border-color: #4f46e5;
+                text-align: center;
+                font-size: 1.2rem;
+                letter-spacing: 0.4rem;
+                background: #ffffff;
+                color: #000;
+                padding: 0.5rem;
+              "
+              required
+            />
+            <button
+              type="submit"
+              class="primary-btn"
+              style="width: 100%; margin-top: 0.6rem; padding: 0.5rem"
+            >
+              Unseal
+            </button>
+            <button
+              type="button"
+              class="secondary-btn"
+              style="
+                width: 100%;
+                margin-top: 0.4rem;
+                font-size: 0.8rem;
+                padding: 0.4rem;
+                background: #000 !important;
+                color: #fff !important;
+              "
+              onclick="cancelVerify()"
+            >
+              Cancel
+            </button>
+          </form>
+
+          <!-- Register Form -->
+          <form id="register-form" class="hidden">
+            <input
+              type="text"
+              id="reg-username"
+              placeholder="Choose Codename"
+              required
+              style="margin-bottom: 0.7rem; padding: 0.7rem"
+            />
+            <input
+              type="email"
+              id="reg-email"
+              placeholder="Access Email"
+              required
+              style="margin-bottom: 0.7rem; padding: 0.7rem"
+            />
+            <input
+              type="password"
+              id="reg-password"
+              placeholder="Create Passcode"
+              required
+              style="margin-bottom: 0.7rem; padding: 0.7rem"
+            />
+            <input
+              type="password"
+              id="reg-pin"
+              placeholder="Security PIN (4 or 6 Digits)"
+              maxlength="6"
+              required
+              style="margin-bottom: 0.5rem; padding: 0.7rem"
+            />
+            <div
+              class="caution-glass-box"
+              style="padding: 8px; margin-top: 0; margin-bottom: 0.7rem"
+            >
+              <p style="font-size: 0.75rem">
+                ⚠️ Warning: PIN is unrecoverable. Save it securely.
+              </p>
+            </div>
+            <button
+              type="submit"
+              class="primary-btn"
+              style="
+                width: 100%;
+                margin-top: 0;
+                padding: 0.7rem;
+                font-size: 0.95rem;
+              "
+            >
+              Get Started
+            </button>
+          </form>
+
+
+          <!-- Reset Password Form -->
+
+          <!-- Reset Step 1: Identity -->
+          <form id="reset-identity-form" class="hidden">
+            <h3
+              style="
+                text-align: center;
+                margin-bottom: 1.5rem;
+                color: var(--primary-glow);
+              "
+            >
+              Identity Check
+            </h3>
+            <input
+              type="email"
+              id="reset-email"
+              placeholder="Access Email"
+              required
+            />
+            <input
+              type="password"
+              id="reset-pin"
+              placeholder="Security PIN (Required)"
+              maxlength="6"
+              required
+            />
+            <button
+              type="submit"
+              class="primary-btn"
+              style="width: 100%; margin-top: 1rem"
+            >
+              Verify Identity
+            </button>
+            <button
+              type="button"
+              class="secondary-btn"
+              style="width: 100%; margin-top: 0.8rem"
+              onclick="switchAuthTab('login')"
+            >
+              Cancel
+            </button>
+          </form>
+
+          <!-- Reset Step 2: New Password -->
+          <!-- Reset Step 2: New Password -->
+          <form id="reset-password-form" class="hidden">
+            <h3
+              style="
+                text-align: center;
+                margin-bottom: 0.8rem;
+                color: var(--primary-glow);
+                font-size: 1.1rem;
+              "
+            >
+              New Credentials
+            </h3>
+            <input
+              type="password"
+              id="reset-new-password"
+              placeholder="New Passcode"
+              required
+              style="margin-bottom: 0.5rem"
+            />
+            <input
+              type="password"
+              id="reset-confirm-password"
+              placeholder="Re-enter Passcode"
+              required
+            />
+            <button
+              type="submit"
+              class="primary-btn"
+              style="width: 100%; margin-top: 0.8rem; padding: 0.6rem"
+            >
+              Update
+            </button>
+            <button
+              type="button"
+              class="secondary-btn"
+              style="width: 100%; margin-top: 0.5rem; padding: 0.5rem"
+              onclick="switchAuthTab('reset')"
+            >
+              Back
+            </button>
+          </form>
+        </div>
+      </div>
+      
+
+    </div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirm-modal" class="modal hidden">
+      <div
+        class="modal-content glass-card"
+        style="
+          text-align: center;
+          border: 1px solid var(--primary-glow);
+          box-shadow: 0 0 20px rgba(99, 102, 241, 0.2);
+        "
+      >
+        <h3
+          id="confirm-msg"
+          class="modal-title"
+          style="margin-bottom: 1.5rem; font-size: 1.2rem"
+        >
+          Confirm Action
+        </h3>
+        <div style="display: flex; gap: 1rem; justify-content: center">
+          <button
+            id="confirm-cancel-btn"
+            class="secondary-btn"
+            style="min-width: 100px"
+          >
+            Cancel
+          </button>
+          <button
+            id="confirm-ok-btn"
+            class="primary-btn"
+            style="min-width: 100px"
+          >
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PREMIUM OTP VERIFICATION MODAL -->
+    <div id="otp-modal" class="modal hidden">
+      <div class="modal-content otp-modal-content glass-card">
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 2rem">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem">🔐</div>
+          <h3
+            style="
+              margin: 0;
+              color: var(--primary-glow);
+              font-size: 1.5rem;
+              font-weight: 700;
+            "
+          >
+            Two-Factor Authentication
+          </h3>
+          <p
+            style="
+              color: var(--text-muted);
+              font-size: 0.85rem;
+              margin-top: 0.5rem;
+            "
+          >
+            Enter the 6-digit code to verify your identity
+          </p>
+        </div>
+
+        <!-- Email Notification -->
+        <div
+          class="caution-glass-box"
+          style="padding: 12px; margin-bottom: 2rem; text-align: center"
+        >
+          <p style="font-size: 0.85rem; margin: 0">
+            📧 OTP sent to
+            <span
+              id="otp-modal-email"
+              style="color: var(--primary-glow); font-weight: 600"
+            ></span>
+          </p>
+        </div>
+
+        <!-- 6-Digit OTP Boxes -->
+        <div class="otp-container" style="margin-bottom: 1.5rem">
+          <input
+            type="text"
+            class="otp-box"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            data-index="0"
+          />
+          <input
+            type="text"
+            class="otp-box"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            data-index="1"
+          />
+          <input
+            type="text"
+            class="otp-box"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            data-index="2"
+          />
+          <input
+            type="text"
+            class="otp-box"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            data-index="3"
+          />
+          <input
+            type="text"
+            class="otp-box"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            data-index="4"
+          />
+          <input
+            type="text"
+            class="otp-box"
+            maxlength="1"
+            pattern="[0-9]"
+            inputmode="numeric"
+            data-index="5"
+          />
+        </div>
+
+        <p
+          style="
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+            margin-bottom: 2rem;
+          "
+        >
+          Check your email or server console for the code
+        </p>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: 1rem">
+          <button
+            type="button"
+            onclick="closeOTPModal()"
+            class="secondary-btn"
+            style="flex: 1; padding: 0.9rem"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            id="otp-verify-btn"
+            onclick="verifyOTP()"
+            class="primary-btn"
+            style="flex: 2; padding: 0.9rem; font-weight: 700"
+          >
+            Verify OTP
+          </button>
+        </div>
+
+        <!-- Resend Link -->
+        <div style="text-align: center; margin-top: 1.5rem">
+          <a
+            href="#"
+            onclick="resendOTP(); return false;"
+            style="
+              color: var(--primary-glow);
+              font-size: 0.85rem;
+              text-decoration: none;
+              border-bottom: 1px dotted var(--primary-glow);
+            "
+            >Didn't receive code? Resend</a
+          >
+        </div>
+      </div>
+    </div>
+
+    <!-- APP HEADER (Shared for Dashboard & Profile) -->
+    <header id="app-header" class="hidden">
+      <div class="logo">SecureVault</div>
+
+      <!-- Nav Actions Container (Glass Pill) -->
+      <div
+        class="actions-pill-container"
+        style="
+          display: flex;
+          gap: 1.5rem;
+          align-items: center;
+          background: rgba(255, 255, 255, 0.03);
+          border: 1px solid var(--glass-border);
+          border-radius: 24px;
+          padding: 10px 25px;
+          backdrop-filter: blur(5px);
+        "
+      >
+        <!-- 1. Theme Toggle -->
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
+          "
+          onclick="toggleTheme()"
+        >
+          <button
+            id="theme-toggle-btn"
+            class="theme-toggle-icon"
+            title="Toggle Theme"
+            onclick="event.stopPropagation(); toggleTheme()"
+          >
+            <span id="theme-icon" class="theme-icon">🌙</span>
+          </button>
+          <span
+            style="
+              font-size: 0.65rem;
+              color: var(--text-muted);
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            "
+            >Theme</span
+          >
+        </div>
+
+        <!-- 2. Profile -->
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            cursor: pointer;
+          "
+          onclick="showProfile()"
+        >
+          <div
+            class="avatar-btn"
+            id="header-avatar"
+            style="border: 1px solid var(--glass-border)"
+          >
+            <span id="avatar-initials">UN</span>
+            <img id="header-avatar-img" src="" class="hidden" alt="Profile" />
+          </div>
+          <span
+            style="
+              font-size: 0.65rem;
+              color: var(--text-muted);
+              font-weight: 600;
+              text-transform: uppercase;
+              letter-spacing: 0.5px;
+            "
+            >Profile</span
+          >
+        </div>
+
+
+
+         <!-- 4. Logout -->
+         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem; cursor: pointer;" onclick="logout()">
+             <button class="theme-toggle-icon logout-btn-anim" title="Logout" onclick="event.stopPropagation(); logout()" style="background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2);">
+                <span style="font-size: 1.2rem; color: var(--danger); font-weight: bold; margin-top: -2px;">⏻</span>
+             </button>
+             <span style="font-size: 0.65rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Logout</span>
+         </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- DASHBOARD SECTION -->
+    <div id="dashboard-section" class="section hidden">
+      <!-- Header moved to shared app-header -->
+      <main>
+        <!-- My Files -->
+        <div class="actions-bar">
+          <h2>My Data Vault</h2>
+          <button onclick="showUploadModal()" class="primary-btn">
+            <span style="margin-right: 8px">+</span> Upload Data
+          </button>
+        </div>
+
+        <div class="glass-card" style="padding: 1rem; margin-bottom: 3rem">
+          <table class="file-table">
+            <thead>
+              <tr
+                style="
+                  text-align: left;
+                  color: var(--text-muted);
+                  font-size: 0.8rem;
+                  text-transform: uppercase;
+                "
+              >
+                <th style="padding-bottom: 1rem">Filename</th>
+                <th style="padding-bottom: 1rem">Type</th>
+                <th style="padding-bottom: 1rem">Size</th>
+                <th style="padding-bottom: 1rem">Date and Time</th>
+                <th style="padding-bottom: 1rem">Protocols</th>
+              </tr>
+            </thead>
+            <tbody id="file-list-body">
+              <!-- Files -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Shared Files -->
+        <div class="actions-bar">
+          <h2>Incoming Data</h2>
+        </div>
+        <div class="glass-card" style="padding: 1rem">
+          <table class="file-table">
+            <thead>
+              <tr>
+                <th>Filename</th>
+                <th>Date Received</th>
+                <th>SHARED BY</th>
+                <th>Protocols</th>
+              </tr>
+            </thead>
+            <tbody id="shared-list-body">
+              <!-- Shared -->
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <!-- PROFILE PAGE SECTION (New) -->
+    <div id="profile-section" class="section hidden">
+      <main>
+        <div class="back-btn" onclick="showDashboard()">
+          <span>←</span> Return to Dashboard
+        </div>
+
+        <div class="glass-card profile-container">
+          <div class="profile-header">
+            <!-- Large Editable Avatar -->
+            <div
+              class="avatar-btn big-avatar"
+              onclick="event.stopPropagation(); document.getElementById('profile-upload').click()"
+              style="position: relative"
+            >
+              <span id="profile-initials">UN</span>
+              <img
+                id="profile-avatar-img"
+                src=""
+                class="hidden"
+                alt="Profile"
+              />
+              <div class="edit-badge" title="Change Photo">✏️</div>
+              <div
+                id="remove-photo-btn"
+                class="remove-badge hidden"
+                title="Remove Photo"
+                onclick="event.stopPropagation(); removeProfilePhoto()"
+              >
+                🗑️
+              </div>
+            </div>
+            <input
+              type="file"
+              id="profile-upload"
+              accept="image/*"
+              hidden
+              onchange="uploadProfilePhoto(this)"
+            />
+
+            <h2 id="profile-username-display" style="margin-bottom: 0.2rem">
+              User Name
+            </h2>
+            <p id="profile-email-display" style="color: var(--primary-glow)">
+              user@example.com
+            </p>
+            <button
+              onclick="logout()"
+              class="secondary-btn"
+              style="
+                margin-top: 1.5rem;
+                border-color: var(--danger);
+                color: var(--danger);
+              "
+            >
+              Logout
+            </button>
+          </div>
+
+          <hr
+            style="
+              border: 0;
+              border-top: 1px solid var(--glass-border);
+              margin: 2rem 0;
+            "
+          />
+
+          <h3>Security Settings</h3>
+          <form id="update-password-form" style="margin-top: 1.5rem">
+            <input
+              type="password"
+              id="current-password"
+              placeholder="Current Passcode"
+              required
+            />
+            <input
+              type="password"
+              id="new-password"
+              placeholder="New Passcode"
+              required
+            />
+            <button type="submit" class="primary-btn" style="width: 100%">
+              Update Security
+            </button>
+          </form>
+        </div>
+      </main>
+    </div>
+
+    <!-- TOASTS -->
+    <div id="toast-container"></div>
+
+    <!-- MODALS (Redesigned) -->
+    <div id="upload-modal" class="modal hidden">
+      <div class="modal-content">
+        <h3 class="modal-title">Encrypted Upload</h3>
+        <form id="upload-form">
+          <div
+            style="
+              border: 2px dashed var(--glass-border);
+              padding: 2rem;
+              border-radius: 12px;
+              text-align: center;
+              margin-bottom: 1.5rem;
+            "
+          >
+            <input
+              type="file"
+              id="file-input"
+              required
+              style="display: none"
+              onchange="const label = document.getElementById('file-label'); label.textContent = this.files[0].name; label.title = this.files[0].name;"
+            />
+            <button
+              type="button"
+              class="secondary-btn"
+              onclick="document.getElementById('file-input').click()"
+            >
+              Select File
+            </button>
+            <p id="file-label" style="margin-top: 1rem; font-size: 0.9rem; cursor: help;" title="">
+              No file selected
+            </p>
+          </div>
+          <div class="modal-actions">
+            <button
+              type="button"
+              onclick="closeModal('upload-modal')"
+              class="secondary-btn"
+            >
+              Abort
+            </button>
+            <button type="submit" class="primary-btn">
+              Encrypt & Transmit
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="share-modal" class="modal hidden">
+      <div class="modal-content share-modal-container">
+        <!-- New Header Icon -->
+        <h3 class="modal-title" style="margin-bottom: 1.5rem">
+          Secure Share Channel
+        </h3>
+
+        <!-- Header Fixed -->
+
+        <form id="share-form">
+          <!-- STEP 1: INPUTS (Redux) -->
+          <div id="share-step-input">
+            <p
+              style="
+                text-align: center;
+                color: var(--text-muted);
+                font-size: 0.9rem;
+                letter-spacing: 1px;
+                margin-bottom: 0.5rem;
+                text-transform: uppercase;
+              "
+            >
+              Recipient Identity
+            </p>
+
+            <div class="share-input-redux">
+              <input
+                type="email"
+                id="share-email"
+                required
+                placeholder="target@uplink.com"
+              />
+            </div>
+
+            <label class="toggle-wrapper" for="share-allow-download">
+              <span class="toggle-label">Allow Data Extraction</span>
+              <input
+                type="checkbox"
+                id="share-allow-download"
+                class="toggle-checkbox"
+                checked
+              />
+              <div class="toggle-switch">
+                <div class="toggle-knob"></div>
+              </div>
+            </label>
+
+            <div class="modal-actions-redux">
+              <button
+                type="submit"
+                id="share-btn-submit"
+                class="btn-redux-primary"
+              >
+                Initialize Uplink
+              </button>
+              <button
+                type="button"
+                onclick="closeModal('share-modal')"
+                class="btn-redux-secondary"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+
+          <!-- STEP 2: RESULT (File Details + Token) - Initially Hidden -->
+          <div id="share-step-result" class="hidden share-result-container">
+            <div class="result-file-display">
+              <div class="result-file-icon">📄</div>
+              <div class="result-file-text">
+                <span id="share-file-name" class="highlight-text" style="max-width: 350px;"
+                  >Filename</span
+                >
+                <span>Secure Channel Established</span>
+              </div>
+            </div>
+
+            <div class="result-token-section">
+              <label>AUTHENTICATION TOKEN GENERATED</label>
+              <div class="token-row">
+                <input type="text" id="generated-share-key" readonly />
+                <button
+                  type="button"
+                  onclick="copyShareKey()"
+                  class="action-glass-btn btn-view"
+                  style="
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                  "
+                >
+                  <span>Copy</span>
+                </button>
+              </div>
+              <p>Share this token securely with the recipient.</p>
+            </div>
+
+            <div class="result-actions">
+              <button
+                type="button"
+                onclick="closeModal('share-modal')"
+                class="btn-redux-secondary large-close"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div id="unlock-modal" class="modal hidden">
+      <div class="modal-content" style="max-width: 500px; transition: height 0.3s ease;">
+        
+        <!-- STEP 1: DECRYPTION KEY -->
+        <div id="unlock-step-1">
+          <h3 class="modal-title">Decrypt Incoming Data</h3>
+          <p style="margin-bottom: 1.5rem">
+            Enter the unique decryption key to unseal this file.
+          </p>
+          <form id="unlock-form">
+            <input type="hidden" id="unlock-file-id" />
+            <input type="hidden" id="unlock-encrypted-key" />
+            <input
+              type="text"
+              id="unlock-key-input"
+              placeholder="Paste Decryption Key"
+              required
+              style="
+                font-family: monospace;
+                text-align: center;
+                font-size: 1.2rem;
+                letter-spacing: 1px;
+              "
+            />
+            <div class="modal-actions">
+              <button
+                type="button"
+                onclick="closeModal('unlock-modal')"
+                class="secondary-btn"
+              >
+                Cancel
+              </button>
+              <button type="submit" class="primary-btn">Decrypt & Verify</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- STEP 2: PIN VERIFICATION (Initially Hidden) -->
+        <div id="unlock-step-2" class="hidden" style="text-align: center;">
+          <div style="font-size: 3rem; margin-bottom: 0.5rem">🔐</div>
+          <h3 class="modal-title" style="margin-bottom: 0.5rem;">Security Check</h3>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            Enter your Security PIN to finalize access
+          </p>
+          
+          <form id="file-pin-form">
+            <input
+              type="password"
+              id="file-pin-input"
+              class="pin-input-field"
+              placeholder="Enter PIN"
+              maxlength="6"
+              required
+            />
+            
+            <div class="modal-actions">
+              <button
+                type="button"
+                onclick="backToUnlockStep1()"
+                class="secondary-btn"
+              >
+                Back
+              </button>
+              <button type="submit" class="primary-btn">
+                Access File
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- NEW: Secure Access / Viewer Modal -->
+    <div id="access-modal" class="modal hidden">
+      <div
+        class="modal-content glass-card"
+        style="
+          width: 95%;
+          max-width: 1000px;
+          height: 90vh;
+          display: flex;
+          flex-direction: column;
+          padding: 0;
+        "
+      >
+        <!-- Viewer Header -->
+        <div
+        <div class="viewer-header">
+          <div class="viewer-title-container">
+            <h3 id="access-filename" style="margin: 0">Secure Document</h3>
+            <div
+              id="access-badges"
+              style="margin-top: 0.5rem; display: flex; gap: 10px; flex-wrap: wrap;"
+            >
+              <!-- Badges injected here -->
+            </div>
+          </div>
+          <div class="viewer-actions">
+            <button
+              onclick="closeViewer()"
+              class="danger-btn"
+              style="padding: 0.5rem 1rem; font-size: 0.85rem; min-width: auto"
+            >
+              Close & Burn
+            </button>
+          </div>
+        </div>
+
+        <!-- Viewer Body -->
+        <div
+          id="access-viewer-body"
+          style="
+            flex: 1;
+            background: #000;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+          "
+        >
+          <p style="color: var(--text-muted)">Loading secure content...</p>
+        </div>
+      </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.2/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="app.js?v=15" defer></script>
+  </body>
+</html>
