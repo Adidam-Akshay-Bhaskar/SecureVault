@@ -521,13 +521,14 @@ function openShareModal(id, name, keyStr) {
   document.getElementById("share-step-result").classList.add("hidden");
 }
 
-async function generateShareLink() {
-  const email = document.getElementById("share-email").value;
+async function generateShareLink(btn) {
+  if (!currentShareFile) return showToast("No file selected for sharing", "error");
+  const email = document.getElementById("share-email").value.trim();
   if (!email) return showToast("Recipient email is required", "error");
   
-  const btn = event.target;
-  const orig = btn.textContent;
-  btn.textContent = "Securing..."; btn.disabled = true;
+  const targetBtn = btn || (window.event ? window.event.target : null);
+  const origText = targetBtn ? targetBtn.textContent : "Generate Link";
+  if (targetBtn) { targetBtn.textContent = "Securing..."; targetBtn.disabled = true; }
 
   try {
     const [ivHex, keyBase64] = currentShareFile.keyStr.split(":");
@@ -558,10 +559,10 @@ async function generateShareLink() {
       showToast(data.message || "Sharing protocol failed", "error");
     }
   } catch (err) { 
-    console.error(err);
-    showToast("Share Encryption Failed", "error"); 
+    console.error("Share Protocol Deviation:", err);
+    showToast("Share Encryption Failed: " + (err.message || "Internal error"), "error"); 
   } finally {
-    btn.textContent = orig; btn.disabled = false;
+    if (targetBtn) { targetBtn.textContent = origText; targetBtn.disabled = false; }
   }
 }
 
