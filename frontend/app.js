@@ -1036,6 +1036,12 @@ async function toggleTheme() {
   if (!verified) return;
   document.body.classList.toggle("theme-dark");
   document.body.classList.toggle("theme-light");
+  
+  const status = document.getElementById("theme-status-text");
+  if (status) {
+    status.textContent = document.body.classList.contains("theme-light") ? "Daylight Manifest" : "Midnight Protocol";
+  }
+  
   showToast("Visual protocol updated", "success");
 }
 
