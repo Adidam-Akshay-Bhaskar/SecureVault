@@ -777,9 +777,11 @@ async function toggleTheme() {
   // Space BG
   initSpace();
 
-  // Preloader Sequence
+  // Preloader Elements
   const preloader = document.getElementById("preloader");
   const authSection = document.getElementById("auth-section");
+  const flyingKey = document.querySelector(".flying-key");
+  const lockShackle = document.querySelector(".lock-shackle");
   
   if (localStorage.getItem("sidebarCollapsed") === "true") {
     const sidebar = document.querySelector(".sidebar");
@@ -793,37 +795,49 @@ async function toggleTheme() {
   
   // Cinematic Timeline
   setTimeout(() => {
-    // 1. Trigger Lock Opening
-    if (preloader) preloader.classList.add("unlocked");
+    // 1. Key Fly-In
+    if (flyingKey) {
+      flyingKey.style.opacity = '1';
+      flyingKey.style.animation = 'key-intro 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
+    }
     
     setTimeout(() => {
-      // 2. Reveal SecureVault Text
-      if (preloader) preloader.classList.add("text-reveal");
+      // 2. Key Insert & Unlock
+      if (flyingKey) flyingKey.style.animation = 'key-unlock 0.8s ease-in-out forwards';
       
-      setTimeout(async () => {
-        // 3. Enter Landing Page
-        if (preloader) {
-           preloader.style.opacity = '0';
-           preloader.style.transition = 'opacity 0.8s ease';
-           setTimeout(() => preloader.classList.add("hidden"), 800);
-        }
-        if (authSection) {
-          authSection.classList.remove("hidden");
-          authSection.style.animation = 'card-appear 1.2s cubic-bezier(0.23, 1, 0.32, 1)';
-        }
+      setTimeout(() => {
+        // 3. Trigger Lock Physical Opening
+        if (preloader) preloader.classList.add("unlocked");
         
-        if (token) {
-          try { 
-            await loadProfile(); 
-            showView("my-vault"); 
-          } catch (err) { 
-            console.error("Session restoration failed:", err);
-            logout(); 
-          }
-        } else {
-          toggleAuthMode("login");
-        }
-      }, 1500); // Wait for text-reveal progress
-    }, 1000); // Wait for lock animation
-  }, 1200); // Initial delay
+        setTimeout(() => {
+          // 4. Reveal SecureVault Text
+          if (preloader) preloader.classList.add("text-reveal");
+          
+          setTimeout(async () => {
+            // 5. Fade to Portal
+            if (preloader) {
+               preloader.style.opacity = '0';
+               preloader.style.pointerEvents = 'none';
+               setTimeout(() => preloader.classList.add("hidden"), 1000);
+            }
+            if (authSection) {
+              authSection.classList.remove("hidden");
+            }
+            
+            if (token) {
+              try { 
+                await loadProfile(); 
+                showView("my-vault"); 
+              } catch (err) { 
+                console.error("Session restoration failed:", err);
+                logout(); 
+              }
+            } else {
+              toggleAuthMode("login");
+            }
+          }, 2000); // Progress bar duration
+        }, 600); // Wait for shackle to lift
+      }, 500); // Wait for key to "turn"
+    }, 1200); // Wait for key fly-in
+  }, 800); // Initial breathing room
 })();
