@@ -142,24 +142,40 @@ function closeModal(id) {
   if (el) el.classList.add("hidden"); 
 }
 
-// Particle System for Background
-function initParticles() {
-  const container = document.getElementById("particles");
-  if (!container) return;
-  const count = 30;
-  for (let i = 0; i < count; i++) {
-    const p = document.createElement("div");
-    p.className = "particle";
-    const size = Math.random() * 3 + 1;
-    p.style.width = `${size}px`;
-    p.style.height = `${size}px`;
-    p.style.left = `${Math.random() * 100}%`;
-    p.style.top = `${Math.random() * 100}%`;
-    p.style.opacity = Math.random() * 0.5;
-    p.style.setProperty("--duration", `${Math.random() * 10 + 10}s`);
-    p.style.setProperty("--delay", `${Math.random() * 5}s`);
-    container.appendChild(p);
-  }
+// Cinematic Space System
+function initSpace() {
+  const fields = [
+    { id: "starfield-1", count: 80, size: 1, duration: '100s' },
+    { id: "starfield-2", count: 40, size: 2, duration: '60s' },
+    { id: "starfield-3", count: 20, size: 3, duration: '30s' }
+  ];
+
+  fields.forEach(field => {
+    const container = document.getElementById(field.id);
+    if (!container) return;
+    for (let i = 0; i < field.count; i++) {
+      const star = document.createElement("div");
+      star.className = "star";
+      star.style.width = `${field.size}px`;
+      star.style.height = `${field.size}px`;
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.setProperty("--blink-duration", `${Math.random() * 3 + 1}s`);
+      container.appendChild(star);
+    }
+    container.style.animation = `star-move ${field.duration} linear infinite alternate`;
+  });
+
+  // Shooting Stars
+  const shootingContainer = document.getElementById("shooting-stars");
+  setInterval(() => {
+    const star = document.createElement("div");
+    star.className = "shooting-star";
+    star.style.left = `${Math.random() * 100}%`;
+    star.style.top = `${Math.random() * 50}%`;
+    shootingContainer.appendChild(star);
+    setTimeout(() => star.remove(), 4000);
+  }, 3000);
 }
 
 
@@ -758,10 +774,10 @@ async function toggleTheme() {
 
 // Init
 (async function init() {
-  // Particle BG
-  initParticles();
+  // Space BG
+  initSpace();
 
-  // Preloader Logic
+  // Preloader Sequence
   const preloader = document.getElementById("preloader");
   const authSection = document.getElementById("auth-section");
   
@@ -775,21 +791,39 @@ async function toggleTheme() {
 
   const token = localStorage.getItem("token");
   
-  // Simulation of "Unlocking"
-  setTimeout(async () => {
-    if (preloader) preloader.classList.add("fade-out");
-    if (authSection) authSection.classList.remove("hidden");
+  // Cinematic Timeline
+  setTimeout(() => {
+    // 1. Trigger Lock Opening
+    if (preloader) preloader.classList.add("unlocked");
     
-    if (token) {
-      try { 
-        await loadProfile(); 
-        showView("my-vault"); 
-      } catch (err) { 
-        console.error("Session restoration failed:", err);
-        logout(); 
-      }
-    } else {
-      toggleAuthMode("login");
-    }
-  }, 2500); // 2.5s premium intro
+    setTimeout(() => {
+      // 2. Reveal SecureVault Text
+      if (preloader) preloader.classList.add("text-reveal");
+      
+      setTimeout(async () => {
+        // 3. Enter Landing Page
+        if (preloader) {
+           preloader.style.opacity = '0';
+           preloader.style.transition = 'opacity 0.8s ease';
+           setTimeout(() => preloader.classList.add("hidden"), 800);
+        }
+        if (authSection) {
+          authSection.classList.remove("hidden");
+          authSection.style.animation = 'card-appear 1.2s cubic-bezier(0.23, 1, 0.32, 1)';
+        }
+        
+        if (token) {
+          try { 
+            await loadProfile(); 
+            showView("my-vault"); 
+          } catch (err) { 
+            console.error("Session restoration failed:", err);
+            logout(); 
+          }
+        } else {
+          toggleAuthMode("login");
+        }
+      }, 1500); // Wait for text-reveal progress
+    }, 1000); // Wait for lock animation
+  }, 1200); // Initial delay
 })();
