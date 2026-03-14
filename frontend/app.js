@@ -412,8 +412,6 @@ async function renderFiles() {
     try {
       const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
       const ext = meta.filename.split(".").pop().toUpperCase();
-      const folderRef = allFolders.find(fold => fold.folder_id === f.folder_id);
-      const folderDisplayName = folderRef ? folderRef.name : "Root Vault";
 
       myBody.innerHTML += `
         <div class="file-row">
@@ -426,17 +424,16 @@ async function renderFiles() {
           <p style="color:var(--text-muted); font-size:0.8rem;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
           <p style="color:var(--text-muted); font-size:0.75rem;">${new Date(f.created_at).toLocaleDateString()}</p>
-          <div><p class="file-folder-name">${folderDisplayName}</p></div>
           <div class="btn-group">
-            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">View</button>
-            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')">Save</button>
-            <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')">Share</button>
-            <button class="action-btn delete" onclick="deleteFile(${f.file_id})">Delete</button>
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})" title="View">👁️</button>
+            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')" title="Save">⬇️</button>
+            <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')" title="Share">↗️</button>
+            <button class="action-btn delete" onclick="deleteFile(${f.file_id})" title="Delete">🗑️</button>
           </div>
         </div>
       `;
     } catch {
-      myBody.innerHTML += `<div class="file-row"><p style="color:var(--danger)">🔒 Decryption Conflict</p></div>`;
+      myBody.innerHTML += `<div class="file-row"><p style="color:var(--danger)">Unrecoverable Conflict</p></div>`;
     }
   }
 
@@ -449,8 +446,8 @@ async function renderFiles() {
         <p style="color:var(--text-muted); font-size:0.8rem;">${f.sender_email}</p>
         <p style="color:var(--text-muted); font-size:0.8rem;">${new Date(f.created_at).toLocaleDateString()}</p>
         <div class="btn-group">
-          <button class="action-btn" style="border-color:var(--primary); color:var(--primary);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')">Unlock</button>
-          <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})">Delete</button>
+          <button class="action-btn" style="border-color:var(--primary); color:var(--primary);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')" title="Unlock">🔓</button>
+          <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})" title="Delete">🗑️</button>
         </div>
       </div>
     `;
