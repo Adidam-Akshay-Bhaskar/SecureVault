@@ -194,7 +194,8 @@ app.post("/api/save-master-key", authenticateToken, (req, res) => {
   const { masterKey } = req.body;
   if (!masterKey) return res.status(400).json({ message: "Master key missing" });
   
-  db.query("UPDATE users SET client_master_key = ? WHERE user_id = ?", [masterKey, req.user.user_id], (err) => {
+  const sql = "INSERT INTO user_keys (user_id, encryption_key) VALUES (?, ?) ON CONFLICT (user_id) DO UPDATE SET encryption_key = EXCLUDED.encryption_key";
+  db.query(sql, [req.user.user_id, masterKey], (err) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json({ message: "Security key synchronized" });
   });
@@ -302,13 +303,19 @@ function generateTokenAndResponse(res, user) {
     { user_id: user.user_id, email: user.email },
     process.env.JWT_SECRET
   );
-  res.json({
-    accessToken: accessToken,
-    user: { 
-      username: user.username, 
-      email: user.email,
-      masterKey: user.client_master_key // Sycnronize the key to the client
-    },
+
+  // Fetch key from user_keys table
+  db.query("SELECT encryption_key FROM user_keys WHERE user_id = ?", [user.user_id], (err, keyResults) => {
+    const masterKey = (!err && keyResults.length > 0) ? keyResults[0].encryption_key : null;
+    
+    res.json({
+      accessToken: accessToken,
+      user: { 
+        username: user.username, 
+        email: user.email,
+        masterKey: masterKey // Synchronize the key to the client
+      },
+    });
   });
 }
 
@@ -512,20 +519,18 @@ app.get("/api/debug/users", (req, res) => {
 });
 
 app.get("/api/profile", authenticateToken, (req, res) => {
-  const sql = "SELECT username, email, profile_photo, theme_preference, client_master_key FROM users WHERE user_id = ?";
+  const sql = `
+    SELECT u.username, u.email, u.profile_photo, u.theme_preference, k.encryption_key as masterKey
+    FROM users u
+    LEFT JOIN user_keys k ON u.user_id = k.user_id
+    WHERE u.user_id = ?
+  `;
   db.query(sql, [req.user.user_id], (err, results) => {
     if (err) return res.status(500).json({ error: err });
     if (results.length === 0)
       return res.status(404).json({ message: "User not found" });
     
-    const user = results[0];
-    res.json({
-      username: user.username,
-      email: user.email,
-      profile_photo: user.profile_photo,
-      theme_preference: user.theme_preference,
-      masterKey: user.client_master_key // Sync key
-    });
+    res.json(results[0]);
   });
 });
 

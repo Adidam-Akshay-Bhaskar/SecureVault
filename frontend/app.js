@@ -1,6 +1,7 @@
 const API_URL =
   window.location.port === "3000" ? "/api" : "http://127.0.0.1:3000/api";
 let currentUser = null;
+let sessionMasterKey = null; // Memory-only session key
 
 // ==========================================
 // THEME ENGINE (User-Specific)
@@ -18,7 +19,12 @@ const KEY_LENGTH = 256;
 async function getClientMasterKey() {
   const token = localStorage.getItem("token");
 
-  // Priority 1: Current User Object (Sync from Server)
+  // Priority 1: Current Session Memory
+  if (sessionMasterKey) {
+    return sessionMasterKey;
+  }
+
+  // Priority 2: Current User Object (Sync from Server)
   // If we have a token, we SHOULD have a user. Wait a bit if loadProfile is still running.
   let retry = 0;
   while (token && !currentUser && retry < 20) {
@@ -28,26 +34,14 @@ async function getClientMasterKey() {
 
   if (currentUser && currentUser.masterKey) {
     const keyData = JSON.parse(currentUser.masterKey);
-    localStorage.setItem("client_master_key", currentUser.masterKey); // Persist locally for offline/speed
-    return window.crypto.subtle.importKey(
+    sessionMasterKey = await window.crypto.subtle.importKey(
       "jwk",
       keyData,
       { name: ALGO_NAME },
       false,
       ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
     );
-  }
-
-  // Priority 2: Local Storage
-  let rawKey = localStorage.getItem("client_master_key");
-  if (rawKey) {
-     return window.crypto.subtle.importKey(
-      "jwk",
-      JSON.parse(rawKey),
-      { name: ALGO_NAME },
-      false,
-      ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
-    );
+    return sessionMasterKey;
   }
 
   // Priority 3: Create New Key (First time user EVER)
@@ -58,12 +52,12 @@ async function getClientMasterKey() {
     ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
   );
   const exported = await window.crypto.subtle.exportKey("jwk", key);
-  rawKey = JSON.stringify(exported);
-  localStorage.setItem("client_master_key", rawKey);
+  const rawKey = JSON.stringify(exported);
   
   if (token) syncMasterKey(rawKey);
 
-  return key;
+  sessionMasterKey = key;
+  return sessionMasterKey;
 }
 
 async function syncMasterKey(rawKey) {
@@ -328,20 +322,23 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
 
     const data = await res.json();
 
-    if (res.ok) {
-      // Direct Login (No 2FA)
-      localStorage.setItem("token", data.accessToken);
+      if (res.ok) {
+        // Direct Login (No 2FA)
+        localStorage.setItem("token", data.accessToken);
 
-      // Sync master key immediately
-      if (data.user && data.user.masterKey) {
-        localStorage.setItem("client_master_key", data.user.masterKey);
-      } else {
-        const localKey = localStorage.getItem("client_master_key");
-        if (localKey) syncMasterKey(localKey);
-      }
+        // Sync master key immediately
+        if (data.user && data.user.masterKey) {
+          sessionMasterKey = await window.crypto.subtle.importKey(
+            "jwk",
+            JSON.parse(data.user.masterKey),
+            { name: ALGO_NAME },
+            false,
+            ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+          );
+        }
 
-      showToast("Identity Verified. Welcome back.");
-      await loadProfile();
+        showToast("Identity Verified. Welcome back.");
+        await loadProfile();
       showDashboard();
     } else if (data.message === "2FA_REQUIRED") {
       // 2FA Required - Switch to Step 2
@@ -401,12 +398,15 @@ document
         // Direct Login (No 2FA)
         localStorage.setItem("token", data.accessToken);
         
-        // Sync local key if one doesn't exist on server
+        // Sync master key immediately 
         if (data.user && data.user.masterKey) {
-           localStorage.setItem("client_master_key", data.user.masterKey);
-        } else {
-           const localKey = localStorage.getItem("client_master_key");
-           if (localKey) syncMasterKey(localKey);
+          sessionMasterKey = await window.crypto.subtle.importKey(
+            "jwk",
+            JSON.parse(data.user.masterKey),
+            { name: ALGO_NAME },
+            false,
+            ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+          );
         }
 
         showToast("Identity Verified. Welcome back.");
@@ -582,14 +582,15 @@ async function loadProfile() {
     if (res.ok) {
       currentUser = await res.json();
 
-      // IMPORTANT SECONDARY FIX: Sync local key to server if server is empty
-      // This solves the Chrome -> Brave mismatch
-      if (!currentUser.masterKey) {
-        const localKey = localStorage.getItem("client_master_key");
-        if (localKey) {
-          syncMasterKey(localKey);
-          currentUser.masterKey = localKey; // Update locally too
-        }
+      // Set session key if returned from server
+      if (currentUser.masterKey && !sessionMasterKey) {
+        sessionMasterKey = await window.crypto.subtle.importKey(
+          "jwk",
+          JSON.parse(currentUser.masterKey),
+          { name: ALGO_NAME },
+          false,
+          ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+        );
       }
 
       // Apply user's theme preference

@@ -63,3 +63,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
     details TEXT,
     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ==========================================
+-- KEY MANAGEMENT (Updated for Cloud Sync)
+-- ==========================================
+CREATE TABLE IF NOT EXISTS user_keys (
+  user_id INTEGER PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+  encryption_key TEXT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
