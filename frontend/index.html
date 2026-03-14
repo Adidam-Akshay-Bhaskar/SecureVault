@@ -313,13 +313,13 @@
   </div>
 
   <div id="file-view-modal" class="modal hidden">
-    <div class="modal-content" style="max-width: 98%; width: 98vw; height: 96vh; display: flex; flex-direction: column; padding: 1.2rem 1.5rem;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.6rem;">
-        <h3 id="view-filename" style="margin:0; font-size: 1.2rem;">File Display</h3>
-        <button class="action-btn" onclick="closeModal('file-view-modal')">Close Access</button>
+    <div class="modal-content" style="max-width: 99vw; width: 99vw; height: 98vh; display: flex; flex-direction: column; padding: 1rem 2rem; border: none; border-radius: 20px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem; border-bottom: none;">
+        <h3 id="view-filename" style="margin:0; font-size: 1.1rem; color: #fff; font-weight: 700;">File Display</h3>
+        <button class="action-btn" onclick="closeModal('file-view-modal')" style="background: rgba(255,255,255,0.05); padding: 6px 15px;">Close Access</button>
       </div>
-      <div id="view-content" style="flex: 1; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; border: none; border-top: 1px solid rgba(255,255,255,0.05); padding: 0;">
-        <p style="color:#444;">Decrypting stream...</p>
+      <div id="view-content" style="flex: 1; background: #000; border-radius: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; border: none; padding: 0;">
+        <p style="color:#444;">Establishing Secure Feed...</p>
       </div>
     </div>
   </div>
