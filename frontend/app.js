@@ -137,7 +137,31 @@ function showConfirm(message) {
   });
 }
 
-function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
+function closeModal(id) { 
+  const el = document.getElementById(id);
+  if (el) el.classList.add("hidden"); 
+}
+
+// Particle System for Background
+function initParticles() {
+  const container = document.getElementById("particles");
+  if (!container) return;
+  const count = 30;
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    const size = Math.random() * 3 + 1;
+    p.style.width = `${size}px`;
+    p.style.height = `${size}px`;
+    p.style.left = `${Math.random() * 100}%`;
+    p.style.top = `${Math.random() * 100}%`;
+    p.style.opacity = Math.random() * 0.5;
+    p.style.setProperty("--duration", `${Math.random() * 10 + 10}s`);
+    p.style.setProperty("--delay", `${Math.random() * 5}s`);
+    container.appendChild(p);
+  }
+}
+
 
 // ==========================================
 // AUTH LOGIC
@@ -734,6 +758,13 @@ async function toggleTheme() {
 
 // Init
 (async function init() {
+  // Particle BG
+  initParticles();
+
+  // Preloader Logic
+  const preloader = document.getElementById("preloader");
+  const authSection = document.getElementById("auth-section");
+  
   if (localStorage.getItem("sidebarCollapsed") === "true") {
     const sidebar = document.querySelector(".sidebar");
     if (sidebar) {
@@ -741,17 +772,24 @@ async function toggleTheme() {
       document.body.classList.add("sidebar-collapsed");
     }
   }
+
   const token = localStorage.getItem("token");
-  if (token) {
-    try { 
-      await loadProfile(); 
-      showView("my-vault"); 
-    } catch (err) { 
-      console.error("Session restoration failed:", err);
-      logout(); 
+  
+  // Simulation of "Unlocking"
+  setTimeout(async () => {
+    if (preloader) preloader.classList.add("fade-out");
+    if (authSection) authSection.classList.remove("hidden");
+    
+    if (token) {
+      try { 
+        await loadProfile(); 
+        showView("my-vault"); 
+      } catch (err) { 
+        console.error("Session restoration failed:", err);
+        logout(); 
+      }
+    } else {
+      toggleAuthMode("login");
     }
-  } else {
-    document.getElementById("auth-section").classList.remove("hidden");
-    toggleAuthMode("login");
-  }
+  }, 2500); // 2.5s premium intro
 })();
