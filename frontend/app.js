@@ -482,8 +482,7 @@ async function deleteFile(id, keyStr, filename) {
   const verified = await verifyPIN();
   if (!verified) return;
   
-  showToast("Downloading backup before terminal deletion...");
-  await downloadFile(id, keyStr, filename, true); // true = skip PIN in shared helper if already verified
+  showToast("Terminal deletion in progress...");
   
   await fetch(`${API_URL}/delete-file`, { 
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
