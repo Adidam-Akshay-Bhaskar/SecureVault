@@ -81,18 +81,18 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .auth-container { width: 100%; max-width: 440px; position: relative; z-index: 20; }
 .auth-card-premium {
   background: rgba(13, 13, 18, 0.8); backdrop-filter: blur(40px);
-  border: 1px solid var(--border-glass); border-radius: 36px; padding: 60px;
+  border: 1px solid var(--border-glass); border-radius: 36px; padding: 40px 50px;
   box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8);
 }
-.card-header { text-align: center; margin-bottom: 40px; }
+.card-header { text-align: center; margin-bottom: 25px; }
 .card-header h1 { font-family: var(--font-heading); font-size: 2.2rem; font-weight: 800; margin-bottom: 12px; }
 .card-header p { color: var(--text-dim); font-size: 0.95rem; }
 
-.input-field { margin-bottom: 24px; }
+.input-field { margin-bottom: 18px; }
 .input-field label { display: block; font-size: 0.75rem; font-weight: 700; color: var(--text-dim); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
 
 input, select {
-  width: 100%; padding: 18px 22px; background: rgba(255, 255, 255, 0.03);
+  width: 100%; padding: 15px 22px; background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 14px; color: #fff; font-size: 1rem;
   transition: 0.3s; appearance: none; -webkit-appearance: none;
 }
@@ -123,7 +123,7 @@ select option { background: #0d0d10; color: #fff; padding: 10px; }
 }
 
 .primary-btn {
-  width: 100%; padding: 20px; background: var(--accent-cyan); color: #000; border: none; border-radius: 14px;
+  width: 100%; padding: 18px; background: var(--accent-cyan); color: #000; border: none; border-radius: 14px;
   font-weight: 900; font-size: 1rem; cursor: pointer; transition: 0.3s; margin-top: 10px;
   text-transform: uppercase; letter-spacing: 1px; user-select: none;
 }
@@ -134,7 +134,7 @@ select option { background: #0d0d10; color: #fff; padding: 10px; }
 .text-btn:hover { color: #fff; }
 .text-btn:active { transform: scale(0.98); opacity: 0.7; transition: 0.1s; }
 
-.card-footer { margin-top: 35px; text-align: center; font-size: 0.9rem; color: var(--text-dim); }
+.card-footer { margin-top: 25px; text-align: center; font-size: 0.9rem; color: var(--text-dim); }
 .card-footer a { color: #fff; text-decoration: none; font-weight: 700; border-bottom: 1px solid var(--accent-cyan); padding-bottom: 2px; margin-left: 6px; }
 
 /* --- PREMIUM DASHBOARD UI (RESTORED) --- */
