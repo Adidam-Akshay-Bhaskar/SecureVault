@@ -1388,7 +1388,7 @@ document
 
     const securityPin = document.getElementById("file-pin-input").value.trim();
     const btn = e.target.querySelector('button[type="submit"]');
-    // const originalText = btn.innerHTML; // Not used in refined flow
+    const originalText = btn.innerHTML;
 
     try {
       btn.disabled = true;

@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     security_pin_hash VARCHAR(255),
+    client_master_key TEXT,
     profile_photo TEXT,
     theme_preference VARCHAR(50) DEFAULT 'theme-light',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
