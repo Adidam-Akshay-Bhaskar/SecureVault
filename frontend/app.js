@@ -434,7 +434,7 @@ async function renderFolderExplorer(folderId) {
       const displayTitle = truncateName(meta.filename);
 
       container.innerHTML += `
-        <div class="file-row explorer-row" style="background: rgba(255,255,255,0.015); padding: 16px 20px 16px 35px; border-radius: 20px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.03);">
+        <div class="file-row explorer-row" style="background: transparent; padding: 16px 20px 16px 35px; border-bottom: 1px solid rgba(255,255,255,0.03); border-radius: 0; margin-bottom: 0;">
           <div style="min-width:0; width:100%;">
             <p class="file-name" title="${meta.filename}" style="font-weight:600; font-size:0.95rem;">${displayTitle}</p>
           </div>
