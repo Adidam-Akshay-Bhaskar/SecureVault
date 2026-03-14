@@ -226,7 +226,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
   z-index: 1000; display: flex; align-items: center; justify-content: center;
 }
 .modal-content {
-  background: #0d0d10; border: none; border-top: 1px solid #1f1f25; border-radius: 32px;
+  background: #0d0d10; border: none; border-top: 1px solid rgba(255,255,255,0.05); border-radius: 32px;
   padding: 3.5rem; width: 100%; max-width: 540px; box-shadow: 0 50px 100px rgba(0,0,0,0.7);
 }
 .modal h3 { font-family: var(--font-heading); font-size: 2rem; font-weight: 800; }
