@@ -762,7 +762,7 @@ async function toggleTheme() {
   // Space BG
   initSpace();
 
-  // Preloader Gateway Logic
+  // Preloader Elements
   const preloader = document.getElementById("preloader");
   const authSection = document.getElementById("auth-section");
   const revealTarget = document.getElementById("reveal-target");
@@ -779,37 +779,46 @@ async function toggleTheme() {
 
   const token = localStorage.getItem("token");
   
-  // Cinematic Timeline (Fast & Futuristic)
+  // High-Speed Cinematic Timeline
   setTimeout(() => {
-    // 1. Reveal Text & Start Scan
+    // 1. Reveal "SV"
     if (revealTarget) revealTarget.classList.add("visible");
-    if (gatewayLine) gatewayLine.classList.add("active");
-    if (scanningBeam) scanningBeam.classList.add("active");
     
     setTimeout(() => {
-      // 2. ZOOM THROUGH TRANSITION
-      if (preloader) preloader.classList.add("zoom-through");
+      // 2. Expand to "SecureVault"
+      if (preloader) preloader.classList.add("expanded");
+      if (gatewayLine) gatewayLine.classList.add("active");
       
-      setTimeout(async () => {
-        // 3. Reveal Auth Portal
-        if (preloader) preloader.classList.add("hidden");
-        if (authSection) {
-          authSection.classList.remove("hidden");
-          setTimeout(() => authSection.classList.add("visible"), 50);
-        }
+      setTimeout(() => {
+        // 3. Scan the full text
+        if (scanningBeam) scanningBeam.classList.add("active");
         
-        if (token) {
-          try { 
-            await loadProfile(); 
-            showView("my-vault"); 
-          } catch (err) { 
-            console.error("Session restoration failed:", err);
-            logout(); 
-          }
-        } else {
-          toggleAuthMode("login");
-        }
-      }, 800); // Zoom duration
-    }, 1500); // Scanning duration
-  }, 500); // Initial delay
+        setTimeout(() => {
+          // 4. ZOOM THROUGH THE TEXT
+          if (preloader) preloader.classList.add("zoom-through");
+          
+          setTimeout(async () => {
+            // 5. Reveal Auth Card
+            if (preloader) preloader.classList.add("hidden");
+            if (authSection) {
+              authSection.classList.remove("hidden");
+              setTimeout(() => authSection.classList.add("visible"), 50);
+            }
+            
+            if (token) {
+              try { 
+                await loadProfile(); 
+                showView("my-vault"); 
+              } catch (err) { 
+                console.error("Session restoration failed:", err);
+                logout(); 
+              }
+            } else {
+              toggleAuthMode("login");
+            }
+          }, 800); // Wait for zoom-through duration
+        }, 1200); // Scanning beam duration
+      }, 600); // Wait for expansion to feel solid
+    }, 1000); // Wait for SV reveal
+  }, 400); // Fast initial start
 })();
