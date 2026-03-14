@@ -142,40 +142,26 @@ function closeModal(id) {
   if (el) el.classList.add("hidden"); 
 }
 
-// Cinematic Space System
+// Futuristic Space System
 function initSpace() {
-  const fields = [
-    { id: "starfield-1", count: 80, size: 1, duration: '100s' },
-    { id: "starfield-2", count: 40, size: 2, duration: '60s' },
-    { id: "starfield-3", count: 20, size: 3, duration: '30s' }
-  ];
-
-  fields.forEach(field => {
-    const container = document.getElementById(field.id);
+  const containers = ["starfield-1", "starfield-2", "starfield-3"];
+  containers.forEach((id, idx) => {
+    const container = document.getElementById(id);
     if (!container) return;
-    for (let i = 0; i < field.count; i++) {
+    const count = 50 + (idx * 30);
+    for (let i = 0; i < count; i++) {
       const star = document.createElement("div");
       star.className = "star";
-      star.style.width = `${field.size}px`;
-      star.style.height = `${field.size}px`;
+      const size = Math.random() * 2 + 0.5;
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
       star.style.left = `${Math.random() * 100}%`;
       star.style.top = `${Math.random() * 100}%`;
-      star.style.setProperty("--blink-duration", `${Math.random() * 3 + 1}s`);
+      star.style.opacity = Math.random();
+      star.style.animation = `star-blink ${Math.random() * 3 + 2}s infinite alternate`;
       container.appendChild(star);
     }
-    container.style.animation = `star-move ${field.duration} linear infinite alternate`;
   });
-
-  // Shooting Stars
-  const shootingContainer = document.getElementById("shooting-stars");
-  setInterval(() => {
-    const star = document.createElement("div");
-    star.className = "shooting-star";
-    star.style.left = `${Math.random() * 100}%`;
-    star.style.top = `${Math.random() * 50}%`;
-    shootingContainer.appendChild(star);
-    setTimeout(() => star.remove(), 4000);
-  }, 3000);
 }
 
 
@@ -777,11 +763,12 @@ async function toggleTheme() {
   // Space BG
   initSpace();
 
-  // Preloader Elements
+  // Preloader Gateway Logic
   const preloader = document.getElementById("preloader");
   const authSection = document.getElementById("auth-section");
-  const flyingKey = document.querySelector(".flying-key");
-  const lockShackle = document.querySelector(".lock-shackle");
+  const revealTarget = document.getElementById("reveal-target");
+  const gatewayLine = document.querySelector(".gateway-line");
+  const scanningBeam = document.querySelector(".scanning-beam");
   
   if (localStorage.getItem("sidebarCollapsed") === "true") {
     const sidebar = document.querySelector(".sidebar");
@@ -793,51 +780,37 @@ async function toggleTheme() {
 
   const token = localStorage.getItem("token");
   
-  // Cinematic Timeline
+  // Cinematic Timeline (Fast & Futuristic)
   setTimeout(() => {
-    // 1. Key Fly-In
-    if (flyingKey) {
-      flyingKey.style.opacity = '1';
-      flyingKey.style.animation = 'key-intro 1.2s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards';
-    }
+    // 1. Reveal Text & Start Scan
+    if (revealTarget) revealTarget.classList.add("visible");
+    if (gatewayLine) gatewayLine.classList.add("active");
+    if (scanningBeam) scanningBeam.classList.add("active");
     
     setTimeout(() => {
-      // 2. Key Insert & Unlock
-      if (flyingKey) flyingKey.style.animation = 'key-unlock 0.8s ease-in-out forwards';
+      // 2. ZOOM THROUGH TRANSITION
+      if (preloader) preloader.classList.add("zoom-through");
       
-      setTimeout(() => {
-        // 3. Trigger Lock Physical Opening
-        if (preloader) preloader.classList.add("unlocked");
+      setTimeout(async () => {
+        // 3. Reveal Auth Portal
+        if (preloader) preloader.classList.add("hidden");
+        if (authSection) {
+          authSection.classList.remove("hidden");
+          setTimeout(() => authSection.classList.add("visible"), 50);
+        }
         
-        setTimeout(() => {
-          // 4. Reveal SecureVault Text
-          if (preloader) preloader.classList.add("text-reveal");
-          
-          setTimeout(async () => {
-            // 5. Fade to Portal
-            if (preloader) {
-               preloader.style.opacity = '0';
-               preloader.style.pointerEvents = 'none';
-               setTimeout(() => preloader.classList.add("hidden"), 1000);
-            }
-            if (authSection) {
-              authSection.classList.remove("hidden");
-            }
-            
-            if (token) {
-              try { 
-                await loadProfile(); 
-                showView("my-vault"); 
-              } catch (err) { 
-                console.error("Session restoration failed:", err);
-                logout(); 
-              }
-            } else {
-              toggleAuthMode("login");
-            }
-          }, 2000); // Progress bar duration
-        }, 600); // Wait for shackle to lift
-      }, 500); // Wait for key to "turn"
-    }, 1200); // Wait for key fly-in
-  }, 800); // Initial breathing room
+        if (token) {
+          try { 
+            await loadProfile(); 
+            showView("my-vault"); 
+          } catch (err) { 
+            console.error("Session restoration failed:", err);
+            logout(); 
+          }
+        } else {
+          toggleAuthMode("login");
+        }
+      }, 800); // Zoom duration
+    }, 1500); // Scanning duration
+  }, 500); // Initial delay
 })();
