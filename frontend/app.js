@@ -448,16 +448,14 @@ async function renderFolderExplorer(folderId) {
       const displayTitle = truncateName(meta.filename);
 
       container.innerHTML += `
-        <div class="file-row explorer-row" style="background: transparent; padding: 16px 20px 16px 35px; border-bottom: 1px solid rgba(255,255,255,0.03); border-radius: 0; margin-bottom: 0;">
-          <div style="min-width:0; width:100%;">
-            <p class="file-name" title="${meta.filename}" style="font-weight:600; font-size:0.95rem;">${displayTitle}</p>
-          </div>
+        <div class="file-row explorer-row">
+          <p class="file-name" title="${meta.filename}">${displayTitle}</p>
           <p style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
-          <div class="btn-group" style="justify-content: flex-start;">
-            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})" style="background:rgba(0,242,255,0.05); color:var(--accent-cyan); border-color:rgba(0,242,255,0.1);">
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px; height:14px;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
-              View
+          <div class="btn-group">
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+              <span>View</span>
             </button>
             <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')" style="background:rgba(50,255,100,0.05); color:#44ff77; border-color:rgba(50,255,100,0.1);">
               <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px; height:14px;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
@@ -520,9 +518,7 @@ async function renderFiles() {
 
       myBody.innerHTML += `
         <div class="file-row">
-          <div style="min-width:0; width:100%;">
-            <p class="file-name" title="${meta.filename}">${displayTitle}</p>
-          </div>
+          <p class="file-name" title="${meta.filename}">${displayTitle}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
           <p style="color:var(--text-muted); font-size:0.75rem;">${new Date(f.created_at).toLocaleDateString()}</p>
@@ -553,13 +549,11 @@ async function renderFiles() {
 
   for (const f of allFiles.sharedFiles) {
     shBody.innerHTML += `
-      <div class="file-row incoming-row" style="padding: 16px 20px 16px 35px; background: transparent;">
-        <div class="file-info">
-          <p style="font-weight:700; color: #fff; font-size: 1rem;">Encrypted Record</p>
-        </div>
+      <div class="file-row incoming-row">
+        <p style="font-weight:700; color: #fff; font-size: 1rem;">Encrypted Record</p>
         <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${f.sender_email}</p>
         <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${new Date(f.created_at).toLocaleDateString()}</p>
-        <div class="btn-group" style="justify-content: flex-start;">
+        <div class="btn-group">
           <button class="action-btn" style="border-color:var(--accent-cyan); color:var(--accent-cyan); background: rgba(0,242,255,0.03);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>
             <span>Unlock</span>

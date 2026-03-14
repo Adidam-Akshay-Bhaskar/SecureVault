@@ -227,8 +227,8 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .file-row {
   display: grid; 
-  grid-template-columns: 4.5fr 120px 140px 180px 4fr; 
-  align-items: center; gap: 40px; justify-items: stretch;
+  grid-template-columns: minmax(0, 5fr) 100px 120px 150px minmax(0, 4.5fr); 
+  align-items: center; gap: 40px; justify-items: start;
   padding: 16px 20px 16px 35px; border-bottom: 1px solid rgba(255,255,255,0.03); 
   background: transparent;
   transition: 0.3s;
@@ -239,17 +239,17 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
   font-size: 0.75rem; border-bottom: 1px solid rgba(255,255,255,0.05); border-radius: 0;
   padding: 15px 20px 15px 35px;
 }
-.file-row p, .file-row span { margin: 0; text-align: left; display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-row p, .file-row span, .file-row > div { margin: 0; text-align: left; display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 
 .explorer-row {
   display: grid;
-  grid-template-columns: 4.5fr 120px 140px 4fr;
-  align-items: center; gap: 40px; justify-items: stretch;
+  grid-template-columns: minmax(0, 5fr) 100px 120px minmax(0, 4.5fr);
+  align-items: center; gap: 40px; justify-items: start;
 }
 .incoming-row {
   display: grid;
-  grid-template-columns: 3.5fr 6fr 2fr 4.5fr;
-  align-items: center; justify-items: stretch; gap: 40px;
+  grid-template-columns: minmax(0, 3.5fr) minmax(0, 6fr) minmax(0, 2fr) minmax(0, 4.5fr);
+  align-items: center; justify-items: start; gap: 40px;
 }
 .file-row:last-child { border-bottom: none; }
 
