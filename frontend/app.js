@@ -7,6 +7,7 @@ let currentView = "my-vault";
 let allFiles = [];
 let allFolders = [];
 let currentFolderId = null;
+let currentExplorerFolderId = null;
 
 // ==========================================
 // CRYPTO UTILS (Preserved)
@@ -148,7 +149,8 @@ function showConfirm(message, state = "primary") {
 
 function closeModal(id) { 
   const el = document.getElementById(id);
-  if (el) el.classList.add("hidden"); 
+  if (el) el.classList.add("hidden");
+  if (id === 'folder-explorer-modal') currentExplorerFolderId = null;
 }
 
 // Futuristic Space System
@@ -322,6 +324,17 @@ function toggleVaultSubView(sub) {
   });
   document.getElementById(`my-${sub}-view`).classList.remove("hidden");
   document.getElementById(`tab-my-${sub}`).classList.add("active");
+
+  // Contextual Header Actions
+  const uploadBtn = document.getElementById("btn-upload-record");
+  const folderBtn = document.getElementById("btn-new-folder");
+  if (sub === "folders") {
+    uploadBtn.classList.add("hidden");
+    folderBtn.classList.remove("hidden");
+  } else {
+    uploadBtn.classList.remove("hidden");
+    folderBtn.classList.add("hidden");
+  }
 }
 
 // ==========================================
@@ -332,7 +345,9 @@ async function loadFolders() {
   try {
     const res = await fetch(`${API_URL}/folders`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
     const data = await res.json();
-    allFolders = data;
+    // Sort latest displayed first
+    allFolders = data.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+    
     const grid = document.getElementById("folder-list");
     const select = document.getElementById("upload-folder-select");
     grid.innerHTML = "";
@@ -342,12 +357,13 @@ async function loadFolders() {
 
     allFolders.forEach(f => {
       const disp = truncateName(f.name);
+      const dateStr = new Date(f.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
       grid.innerHTML += `
-        <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}')">
+        <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}')">
           <span class="folder-icon">📂</span>
           <p class="folder-name">${disp}</p>
-          <p class="folder-count">Stored Data Group</p>
-          <button class="action-btn" style="position:absolute; top:10px; right:10px; padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
+          <p class="folder-count">${dateStr}</p>
+          <button class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Dissolve</button>
         </div>
       `;
       select.innerHTML += `<option value="${f.folder_id}">${disp}</option>`;
@@ -382,11 +398,61 @@ async function deleteFolder(id) {
   } catch {}
 }
 
-function openFolder(id, name) {
-  currentFolderId = id;
-  showToast(`Filtering by ${name}`, "info");
-  toggleVaultSubView("files");
-  renderFiles();
+function openFolder(id, name, date) {
+  currentExplorerFolderId = id;
+  document.getElementById("explorer-folder-name").textContent = name;
+  document.getElementById("explorer-folder-date").textContent = `Initialized: ${date}`;
+  document.getElementById("folder-explorer-modal").classList.remove("hidden");
+  
+  const uploadBtn = document.getElementById("explorer-upload-btn");
+  uploadBtn.onclick = () => {
+    showUploadModal();
+    document.getElementById("upload-folder-select").value = id;
+  };
+  
+  renderFolderExplorer(id);
+}
+
+async function renderFolderExplorer(folderId) {
+  const container = document.getElementById("explorer-file-list");
+  container.innerHTML = '<p style="padding:40px; text-align:center; color:var(--text-dim);">Scanning directory...</p>';
+  
+  // Wait for allFiles if empty
+  if (allFiles.myFiles.length === 0) await loadFiles();
+  
+  const files = allFiles.myFiles.filter(f => f.folder_id === parseInt(folderId));
+  container.innerHTML = "";
+  
+  if (files.length === 0) {
+    container.innerHTML = '<p style="padding:40px; text-align:center; color:var(--text-dim);">Directory is empty</p>';
+    return;
+  }
+
+  const masterKey = await getClientMasterKey();
+  
+  for (const f of files) {
+    try {
+      const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
+      const ext = meta.filename.split(".").pop().toUpperCase();
+      const displayTitle = truncateName(meta.filename);
+
+      container.innerHTML += `
+        <div class="file-row explorer-row" style="background: rgba(255,255,255,0.015); padding: 16px 12px; border-radius: 12px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.03);">
+          <div style="min-width:0; width:100%;">
+            <p class="file-name" title="${meta.filename}" style="font-weight:600; font-size:0.95rem;">${displayTitle}</p>
+          </div>
+          <p style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">${ext}</p>
+          <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
+          <div class="btn-group" style="justify-content: flex-end;">
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})" style="background:rgba(0,242,255,0.05); color:var(--accent-cyan); border-color:rgba(0,242,255,0.1);">View</button>
+            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')" style="background:rgba(50,255,100,0.05); color:#44ff77; border-color:rgba(50,255,100,0.1);">Save</button>
+          </div>
+        </div>
+      `;
+    } catch {
+      container.innerHTML += `<div class="file-row"><p style="color:var(--danger)">Unrecoverable Cluster</p></div>`;
+    }
+  }
 }
 
 // ==========================================
@@ -399,6 +465,7 @@ async function loadFiles() {
     const data = await res.json();
     allFiles = data;
     renderFiles();
+    if (currentExplorerFolderId) renderFolderExplorer(currentExplorerFolderId);
   } catch (e) { console.error(e); }
 }
 

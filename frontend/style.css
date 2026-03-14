@@ -218,6 +218,13 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
   font-size: 0.75rem; border-bottom: 1px solid #151518;
 }
 .file-row p, .file-row span { margin: 0; text-align: left; display: block; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.explorer-row {
+  display: grid;
+  grid-template-columns: 2.5fr 0.8fr 1fr 2fr;
+  align-items: center;
+  gap: 15px;
+}
 .file-row:last-child { border-bottom: none; }
 
 .file-info { display: flex; align-items: center; gap: 15px; text-align: left; min-width: 0; }
@@ -297,13 +304,14 @@ input[type="checkbox"]:checked::after {
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
 .folder-card {
-  background: rgba(15, 15, 20, 0.6); border: 1px solid #1a1a1f; border-radius: 20px; padding: 24px;
-  text-align: center; cursor: pointer; transition: 0.3s; position: relative;
+  background: rgba(15, 15, 20, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; padding: 32px 24px;
+  text-align: center; cursor: pointer; transition: 0.4s cubic-bezier(0.23, 1, 0.32, 1); position: relative;
+  overflow: hidden;
 }
-.folder-card:hover { border-color: var(--accent-cyan); transform: scale(1.02); }
-.folder-icon { font-size: 2.5rem; margin-bottom: 12px; display: block; }
-.folder-name { font-weight: 800; font-size: 1.1rem; }
-.folder-count { font-size: 0.8rem; color: var(--text-dim); margin-top: 5px; }
+.folder-card:hover { border-color: var(--accent-cyan); background: rgba(0, 242, 255, 0.02); transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+.folder-icon { font-size: 3rem; margin-bottom: 20px; display: block; filter: drop-shadow(0 5px 15px rgba(255, 200, 0, 0.2)); }
+.folder-name { font-weight: 800; font-size: 1.2rem; color: #fff; margin: 0; }
+.folder-count { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; font-weight: 600; }
 
 /* CUSTOM SCROLLBAR */
 ::-webkit-scrollbar { width: 6px; }

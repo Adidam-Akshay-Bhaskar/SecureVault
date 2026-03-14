@@ -180,14 +180,14 @@
             <button class="tab-btn active" id="tab-my-files" onclick="toggleVaultSubView('files')">Files</button>
             <button class="tab-btn" id="tab-my-folders" onclick="toggleVaultSubView('folders')">Folders</button>
           </div>
-          <button class="action-btn" onclick="showUploadModal()" style="background: var(--accent-cyan); color: #000; border: none; font-weight: 800; padding: 10px 20px;">Upload Record +</button>
+          <div style="display: flex; gap: 12px;">
+            <button id="btn-upload-record" class="action-btn" onclick="showUploadModal()" style="background: var(--accent-cyan); color: #000; border: none; font-weight: 800; padding: 10px 20px;">Upload Record +</button>
+            <button id="btn-new-folder" class="action-btn hidden" onclick="showCreateFolderModal()" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; padding: 10px 20px;">New Folder +</button>
+          </div>
         </div>
 
         <div id="my-folders-view" class="hidden">
-          <div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
-            <button onclick="showCreateFolderModal()" class="action-btn">New Folder +</button>
-          </div>
-          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:20px;" id="folder-list"></div>
+          <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="folder-list"></div>
         </div>
 
         <div id="my-files-view">
@@ -331,5 +331,30 @@
 
   <div id="toast-container"></div>
   <script src="app.js?v=45"></script>
+  <div id="folder-explorer-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 900px; width: 95vw; min-height: 60vh;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
+        <div>
+          <h3 id="explorer-folder-name" style="margin:0; font-size: 1.5rem; color: #fff;">Folder Hub</h3>
+          <p id="explorer-folder-date" style="margin:5px 0 0; font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px;">Created: --</p>
+        </div>
+        <div style="display: flex; gap: 15px; align-items: center;">
+          <button class="action-btn" id="explorer-upload-btn" style="background: var(--accent-cyan); color: #000; border: none; font-weight: 700; padding: 8px 16px;">Add Data +</button>
+          <button class="action-btn" onclick="closeModal('folder-explorer-modal')" style="background: rgba(255,255,255,0.05); padding: 8px 16px;">Exit Hub</button>
+        </div>
+      </div>
+      
+      <div class="file-list" style="margin-top: 0; background: transparent; border: none;">
+        <div class="file-row explorer-row header" style="background: rgba(255,255,255,0.02); padding: 15px 12px; border-radius: 12px; margin-bottom: 20px;">
+          <span>Identifier</span>
+          <span>Type</span>
+          <span>Size</span>
+          <span>Operations</span>
+        </div>
+        <div id="explorer-file-list" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;"></div>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>
