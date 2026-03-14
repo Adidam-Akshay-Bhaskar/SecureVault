@@ -66,17 +66,20 @@ const pool = new Pool({
 });
 
 // FIX: db wrapper correctly returns insertId for both users and files inserts
+// FIX: Improved db wrapper for standard PG usage and better transaction handling
 const db = {
+  // Standard query using a fresh connection from the pool
   query: (sql, params, callback) => {
     if (typeof params === "function") { callback = params; params = []; }
-
+    
+    // Auto-map ? to $1, $2 for backward compatibility with old code
     let index = 1;
     let pgSql = sql.replace(/\?/g, () => `$${index++}`);
 
     let returningCol = null;
     if (pgSql.match(/INSERT INTO files /i)) returningCol = "file_id";
     else if (pgSql.match(/INSERT INTO users /i)) returningCol = "user_id";
-    if (returningCol) pgSql += ` RETURNING ${returningCol}`;
+    if (returningCol && !pgSql.includes("RETURNING")) pgSql += ` RETURNING ${returningCol}`;
 
     pool.query(pgSql, params, (err, res) => {
       if (err) {
@@ -88,32 +91,7 @@ const db = {
       if (returningCol && res.rows?.length > 0) resultObj.insertId = res.rows[0][returningCol];
       return callback(null, resultObj);
     });
-  },
-
-  // FIX: Real transactions using a dedicated client per transaction
-  beginTransaction: (callback) => {
-    pool.connect((err, client, release) => {
-      if (err) return callback(err);
-      client.query("BEGIN", (err) => {
-        if (err) { release(); return callback(err); }
-        db._client = client;
-        db._release = release;
-        callback(null);
-      });
-    });
-  },
-  commit: (callback) => {
-    if (!db._client) return callback(null);
-    db._client.query("COMMIT", (err) => {
-      db._release(); db._client = null; callback(err);
-    });
-  },
-  rollback: (callback) => {
-    if (!db._client) return callback(null);
-    db._client.query("ROLLBACK", (err) => {
-      db._release(); db._client = null; callback(err);
-    });
-  },
+  }
 };
 
 pool.query("SELECT 1", (err) => {
@@ -187,6 +165,12 @@ async function ensureAllTables() {
       action TEXT NOT NULL,
       details TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS folders (
+      folder_id SERIAL PRIMARY KEY,
+      owner_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
@@ -196,6 +180,7 @@ async function ensureAllTables() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_photo TEXT`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_preference TEXT DEFAULT 'theme-light'`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin_hash TEXT`,
+    `ALTER TABLE files ADD COLUMN IF NOT EXISTS folder_id INTEGER REFERENCES folders(folder_id) ON DELETE SET NULL`,
   ];
 
   for (const q of createQueries) {
@@ -518,43 +503,49 @@ app.post("/api/upload-url", authenticateToken, async (req, res) => {
 });
 
 // COMPLETE UPLOAD
-app.post("/api/complete-upload", authenticateToken, (req, res) => {
-  const { fileUuid, fileType, encryptedMetadata, metadataIv, encryptedKey } = req.body;
+// FIX: Using atomic transaction to ensure data integrity
+app.post("/api/complete-upload", authenticateToken, async (req, res) => {
+  const { fileUuid, fileType, encryptedMetadata, metadataIv, encryptedKey, folderId } = req.body;
+  const userId = req.user.user_id;
 
-  db.beginTransaction((err) => {
-    if (err) return res.status(500).json({ error: err });
+  const client = await pool.connect();
+  try {
+    await client.query("BEGIN");
 
-    db.query(
-      "INSERT INTO files (file_uuid, owner_id, file_type) VALUES (?, ?, ?)",
-      [fileUuid, req.user.user_id, fileType || "other"],
-      (err, result) => {
-        if (err) { db.rollback(() => {}); return res.status(500).json({ error: err }); }
-        const fileId = result.insertId;
-
-        db.query(
-          "INSERT INTO file_metadata (file_id, encrypted_metadata, iv) VALUES (?, decode(?, 'base64'), ?)",
-          [fileId, encryptedMetadata, metadataIv],
-          (err) => {
-            if (err) { db.rollback(() => {}); return res.status(500).json({ error: err }); }
-
-            db.query(
-              "INSERT INTO file_keys (file_id, encrypted_key) VALUES (?, ?)",
-              [fileId, encryptedKey],
-              (err) => {
-                if (err) { db.rollback(() => {}); return res.status(500).json({ error: err }); }
-
-                db.commit((err) => {
-                  if (err) { db.rollback(() => {}); return res.status(500).json({ error: err }); }
-                  db.query("INSERT INTO audit_logs (user_id, file_id, action) VALUES (?, ?, ?)", [req.user.user_id, fileId, "UPLOAD_COMPLETED"], () => {});
-                  res.json({ message: "Upload completed successfully", fileId });
-                });
-              }
-            );
-          }
-        );
-      }
+    // 1. Create File Record
+    const fileRes = await client.query(
+      "INSERT INTO files (file_uuid, owner_id, file_type, folder_id) VALUES ($1, $2, $3, $4) RETURNING file_id",
+      [fileUuid, userId, fileType || "other", folderId || null]
     );
-  });
+    const fileId = fileRes.rows[0].file_id;
+
+    // 2. Create Metadata Record (using BYTEA for binary safety)
+    await client.query(
+      "INSERT INTO file_metadata (file_id, encrypted_metadata, iv) VALUES ($1, decode($2, 'base64'), $3)",
+      [fileId, encryptedMetadata, metadataIv]
+    );
+
+    // 3. Create File Keys
+    await client.query(
+      "INSERT INTO file_keys (file_id, encrypted_key) VALUES ($1, $2)",
+      [fileId, encryptedKey]
+    );
+
+    // 4. Log the action
+    await client.query(
+      "INSERT INTO audit_logs (user_id, file_id, action) VALUES ($1, $2, $3)",
+      [userId, fileId, "UPLOAD_COMPLETED"]
+    );
+
+    await client.query("COMMIT");
+    res.json({ message: "Upload completed successfully", fileId });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Critical Upload Error:", err);
+    res.status(500).json({ message: "Failed to finalize encryption and upload storage." });
+  } finally {
+    client.release();
+  }
 });
 
 // FILES LIST
@@ -563,7 +554,7 @@ app.get("/api/files", authenticateToken, (req, res) => {
   const userEmail = req.user.email;
 
   db.query(
-    `SELECT f.file_id, f.file_uuid, f.created_at, fm.encrypted_metadata, fm.iv, fk.encrypted_key, 'OWNER' as role
+    `SELECT f.file_id, f.file_uuid, f.created_at, f.folder_id, fm.encrypted_metadata, fm.iv, fk.encrypted_key, 'OWNER' as role
      FROM files f
      JOIN file_metadata fm ON f.file_id = fm.file_id
      JOIN file_keys fk ON f.file_id = fk.file_id
@@ -717,7 +708,43 @@ app.post("/api/access-share", (req, res) => {
 });
 
 // ==========================================
-// SERVER
+// FOLDERS
+app.post("/api/folders", authenticateToken, (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ message: "Folder name required" });
+  db.query(
+    "INSERT INTO folders (owner_id, name) VALUES (?, ?)",
+    [req.user.user_id, name.trim()],
+    (err) => {
+      if (err) return res.status(500).json({ message: "DB Error" });
+      res.json({ message: "Folder created" });
+    }
+  );
+});
+
+app.get("/api/folders", authenticateToken, (req, res) => {
+  db.query(
+    "SELECT * FROM folders WHERE owner_id = ? ORDER BY name ASC",
+    [req.user.user_id],
+    (err, results) => {
+      if (err) return res.status(500).json({ message: "DB Error" });
+      res.json(results);
+    }
+  );
+});
+
+app.delete("/api/folders/:id", authenticateToken, (req, res) => {
+  db.query(
+    "DELETE FROM folders WHERE folder_id = ? AND owner_id = ?",
+    [req.params.id, req.user.user_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: "DB Error" });
+      res.json({ message: "Folder deleted" });
+    }
+  );
+});
+
+// START SERVER
 // ==========================================
 
 const PORT = process.env.PORT || 3000;
