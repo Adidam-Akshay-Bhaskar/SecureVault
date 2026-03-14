@@ -1,9 +1,7 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
-
 :root {
   --bg-color: #000000;
-  --sidebar-bg: #111111;
-  --card-bg: #1a1a1a;
+  --panel-bg: #1e1e1e; /* Exactly matching the charcoal grey from request */
+  --input-bg: #0d0d0d;
   --glass-border: #333333;
   --primary: #ffffff;
   --text-main: #ffffff;
@@ -31,7 +29,7 @@ body {
 
 .hidden { display: none !important; }
 
-/* --- AUTH PAGE (Mimicking the image) --- */
+/* --- AUTH PAGE (Architectural Minimalism) --- */
 #auth-section {
   width: 100vw;
   height: 100vh;
@@ -45,16 +43,16 @@ body {
   width: 1000px;
   height: 500px;
   display: flex;
-  background: #111;
-  border-radius: 40px;
+  background: var(--panel-bg);
+  border-radius: 32px;
   overflow: hidden;
   border: 1px solid #222;
-  box-shadow: 0 50px 100px -20px rgba(0,0,0,0.8);
+  box-shadow: 0 40px 80px -20px rgba(0,0,0,0.9);
 }
 
 .auth-left {
-  flex: 1.2;
-  padding: 40px 60px;
+  flex: 1.1;
+  padding: 40px;
   background: #0d0d0d;
   display: flex;
   flex-direction: column;
@@ -64,57 +62,57 @@ body {
 
 .auth-right {
   flex: 1;
-  padding: 40px 60px;
-  background: #111;
+  padding: 30px 50px;
+  background: var(--panel-bg);
   display: flex;
   flex-direction: column;
   justify-content: center;
-  overflow-y: auto;
 }
 
 /* Auth Decoration */
-.auth-brand { display: flex; align-items: center; gap: 15px; margin-bottom: 2rem; }
-.auth-logo-box { width: 50px; height: 50px; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 800; font-size: 1.5rem; }
-.auth-title { font-size: 3.5rem; font-weight: 800; letter-spacing: -2px; }
-.auth-desc { color: #888; line-height: 1.6; font-size: 1.1rem; margin-bottom: 3rem; max-width: 400px; }
+.auth-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; }
+.auth-logo-box { width: 44px; height: 44px; background: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: #000; font-weight: 800; font-size: 1.2rem; }
+.auth-title { font-size: 2.8rem; font-weight: 800; letter-spacing: -1.5px; }
+.auth-desc { color: #666; line-height: 1.5; font-size: 0.95rem; margin-bottom: 2rem; max-width: 360px; }
 
-.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.feature-mini { background: #000; padding: 20px; border-radius: 20px; border: 1px solid #222; }
-.feature-mini p { font-size: 0.8rem; color: #666; margin-top: 5px; }
+.feature-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.feature-mini { background: #000; padding: 15px; border-radius: 12px; border: 1px solid #222; }
+.feature-mini h4 { font-size: 0.85rem; margin-bottom: 2px; }
+.feature-mini p { font-size: 0.75rem; color: #555; }
 
-/* Login Form UI */
-.auth-header-right { text-align: center; margin-bottom: 2.5rem; }
-.hello-badge { display: inline-block; background: #000; border: 1px solid #333; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; letter-spacing: 2px; margin-bottom: 1rem; }
-.welcome-text { font-size: 2rem; font-weight: 700; }
+/* Login Form UI (Compact & Simple) */
+.auth-header-right { text-align: center; margin-bottom: 2rem; }
+.hello-badge { display: inline-block; background: #000; border: 1px solid #333; padding: 3px 10px; border-radius: 8px; font-size: 0.65rem; font-weight: 700; letter-spacing: 1.5px; margin-bottom: 0.8rem; }
+.welcome-text { font-size: 1.8rem; font-weight: 700; }
 
-.input-box { margin-bottom: 1.5rem; }
+.input-box { margin-bottom: 1rem; }
 input {
   width: 100%;
-  padding: 18px 24px;
-  background: #000;
+  padding: 12px 18px; /* Smaller padding */
+  background: #0d0d0d; /* Matching internal panel feel */
   border: 1px solid #333;
-  border-radius: 16px;
+  border-radius: 12px; /* Less curvy */
   color: #fff;
-  font-size: 1rem;
+  font-size: 0.9rem;
   transition: all 0.2s;
 }
-input:focus { border-color: #fff; outline: none; box-shadow: 0 0 0 1px #fff; }
+input:focus { border-color: #fff; outline: none; }
 
 .primary-btn {
   width: 100%;
-  padding: 20px;
+  padding: 14px; /* Simpler height */
   background: #fff;
   color: #000;
   border: none;
-  border-radius: 16px;
+  border-radius: 12px; /* Less curvy */
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: 1rem;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: opacity 0.2s;
 }
-.primary-btn:hover { transform: scale(0.98); }
+.primary-btn:hover { opacity: 0.9; }
 
-.auth-footer { text-align: center; margin-top: 2rem; font-size: 0.9rem; color: #888; }
+.auth-footer { text-align: center; margin-top: 1.5rem; font-size: 0.85rem; color: #666; }
 .auth-footer a { color: #fff; text-decoration: none; font-weight: 600; margin-left: 5px; }
 
 /* --- DASHBOARD UI (Black & Grey Theme) --- */
