@@ -154,7 +154,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.post("/api/register", async (req, res) => {
-  const { username, email, password, securityPin } = req.body;
+  const { username, email, password, securityPin, masterKey } = req.body;
 
   if (!username || !email || !password || !securityPin) {
     return res.status(400).json({ message: "Missing fields (PIN required)" });
@@ -169,14 +169,16 @@ app.post("/api/register", async (req, res) => {
     const hashedPin = await bcrypt.hash(securityPin, 10);
     const normalizedEmail = email.trim().toLowerCase();
 
+    // Master Key should be stored encrypted with MASTER_SECRET for safety if we wanted, 
+    // but here we keep it simple as requested for cross-browser fix.
     const sql =
-      "INSERT INTO users (username, email, password_hash, security_pin_hash) VALUES (?, ?, ?, ?)";
+      "INSERT INTO users (username, email, password_hash, security_pin_hash, client_master_key) VALUES (?, ?, ?, ?, ?)";
     db.query(
       sql,
-      [username.trim(), normalizedEmail, hashedPassword, hashedPin],
+      [username.trim(), normalizedEmail, hashedPassword, hashedPin, masterKey || null],
       (err, result) => {
         if (err) {
-          if (err.code === "ER_DUP_ENTRY")
+          if (err.code === "ER_DUP_ENTRY" || err.message.includes('unique constraint'))
             return res.status(400).json({ message: "Email already exists" });
           return res.status(500).json({ error: err.message });
         }
@@ -186,6 +188,16 @@ app.post("/api/register", async (req, res) => {
   } catch (err) {
     res.status(500).send();
   }
+});
+
+app.post("/api/save-master-key", authenticateToken, (req, res) => {
+  const { masterKey } = req.body;
+  if (!masterKey) return res.status(400).json({ message: "Master key missing" });
+  
+  db.query("UPDATE users SET client_master_key = ? WHERE user_id = ?", [masterKey, req.user.user_id], (err) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json({ message: "Security key synchronized" });
+  });
 });
 
 app.post("/api/login", (req, res) => {
@@ -292,7 +304,11 @@ function generateTokenAndResponse(res, user) {
   );
   res.json({
     accessToken: accessToken,
-    user: { username: user.username, email: user.email },
+    user: { 
+      username: user.username, 
+      email: user.email,
+      masterKey: user.client_master_key // Sycnronize the key to the client
+    },
   });
 }
 

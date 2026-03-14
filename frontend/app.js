@@ -16,8 +16,21 @@ const KEY_LENGTH = 256;
 
 // 1. Generate/Get Master Key
 async function getClientMasterKey() {
+  // Priority: 1. Current User Object (Loaded from Server)
+  if (currentUser && currentUser.masterKey) {
+    return window.crypto.subtle.importKey(
+      "jwk",
+      JSON.parse(currentUser.masterKey),
+      { name: ALGO_NAME },
+      false,
+      ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+    );
+  }
+
+  // Priority: 2. Local Storage (Fallback/Legacy)
   let rawKey = localStorage.getItem("client_master_key");
   if (!rawKey) {
+    // Priority: 3. Create New Key (First time user)
     const key = await window.crypto.subtle.generateKey(
       { name: ALGO_NAME, length: KEY_LENGTH },
       true,
@@ -26,7 +39,13 @@ async function getClientMasterKey() {
     const exported = await window.crypto.subtle.exportKey("jwk", key);
     rawKey = JSON.stringify(exported);
     localStorage.setItem("client_master_key", rawKey);
+    
+    // Sync to server if logged in
+    if (localStorage.getItem("token")) {
+      syncMasterKey(rawKey);
+    }
   }
+
   return window.crypto.subtle.importKey(
     "jwk",
     JSON.parse(rawKey),
@@ -34,6 +53,21 @@ async function getClientMasterKey() {
     false,
     ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
   );
+}
+
+async function syncMasterKey(rawKey) {
+  try {
+     await fetch(`${API_URL}/save-master-key`, {
+         method: "POST",
+         headers: { 
+           "Content-Type": "application/json",
+           "Authorization": `Bearer ${localStorage.getItem("token")}`
+         },
+         body: JSON.stringify({ masterKey: rawKey })
+     });
+  } catch (e) {
+    console.warn("Key sync failed, will retry later.");
+  }
 }
 
 // 2. Generate Random File Key
@@ -344,7 +378,17 @@ document
       const data = await res.json();
 
       if (res.ok) {
+        // Direct Login (No 2FA)
         localStorage.setItem("token", data.accessToken);
+        
+        // Sync local key if one doesn't exist on server
+        if (data.user && data.user.masterKey) {
+           localStorage.setItem("client_master_key", data.user.masterKey);
+        } else {
+           const localKey = localStorage.getItem("client_master_key");
+           if (localKey) syncMasterKey(localKey);
+        }
+
         showToast("Identity Verified. Welcome back.");
         await loadProfile();
         showDashboard();
@@ -378,11 +422,21 @@ document
       .toLowerCase();
     const password = document.getElementById("reg-password").value;
     const securityPin = document.getElementById("reg-pin").value;
+
+    // Generate Master Key locally before sending to server
+    const key = await window.crypto.subtle.generateKey(
+      { name: ALGO_NAME, length: KEY_LENGTH },
+      true,
+      ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+    );
+    const exported = await window.crypto.subtle.exportKey("jwk", key);
+    const masterKey = JSON.stringify(exported);
+
     try {
       const res = await fetch(`${API_URL}/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, email, password, securityPin }),
+        body: JSON.stringify({ username, email, password, securityPin, masterKey }),
       });
       if (res.ok) {
         showToast("Uplink Established. Please Login.");
