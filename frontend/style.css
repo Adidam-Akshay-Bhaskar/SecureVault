@@ -22,11 +22,14 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 #preloader {
   position: fixed; inset: 0; background: #000; z-index: 10000;
   display: flex; align-items: center; justify-content: center; overflow: hidden;
+  transition: opacity 1s cubic-bezier(0.16, 1, 0.3, 1), transform 1s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: opacity, transform;
 }
+#preloader.fade-out { opacity: 0; pointer-events: none; transform: scale(1.1); }
 .preloader-gateway { position: relative; text-align: center; }
 .scanned-text {
   font-family: var(--font-heading); font-size: 5.5rem; font-weight: 900;
-  display: flex; gap: 0; opacity: 0; transform: scale(0.95); transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex; gap: 0; opacity: 0; transform: scale(0.98); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform, opacity; transform-style: preserve-3d;
 }
 .scanned-text.visible { opacity: 1; transform: scale(1) translateZ(0); }
@@ -38,34 +41,19 @@ body { background: var(--bg-color); color: #fff; min-height: 100vh; overflow-x: 
 .filling {
   display: inline-block;
   max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; color: #fff;
-  transition: max-width 0.6s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+  transition: max-width 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
   will-change: max-width, opacity;
 }
 
 #preloader.expanded .filling { max-width: 400px; opacity: 1; }
 #preloader.expanded .vault-accent { margin-left: 5px; }
 
-.gateway-line {
-  position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
-  width: 0; height: 2px; background: var(--accent-cyan); box-shadow: 0 0 20px var(--accent-cyan);
-  transition: width 0.8s cubic-bezier(0.7, 0, 0.3, 1);
-}
-.gateway-line.active { width: 100%; }
-
-.scanning-beam {
-  position: absolute; top: 0; left: 0; width: 4px; height: 100%;
-  background: var(--accent-cyan); box-shadow: 0 0 20px var(--accent-cyan);
-  opacity: 0; pointer-events: none;
-}
-.scanning-beam.active { animation: scan-move 1.5s cubic-bezier(0.445, 0.05, 0.55, 0.95) forwards; opacity: 1; }
-
-@keyframes scan-move { 
-  0% { left: 0; opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { left: 100%; opacity: 0; } 
-}
+/* Scan and lines removed for simplicity as requested */
+.gateway-line, .scanning-beam { display: none !important; }
 
 #preloader.zoom-through .preloader-gateway {
-  transform: scale(100) translateZ(0); opacity: 0; filter: blur(20px);
-  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.6s;
+  transform: scale(1.1) translateZ(0); opacity: 0; filter: none;
+  transition: transform 1.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 1s;
   will-change: transform, opacity;
 }
 

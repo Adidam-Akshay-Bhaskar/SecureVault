@@ -777,8 +777,7 @@ async function toggleTheme() {
     }
   }
   const token = localStorage.getItem("token");
-  
-  // Turbo-Charged Cinematic Timeline
+  // Ultra-Smooth Premium Pacing
   setTimeout(() => {
     // 1. Reveal "SV"
     if (revealTarget) revealTarget.classList.add("visible");
@@ -786,40 +785,33 @@ async function toggleTheme() {
     setTimeout(() => {
       // 2. Expand to "SecureVault"
       if (preloader) preloader.classList.add("expanded");
-      if (gatewayLine) gatewayLine.classList.add("active");
       
       setTimeout(() => {
-        // 3. Scan the full text
-        if (scanningBeam) scanningBeam.classList.add("active");
+        // 3. Smooth Fade Out & Overlap Login Reveal
+        if (preloader) preloader.classList.add("fade-out");
         
+        // Handover: Login Card fades in while preloader is fading out
         setTimeout(() => {
-          if (preloader) preloader.classList.add("zoom-through");
-          
-          // Overlap: Reveal auth card slightly before zoom ends to kill the blank screen
-          setTimeout(() => {
-            if (authSection) {
-              authSection.classList.remove("hidden");
-              setTimeout(() => authSection.classList.add("visible"), 50);
-            }
-          }, 200);
+          if (authSection) {
+            authSection.classList.remove("hidden");
+            setTimeout(() => authSection.classList.add("visible"), 50);
+          }
+        }, 300);
 
-          setTimeout(async () => {
-            if (preloader) preloader.classList.add("hidden");
-            
-            if (token) {
-              try { 
-                await loadProfile(); 
-                showView("my-vault"); 
-              } catch (err) { 
-                console.error("Session restoration failed:", err);
-                logout(); 
-              }
-            } else {
-              toggleAuthMode("login");
-            }
-          }, 600); 
-        }, 800); 
-      }, 300); 
-    }, 600); 
-  }, 200); 
+        setTimeout(async () => {
+          // Preloader finally removed from layout
+          if (preloader) preloader.classList.add("hidden");
+          
+          if (token) {
+            try { 
+              await loadProfile(); 
+              showView("my-vault"); 
+            } catch (err) { logout(); }
+          } else {
+            toggleAuthMode("login");
+          }
+        }, 1200); 
+      }, 1000); 
+    }, 800); 
+  }, 400); 
 })();
