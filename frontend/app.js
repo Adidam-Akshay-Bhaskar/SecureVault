@@ -420,20 +420,20 @@ async function renderFiles() {
         <div class="file-row">
           <div class="file-info">
             <div class="file-icon">📄</div>
-            <div style="overflow:hidden; text-overflow:ellipsis;" title="${meta.filename}">
-              <p style="font-weight:600;">${meta.filename}</p>
-              <p style="font-size:0.75rem; color:var(--text-muted);">Decryption Ready</p>
+            <div style="min-width:0;">
+              <p class="file-name" title="${meta.filename}">${meta.filename}</p>
+              <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Encrypted</p>
             </div>
           </div>
-          <p style="color:var(--text-muted);">${ext}</p>
-          <p style="color:var(--text-muted);">${formatBytes(meta.size)}</p>
-          <p style="color:var(--text-muted); font-size:0.85rem;">${new Date(f.created_at).toLocaleString()}</p>
-          <p class="file-folder-name">${folderDisplayName}</p>
+          <p style="color:var(--text-muted); font-size:0.8rem;">${ext}</p>
+          <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
+          <p style="color:var(--text-muted); font-size:0.75rem;">${new Date(f.created_at).toLocaleDateString()}</p>
+          <div><p class="file-folder-name">${folderDisplayName}</p></div>
           <div class="btn-group">
-            <button class="action-btn" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">View</button>
-            <button class="action-btn" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')">Save</button>
-            <button class="action-btn" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')">Share</button>
-            <button class="action-btn" onclick="deleteFile(${f.file_id})" style="color:var(--danger)">🗑</button>
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})"><span>👁️</span> View</button>
+            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')"><span>💾</span> Save</button>
+            <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')"><span>🔗</span> Share</button>
+            <button class="action-btn delete" onclick="deleteFile(${f.file_id})">🗑</button>
           </div>
         </div>
       `;
