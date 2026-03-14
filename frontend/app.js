@@ -310,7 +310,7 @@ function showView(view) {
   const title = document.getElementById("view-title");
   if (view === "my-vault") title.textContent = "My Data Vault";
   if (view === "incoming") title.textContent = "Incoming Data";
-  if (view === "profile") title.textContent = "Profile & Security";
+  if (view === "profile") title.textContent = "Profile Settings";
 
   document.getElementById("auth-section").classList.add("hidden");
   document.getElementById("view-dashboard").classList.remove("hidden");
@@ -971,7 +971,7 @@ async function loadProfile() {
         if (el) { el.src = data.profile_photo; el.classList.remove("hidden"); }
       });
       const hAvatar = document.getElementById("header-avatar");
-      if (hAvatar) hAvatar.classList.add("hidden");
+      if (hAvatar) { hAvatar.classList.add("hidden"); hAvatar.textContent = ""; }
     } else {
       pPhoto.classList.add("hidden");
       pInitials.classList.remove("hidden");
