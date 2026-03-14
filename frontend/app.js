@@ -117,6 +117,11 @@ function showToast(message, type = "success") {
   setTimeout(() => toast.remove(), 4000);
 }
 
+function truncateName(name, limit = 50) {
+  if (!name) return "";
+  return name.length > limit ? name.substring(0, limit) + "..." : name;
+}
+
 function showConfirm(message, state = "primary") {
   return new Promise((resolve) => {
     const modal = document.getElementById("confirm-modal");
@@ -336,15 +341,16 @@ async function loadFolders() {
     document.getElementById("stat-folder-count").textContent = allFolders.length;
 
     allFolders.forEach(f => {
+      const disp = truncateName(f.name);
       grid.innerHTML += `
-        <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name}')">
+        <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}')">
           <span class="folder-icon">📂</span>
-          <p class="folder-name">${f.name}</p>
+          <p class="folder-name">${disp}</p>
           <p class="folder-count">Stored Data Group</p>
           <button class="action-btn" style="position:absolute; top:10px; right:10px; padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
         </div>
       `;
-      select.innerHTML += `<option value="${f.folder_id}">${f.name}</option>`;
+      select.innerHTML += `<option value="${f.folder_id}">${disp}</option>`;
     });
   } catch {}
 }
@@ -418,11 +424,12 @@ async function renderFiles() {
     try {
       const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
       const ext = meta.filename.split(".").pop().toUpperCase();
+      const displayTitle = truncateName(meta.filename);
 
       myBody.innerHTML += `
         <div class="file-row">
           <div style="min-width:0; width:100%;">
-            <p class="file-name" title="${meta.filename}">${meta.filename}</p>
+            <p class="file-name" title="${meta.filename}">${displayTitle}</p>
             <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin:0;">Encrypted</p>
           </div>
           <p style="color:var(--text-muted); font-size:0.8rem;">${ext}</p>
@@ -623,7 +630,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
   }
 
   try {
-    document.getElementById("view-filename").textContent = name;
+    document.getElementById("view-filename").textContent = truncateName(name);
     document.getElementById("file-view-modal").classList.remove("hidden");
     const viewer = document.getElementById("view-content");
     viewer.innerHTML = "";
