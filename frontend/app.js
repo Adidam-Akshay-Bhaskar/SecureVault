@@ -318,7 +318,7 @@ function showView(view) {
   if (view === "my-vault") { 
     loadFolders(); 
     loadFiles();
-    toggleVaultSubView('folders');
+    toggleVaultSubView('files');
   }
   if (view === "incoming") loadFiles();
 }
