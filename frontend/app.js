@@ -706,9 +706,11 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
   } catch (err) { showToast("Download failed", "error"); }
 }
 
-async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null, canDownload = true) {
+async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null, canDownload = true, linkId = null) {
   let dec = decBuffer;
   const downloadBtn = document.getElementById("view-download-btn");
+  const closeBtn = document.getElementById("view-close-btn");
+
   if (downloadBtn) {
     if (canDownload) {
       downloadBtn.classList.remove("hidden");
@@ -722,6 +724,20 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     } else {
       downloadBtn.classList.add("hidden");
     }
+  }
+
+  // Identity: Burn-after-viewing Protocol for shared records
+  if (linkId) {
+    closeBtn.onclick = async () => {
+      try {
+        await fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+        closeModal('file-view-modal');
+        loadFiles();
+        showToast("Shared access terminated and record cleared", "info");
+      } catch (err) { closeModal('file-view-modal'); }
+    };
+  } else {
+    closeBtn.onclick = () => closeModal('file-view-modal');
   }
 
   document.getElementById("view-filename").textContent = truncateName(name);
@@ -828,7 +844,7 @@ async function processUnlockStep2() {
     const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
     
     closeModal("unlock-modal");
-    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable);
+    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable, tempUnlockData.linkId);
   } catch (err) {
     showToast("Identity Verification Failed", "error");
   }
