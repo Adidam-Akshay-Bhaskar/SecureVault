@@ -155,6 +155,7 @@ async function ensureAllTables() {
       encrypted_metadata BYTEA,
       iv TEXT,
       is_used BOOLEAN DEFAULT FALSE,
+      downloadable BOOLEAN DEFAULT FALSE,
       expires_at TIMESTAMP NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -566,7 +567,7 @@ app.get("/api/files", authenticateToken, (req, res) => {
       if (err) return res.status(500).json({ error: err });
 
       db.query(
-        `SELECT sl.link_id, f.file_id, f.file_uuid, sl.created_at, sl.encrypted_metadata, sl.iv, sl.encrypted_file_key as encrypted_key, u.email as sender_email, 'SHARED' as role
+        `SELECT sl.link_id, f.file_id, f.file_uuid, sl.created_at, sl.encrypted_metadata, sl.iv, sl.encrypted_file_key as encrypted_key, sl.downloadable, u.email as sender_email, 'SHARED' as role
          FROM shared_links sl
          JOIN files f ON sl.file_id = f.file_id
          JOIN users u ON f.owner_id = u.user_id
@@ -583,6 +584,7 @@ app.get("/api/files", authenticateToken, (req, res) => {
             created_at: row.created_at,
             encrypted_metadata: row.encrypted_metadata.toString("base64"),
             iv: row.iv,
+            downloadable: row.downloadable === 1 || row.downloadable === true,
             encrypted_key: row.encrypted_key,
             role: row.role,
             sender_email: row.sender_email,
@@ -651,8 +653,8 @@ app.post("/api/share", authenticateToken, (req, res) => {
     const expiry = new Date(); expiry.setHours(expiry.getHours() + 24);
 
     db.query(
-      "INSERT INTO shared_links (file_id, recipient_email, token_hash, encrypted_file_key, encrypted_metadata, iv, expires_at) VALUES (?, ?, ?, ?, decode(?, 'base64'), ?, ?)",
-      [fileId, targetEmail, tokenHash, encryptedFileKeyForLink, encryptedMetadataForLink || "", metadataIv, expiry],
+      "INSERT INTO shared_links (file_id, recipient_email, token_hash, encrypted_file_key, encrypted_metadata, iv, downloadable, expires_at) VALUES (?, ?, ?, ?, decode(?, 'base64'), ?, ?, ?)",
+      [fileId, targetEmail, tokenHash, encryptedFileKeyForLink, encryptedMetadataForLink || "", metadataIv, req.body.downloadable ? 1 : 0, expiry],
       (err) => {
         if (err) return res.status(500).json({ error: err });
 

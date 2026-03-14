@@ -230,7 +230,11 @@
               <p id="profile-email-full" style="color:#444;">email@vault.com</p>
             </div>
           </div>
-          <form id="update-password-form">
+          <div style="margin-top: 2rem; padding-top: 2rem; border-top: 1px solid rgba(255,255,255,0.05);">
+            <p style="color:var(--text-dim); font-size:0.8rem; margin-bottom: 1rem;">Environment Preferences</p>
+            <button class="action-btn" onclick="toggleTheme()" style="background: rgba(255,255,255,0.05); width: 100%; justify-content: center; padding: 12px;">Toggle Visual Theme</button>
+          </div>
+          <form id="update-password-form" style="margin-top: 2rem;">
             <div class="input-box"><input type="password" id="current-password" placeholder="Current Passcode" required /></div>
             <div class="input-box"><input type="password" id="new-password" placeholder="New Passcode" required /></div>
             <button type="submit" class="primary-btn">Sync Credentials</button>
@@ -320,11 +324,40 @@
     </div>
   </div>
 
+  <div id="unlock-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 2rem;">Protocol: Secure Unlock</h3>
+      
+      <!-- Step 1: Transmission Key -->
+      <div id="unlock-step-1">
+        <p style="color:#666; font-size:0.85rem; margin-bottom: 1.5rem;">Step 1: Provide the unique <b>Transmission Key</b> to decrypt metadata.</p>
+        <div class="input-box"><input type="password" id="unlock-key-input" placeholder="Transmission Key (Hex)" class="modal-input" /></div>
+        <div class="btn-row">
+          <button class="modal-secondary-btn" onclick="closeModal('unlock-modal')">Cancel</button>
+          <button class="primary-btn" onclick="processUnlockStep1()">Initialize Decryption</button>
+        </div>
+      </div>
+
+      <!-- Step 2: User Security PIN -->
+      <div id="unlock-step-2" class="hidden">
+        <p style="color:#666; font-size:0.85rem; margin-bottom: 1.5rem;">Step 2: Authenticate with your <b>Security PIN</b> to confirm identity.</p>
+        <div class="input-box"><input type="password" id="unlock-pin-input" placeholder="Security PIN" class="modal-input" maxlength="6" /></div>
+        <div class="btn-row">
+          <button class="modal-secondary-btn" onclick="closeModal('unlock-modal')">Abort</button>
+          <button class="primary-btn" onclick="processUnlockStep2()">Finalize Access</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="file-view-modal" class="modal hidden">
     <div class="modal-content" style="max-width: 99vw; width: 99vw; height: 98vh; display: flex; flex-direction: column; padding: 1rem 2rem; border: none; border-radius: 20px;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 0.5rem; border-bottom: none; gap: 20px;">
         <h3 id="view-filename" style="margin:0; font-size: 1.1rem; color: #fff; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">File Display</h3>
-        <button class="action-btn" onclick="closeModal('file-view-modal')" style="background: rgba(255,255,255,0.05); padding: 6px 15px; white-space: nowrap;">Close Access</button>
+        <div style="display: flex; gap: 10px;">
+          <button id="view-download-btn" class="action-btn hidden" style="background: var(--accent-cyan); color: #000; border: none; padding: 6px 15px; font-weight: 700;">Download Receipt</button>
+          <button class="action-btn" onclick="closeModal('file-view-modal')" style="background: rgba(255,255,255,0.05); padding: 6px 15px; white-space: nowrap;">Close Access</button>
+        </div>
       </div>
       <div id="view-content" style="flex: 1; background: #000; border-radius: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; border: none; padding: 0;">
         <p style="color:#444;">Establishing Secure Feed...</p>

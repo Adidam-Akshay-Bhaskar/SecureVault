@@ -554,12 +554,12 @@ async function renderFiles() {
         <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${f.sender_email}</p>
         <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${new Date(f.created_at).toLocaleDateString()}</p>
         <div class="btn-group">
-          <button class="action-btn" style="border-color:var(--accent-cyan); color:var(--accent-cyan); background: rgba(0,242,255,0.03);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')">
+          <button class="action-btn" style="border-color:var(--accent-cyan); color:var(--accent-cyan); background: rgba(0,242,255,0.03);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable})">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>
             <span>Unlock</span>
           </button>
           <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})" style="background: rgba(255,50,50,0.03);">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-35l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             <span>Delete</span>
           </button>
         </div>
@@ -622,8 +622,15 @@ function verifyPIN() {
 }
 
 async function deleteSharedLink(id) {
+  const conf = await showConfirm(`Remove this shared record from your incoming feed?`, "danger");
+  if (!conf) return;
+  const verified = await verifyPIN();
+  if (!verified) return;
+  
+  showToast("Suspending shared access...");
   await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
   loadFiles();
+  showToast("Record removed from feed", "success");
 }
 
 // ==========================================
@@ -698,8 +705,24 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
   } catch (err) { showToast("Download failed", "error"); }
 }
 
-async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null) {
+async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null, canDownload = true) {
   let dec = decBuffer;
+  const downloadBtn = document.getElementById("view-download-btn");
+  if (downloadBtn) {
+    if (canDownload) {
+      downloadBtn.classList.remove("hidden");
+      downloadBtn.onclick = () => {
+        const ext = name.split('.').pop().toLowerCase();
+        const b = new Blob([dec], { type: getMimeType(ext) });
+        const u = URL.createObjectURL(b);
+        const a = document.createElement("a"); a.href = u; a.download = name; a.click();
+        showToast("Record Decrypted & Exported");
+      };
+    } else {
+      downloadBtn.classList.add("hidden");
+    }
+  }
+
   if (!alreadyDecrypted) {
     document.getElementById("view-filename").textContent = truncateName(name);
     document.getElementById("file-view-modal").classList.remove("hidden");
@@ -755,8 +778,8 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
 
 let tempUnlockData = null;
 
-function openUnlockModal(fileId, linkId, encKey, encMeta, iv) {
-  tempUnlockData = { fileId, linkId, encKey, encMeta, iv };
+function openUnlockModal(fileId, linkId, encKey, encMeta, iv, downloadable = false) {
+  tempUnlockData = { fileId, linkId, encKey, encMeta, iv, downloadable };
   document.getElementById("unlock-modal").classList.remove("hidden");
   document.getElementById("unlock-step-1").classList.remove("hidden");
   document.getElementById("unlock-step-2").classList.add("hidden");
@@ -771,7 +794,6 @@ async function processUnlockStep1() {
     const linkKey = await window.crypto.subtle.importKey("raw", hexToBytes(keyHex), { name: ALGO_NAME }, false, ["unwrapKey", "decrypt"]);
     const [ivHex, keyBase64] = tempUnlockData.encKey.split(":");
     
-    // Test decryption of metadata to verify key
     const fileKey = await decryptKey(base64ToArrayBuffer(keyBase64), linkKey, hexToBytes(ivHex));
     const meta = await decryptMetadata(base64ToArrayBuffer(tempUnlockData.encMeta), linkKey, hexToBytes(tempUnlockData.iv));
     
@@ -804,7 +826,7 @@ async function processUnlockStep2() {
     const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
     
     closeModal("unlock-modal");
-    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec);
+    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable);
   } catch (err) {
     showToast("Identity Verification Failed", "error");
   }
@@ -921,8 +943,11 @@ async function loadProfile() {
 }
 
 async function toggleTheme() {
+  const verified = await verifyPIN();
+  if (!verified) return;
   document.body.classList.toggle("theme-dark");
   document.body.classList.toggle("theme-light");
+  showToast("Visual protocol updated", "success");
 }
 
 // Init
