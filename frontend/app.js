@@ -511,8 +511,131 @@ async function viewMyFile(id, keyStr, name, size) {
 }
 
 // ==========================================
-// SHARE logic
+// UNLOCK & VIEW logic
 // ==========================================
+
+let tempUnlockData = null;
+
+function openUnlockModal(fileId, linkId, encKey, encMeta, iv) {
+  tempUnlockData = { fileId, linkId, encKey, encMeta, iv };
+  document.getElementById("unlock-modal").classList.remove("hidden");
+  document.getElementById("unlock-step-1").classList.remove("hidden");
+  document.getElementById("unlock-step-2").classList.add("hidden");
+  document.getElementById("unlock-key-input").value = "";
+}
+
+async function processUnlockStep1() {
+  const keyHex = document.getElementById("unlock-key-input").value.trim();
+  if (!keyHex) return showToast("Transmission key required", "error");
+  
+  try {
+    const linkKey = await window.crypto.subtle.importKey("raw", hexToBytes(keyHex), { name: ALGO_NAME }, false, ["unwrapKey", "decrypt"]);
+    const [ivHex, keyBase64] = tempUnlockData.encKey.split(":");
+    
+    // Test decryption of metadata to verify key
+    const fileKey = await decryptKey(base64ToArrayBuffer(keyBase64), linkKey, hexToBytes(ivHex));
+    const meta = await decryptMetadata(base64ToArrayBuffer(tempUnlockData.encMeta), linkKey, hexToBytes(tempUnlockData.iv));
+    
+    tempUnlockData.fileKey = fileKey;
+    tempUnlockData.meta = meta;
+    
+    document.getElementById("unlock-step-1").classList.add("hidden");
+    document.getElementById("unlock-step-2").classList.remove("hidden");
+    document.getElementById("unlock-pin-input").value = "";
+    document.getElementById("unlock-pin-input").focus();
+  } catch (err) {
+    showToast("Invalid Transmission Key", "error");
+  }
+}
+
+async function processUnlockStep2() {
+  const securityPin = document.getElementById("unlock-pin-input").value;
+  if (!securityPin) return showToast("Security PIN required", "error");
+  
+  try {
+    const res = await fetch(`${API_URL}/verify-file-pin`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+      body: JSON.stringify({ securityPin }),
+    });
+    if (!res.ok) throw new Error("Verification Failed");
+    
+    showToast("Identity Confirmed. Decrypting record...");
+    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
+    const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
+    const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
+    
+    closeModal("unlock-modal");
+    openSecureViewer(dec, tempUnlockData.meta, tempUnlockData.linkId);
+  } catch (err) {
+    showToast("Identity Verification Failed", "error");
+  }
+}
+
+let currentBlobUrl = null;
+
+async function openSecureViewer(buffer, meta, linkIdToBurn = null) {
+  const modal = document.getElementById("access-modal");
+  const viewer = document.getElementById("access-viewer-body");
+  const footer = document.getElementById("access-footer");
+  
+  document.getElementById("access-filename").textContent = meta.filename;
+  modal.classList.remove("hidden");
+  viewer.innerHTML = "Initializing secure stream...";
+  footer.innerHTML = "";
+
+  if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+  const ext = meta.filename.split(".").pop().toLowerCase();
+  const blob = new Blob([buffer], { type: getMimeType(ext) });
+  currentBlobUrl = URL.createObjectURL(blob);
+
+  // Render Preview
+  if (["png","jpg","jpeg","gif","webp"].includes(ext)) {
+    viewer.innerHTML = `<img src="${currentBlobUrl}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
+  } else if (ext === "pdf") {
+    viewer.innerHTML = `<iframe src="${currentBlobUrl}#toolbar=0" style="width:100%; height:100%; border:none;"></iframe>`;
+  } else if (["txt","md","json","js","css","html"].includes(ext)) {
+    const text = await blob.text();
+    viewer.innerHTML = `<pre style="color:#fff; padding:2rem; width:100%; overflow:auto; text-align:left;">${text.replace(/</g,"&lt;")}</pre>`;
+  } else {
+    viewer.innerHTML = `<div style="text-align:center;"><p style="font-size:3rem;">📄</p><p>Preview not supported for .${ext}</p></div>`;
+  }
+
+  // Footer Actions
+  const dlBtn = document.createElement("button");
+  dlBtn.className = "action-btn";
+  dlBtn.textContent = "Download Decrypted";
+  dlBtn.onclick = () => {
+    const a = document.createElement("a"); a.href = currentBlobUrl; a.download = meta.filename; a.click();
+  };
+  footer.appendChild(dlBtn);
+
+  if (linkIdToBurn) {
+    const burnBtn = document.createElement("button");
+    burnBtn.className = "primary-btn";
+    burnBtn.style.background = "var(--danger)";
+    burnBtn.textContent = "Close & Burn Link";
+    burnBtn.onclick = async () => {
+      await deleteSharedLink(linkIdToBurn);
+      closeViewer();
+    };
+    footer.appendChild(burnBtn);
+  }
+}
+
+function closeViewer() {
+  document.getElementById("access-modal").classList.add("hidden");
+  if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+  currentBlobUrl = null;
+}
+
+function getMimeType(ext) {
+  const Map = { 
+    pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", 
+    jpeg: "image/jpeg", gif: "image/gif", txt: "text/plain",
+    html: "text/html", json: "application/json"
+  };
+  return Map[ext] || "application/octet-stream";
+}
 let currentShareFile = null;
 function openShareModal(id, name, keyStr) {
   currentShareFile = { id, name, keyStr };

@@ -293,6 +293,51 @@
     </div>
   </div>
 
+  <!-- UNLOCK MODAL -->
+  <div id="unlock-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2 class="modal-title">Decrypt Shared Record</h2>
+      <div id="unlock-step-1">
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Protocol requires valid Transmission Key</p>
+        <div class="input-group">
+          <label>Transmission Key (Hex)</label>
+          <input type="text" id="unlock-key-input" placeholder="Paste key here..." />
+        </div>
+        <div style="display: flex; gap: 1rem;">
+          <button class="action-btn" style="flex: 1" onclick="closeModal('unlock-modal')">Abort</button>
+          <button class="primary-btn" style="flex: 2" onclick="processUnlockStep1()">Validate Key</button>
+        </div>
+      </div>
+      <div id="unlock-step-2" class="hidden">
+        <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Key Validated. Verification Required.</p>
+        <div class="input-group">
+          <label>Your Security PIN</label>
+          <input type="password" id="unlock-pin-input" maxlength="6" placeholder="••••" />
+        </div>
+        <div style="display: flex; gap: 1rem;">
+          <button class="action-btn" style="flex: 1" onclick="document.getElementById('unlock-step-2').classList.add('hidden'); document.getElementById('unlock-step-1').classList.remove('hidden');">Back</button>
+          <button class="primary-btn" style="flex: 2" onclick="processUnlockStep2()">Open Record</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECURE ACCESS MODAL (VIEWER) -->
+  <div id="access-modal" class="modal hidden">
+    <div class="modal-content" style="max-width: 90vw; max-height: 90vh; width: 1000px; display: flex; flex-direction: column; overflow: hidden;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <h2 id="access-filename" class="modal-title" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%;">Secure Record View</h2>
+        <button class="action-btn" onclick="closeViewer()">Close Access</button>
+      </div>
+      <div id="access-viewer-body" style="flex: 1; background: #000; border-radius: 12px; overflow: auto; display: flex; align-items: center; justify-content: center; position: relative; min-height: 400px;">
+        <!-- Preview Content -->
+      </div>
+      <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 1rem;" id="access-footer">
+        <!-- Actions -->
+      </div>
+    </div>
+  </div>
+
   <!-- OTP MODAL -->
   <div id="otp-modal" class="modal hidden">
     <div class="modal-content" style="text-align: center;">
