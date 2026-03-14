@@ -194,12 +194,18 @@ function toggleAuthMode(mode) {
 
   const h1 = document.querySelector(".card-header h1");
   const p = document.querySelector(".card-header p");
+  const card = document.querySelector(".auth-card-premium");
+  
   if (mode === "login") {
     h1.textContent = "Sign In";
     p.textContent = "Enter your credentials to access the vault.";
+    if (card) card.classList.remove("compact-mode");
   } else if (mode === "register") {
     h1.textContent = "Sign Up";
     p.textContent = "Provision a new secure identity.";
+    if (card) card.classList.add("compact-mode");
+  } else {
+    if (card) card.classList.remove("compact-mode");
   }
 }
 
