@@ -171,6 +171,14 @@ async function ensureAllTables() {
       owner_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS recovery_tokens (
+      token_id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(user_id) ON DELETE CASCADE,
+      token_hash TEXT NOT NULL,
+      type TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`
   ];
 
@@ -299,6 +307,92 @@ function generateTokenAndResponse(res, user) {
 
 app.get("/api/health", (req, res) => {
   res.json({ status: "online", port: process.env.PORT, db: "connected" });
+});
+
+// RECOVERY REQUEST (Sends Email)
+app.post("/api/auth/recover-request", (req, res) => {
+  const { email, type } = req.body; // type: 'password' or 'pin'
+  if (!email || !type) return res.status(400).json({ message: "Email and recovery type are required." });
+
+  const normalizedEmail = email.trim().toLowerCase();
+  db.query("SELECT user_id, username FROM users WHERE email = ?", [normalizedEmail], async (err, results) => {
+    if (results.length === 0) return res.status(200).json({ message: "If an account exists, a recovery link will be sent." });
+
+    const user = results[0];
+    const token = crypto.randomBytes(32).toString("hex");
+    const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
+    db.query(
+      "INSERT INTO recovery_tokens (user_id, token_hash, type, expires_at) VALUES (?, ?, ?, ?)",
+      [user.user_id, tokenHash, type, expiry],
+      (err) => {
+        if (err) return res.status(500).json({ message: "DB Error" });
+
+        const resetLink = `${req.protocol}://${req.get("host")}/?recovery_token=${token}&type=${type}`;
+        
+        const mailOptions = {
+          from: `"SecureVault Support" <${process.env.SYSTEM_EMAIL}>`,
+          to: user.email,
+          subject: `SecureVault - ${type.toUpperCase()} Reset Link`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; color: #333;">
+              <h2>Vault Recovery Protocol</h2>
+              <p>Hello, <strong>${user.username}</strong>.</p>
+              <p>We received a request to reset your <strong>${type}</strong>. This link will expire in 15 minutes.</p>
+              <a href="${resetLink}" style="display: inline-block; padding: 12px 24px; background: #00f2ff; color: #000; text-decoration: none; border-radius: 8px; font-weight: bold;">Reset ${type}</a>
+              <p style="font-size: 0.8rem; color: #666; margin-top: 20px;">If you did not request this, please ignore this email.</p>
+            </div>
+          `
+        };
+
+        emailTransporter.sendMail(mailOptions, (error, info) => {
+          if (error) {
+            console.error("Email Error:", error);
+            // Even if email fails to SEND, we tell user it's sent for security
+          }
+          res.json({ message: "Recovery link dispatched to your email." });
+        });
+      }
+    );
+  });
+});
+
+// VERIFY RECOVERY TOKEN
+app.get("/api/auth/verify-recovery/:token", (req, res) => {
+  const tokenHash = crypto.createHash("sha256").update(req.params.token).digest("hex");
+  db.query("SELECT * FROM recovery_tokens WHERE token_hash = ?", [tokenHash], (err, results) => {
+    if (results.length === 0 || new Date() > new Date(results[0].expires_at)) {
+      return res.status(403).json({ valid: false, message: "Link expired or invalid." });
+    }
+    res.json({ valid: true, type: results[0].type });
+  });
+});
+
+// EXECUTE RESET
+app.post("/api/auth/reset-execute", async (req, res) => {
+  const { token, newValue } = req.body;
+  if (!token || !newValue) return res.status(400).json({ message: "Missing data." });
+
+  const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+  db.query("SELECT * FROM recovery_tokens WHERE token_hash = ?", [tokenHash], async (err, results) => {
+    if (results.length === 0 || new Date() > new Date(results[0].expires_at)) {
+      return res.status(403).json({ message: "Link expired." });
+    }
+
+    const recovery = results[0];
+    const hashedValue = await bcrypt.hash(newValue, 10);
+    const tableField = recovery.type === "password" ? "password_hash" : "security_pin_hash";
+
+    db.query(`UPDATE users SET ${tableField} = ? WHERE user_id = ?`, [hashedValue, recovery.user_id], (err) => {
+      if (err) return res.status(500).json({ message: "Update failed." });
+      
+      // Delete the token immediately
+      db.query("DELETE FROM recovery_tokens WHERE token_id = ?", [recovery.token_id], () => {});
+      
+      res.json({ message: `${recovery.type === "password" ? "Password" : "PIN"} successfully restored.` });
+    });
+  });
 });
 
 // REGISTER

@@ -184,7 +184,7 @@ function initSpace() {
 // ==========================================
 
 function toggleAuthMode(mode) {
-  const modes = ["login", "register", "verify"];
+  const modes = ["login", "register", "verify", "recover", "reset"];
   modes.forEach(m => {
     const el = document.getElementById(`${m}-form-container`);
     if (el) el.classList.add("hidden");
@@ -204,6 +204,14 @@ function toggleAuthMode(mode) {
     h1.textContent = "Sign Up";
     p.textContent = "Provision a new secure identity.";
     if (card) card.classList.add("compact-mode");
+  } else if (mode === "recover") {
+    h1.textContent = "Vault Recovery";
+    p.textContent = "Initiate secure restoration protocol.";
+    if (card) card.classList.remove("compact-mode");
+  } else if (mode === "reset") {
+    h1.textContent = "Credential Update";
+    p.textContent = "Establish your new security parameters.";
+    if (card) card.classList.remove("compact-mode");
   } else {
     if (card) card.classList.remove("compact-mode");
   }
@@ -297,6 +305,47 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     } else showToast(data.message, "error");
   } catch { showToast("Registration failure", "error"); }
   finally { btn.disabled = false; btn.textContent = orig; }
+});
+
+document.getElementById("recover-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = document.getElementById("recover-email").value.trim().toLowerCase();
+  const type = document.getElementById("recover-type").value;
+  const btn = e.target.querySelector("button");
+  const orig = btn.textContent;
+  btn.textContent = "Dispatched..."; btn.disabled = true;
+  try {
+    const res = await fetch(`${API_URL}/auth/recover-request`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, type }),
+    });
+    const data = await res.json();
+    showToast(data.message);
+    if (res.ok) toggleAuthMode("login");
+  } catch (err) { showToast("Transmission failure", "error"); }
+  finally { btn.disabled = false; btn.textContent = orig; }
+});
+
+document.getElementById("reset-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("recovery_token");
+  const newValue = document.getElementById("reset-new-value").value;
+  const btn = e.target.querySelector("button");
+  btn.textContent = "Updating..."; btn.disabled = true;
+  try {
+    const res = await fetch(`${API_URL}/auth/reset-execute`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newValue }),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast(data.message);
+      window.history.replaceState({}, document.title, "/");
+      toggleAuthMode("login");
+    } else showToast(data.message, "error");
+  } catch (err) { showToast("Protocol update failed", "error"); }
+  finally { btn.disabled = false; btn.textContent = "Update Vault"; }
 });
 
 function logout() {
@@ -1118,7 +1167,19 @@ window.addEventListener("click", (e) => {
               showView("my-vault"); 
             } catch (err) { logout(); }
           } else {
-            toggleAuthMode("login");
+            const urlParams = new URLSearchParams(window.location.search);
+            const recoveryToken = urlParams.get("recovery_token");
+            const recoveryType = urlParams.get("type");
+            
+            if (recoveryToken) {
+              toggleAuthMode("reset");
+              document.getElementById("reset-title").textContent = `Reset ${recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1)}`;
+              document.getElementById("reset-label").textContent = `New ${recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1)}`;
+              document.getElementById("reset-new-value").placeholder = recoveryType === "pin" ? "••••••" : "••••••••";
+              if (recoveryType === "pin") document.getElementById("reset-new-value").maxLength = 6;
+            } else {
+              toggleAuthMode("login");
+            }
           }
         }, 1200); 
       }, 1000); 
