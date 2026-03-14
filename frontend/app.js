@@ -412,6 +412,7 @@ async function renderFiles() {
     : sortedFiles.filter(f => !f.folder_id);
 
   document.getElementById("stat-file-count").textContent = filteredMy.length;
+  document.getElementById("stat-incoming-count").textContent = allFiles.sharedFiles.length;
 
   for (const f of filteredMy) {
     try {
