@@ -184,7 +184,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .file-row {
   display: grid; 
-  grid-template-columns: repeat(5, 1fr); 
+  grid-template-columns: 3.5fr 0.7fr 1fr 1.2fr 3.5fr;
   align-items: center; justify-items: stretch;
   padding: 20px 12px; border-bottom: 1px solid #151518; transition: 0.3s;
 }
