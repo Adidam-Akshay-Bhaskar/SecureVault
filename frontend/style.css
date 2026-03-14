@@ -157,8 +157,18 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 #view-subtitle { color: var(--text-dim); text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; font-weight: 700; margin-top: 5px; }
 #welcome-message { color: #fff; }
 
-.user-info { display: flex; align-items: center; gap: 20px; }
-#profile-email-display { color: var(--text-muted); font-size: 0.8rem; font-weight: 600; }
+.user-profile-box {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255,255,255,0.05);
+  padding: 6px 12px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  align-self: flex-start;
+  margin-top: 5px;
+}
+#profile-email-display { color: var(--text-dim); font-size: 0.75rem; font-weight: 600; }
 
 .auth-logo-box {
   background: linear-gradient(135deg, #111, #222); border: 1px solid #333;
