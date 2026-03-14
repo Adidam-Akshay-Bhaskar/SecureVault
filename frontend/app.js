@@ -157,6 +157,13 @@ function switchAuthTab(tab) {
   toggleAuthMode(tab);
 }
 
+function toggleSidebar() {
+  const sidebar = document.querySelector(".sidebar");
+  const isCollapsed = sidebar.classList.toggle("collapsed");
+  document.body.classList.toggle("sidebar-collapsed");
+  localStorage.setItem("sidebarCollapsed", isCollapsed);
+}
+
 document.getElementById("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("login-email").value.trim().toLowerCase();
@@ -727,6 +734,13 @@ async function toggleTheme() {
 
 // Init
 (async function init() {
+  if (localStorage.getItem("sidebarCollapsed") === "true") {
+    const sidebar = document.querySelector(".sidebar");
+    if (sidebar) {
+      sidebar.classList.add("collapsed");
+      document.body.classList.add("sidebar-collapsed");
+    }
+  }
   const token = localStorage.getItem("token");
   if (token) {
     try { 

@@ -105,21 +105,22 @@
   <!-- DASHBOARD UI -->
   <div id="view-dashboard" class="hidden" style="display: flex; width: 100%;">
     <aside class="sidebar">
-      <h2 style="font-weight:900; letter-spacing:-1px; margin-bottom: 3rem;">VAULT</h2>
+      <button class="sidebar-toggle" onclick="toggleSidebar()">⟨</button>
+      <h2 id="sidebar-brand">VAULT</h2>
       <nav>
         <div class="nav-item active" onclick="showView('my-vault')">
-          <span>📦</span> Vault Base
+          <span>📦</span> <span class="nav-text">Vault Base</span>
         </div>
         <div class="nav-item" onclick="showView('incoming')">
-          <span>📥</span> Shared Downlinks
+          <span>📥</span> <span class="nav-text">Shared Downlinks</span>
         </div>
         <div class="nav-item" onclick="showView('profile')">
-          <span>👤</span> Identity Settings
+          <span>👤</span> <span class="nav-text">Identity Settings</span>
         </div>
       </nav>
       <div style="margin-top:auto;">
         <div class="nav-item" onclick="logout()" style="color:var(--danger)">
-          <span>⏻</span> System Exit
+          <span>⏻</span> <span class="nav-text">System Exit</span>
         </div>
       </div>
     </aside>
