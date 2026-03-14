@@ -512,12 +512,20 @@ app.get("/api/debug/users", (req, res) => {
 });
 
 app.get("/api/profile", authenticateToken, (req, res) => {
-  const sql = "SELECT username, email, profile_photo, theme_preference FROM users WHERE user_id = ?";
+  const sql = "SELECT username, email, profile_photo, theme_preference, client_master_key FROM users WHERE user_id = ?";
   db.query(sql, [req.user.user_id], (err, results) => {
     if (err) return res.status(500).json({ error: err });
     if (results.length === 0)
       return res.status(404).json({ message: "User not found" });
-    res.json(results[0]);
+    
+    const user = results[0];
+    res.json({
+      username: user.username,
+      email: user.email,
+      profile_photo: user.profile_photo,
+      theme_preference: user.theme_preference,
+      masterKey: user.client_master_key // Sync key
+    });
   });
 });
 
