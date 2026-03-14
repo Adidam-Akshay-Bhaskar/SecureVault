@@ -9,14 +9,11 @@ const ALGO_NAME = "AES-GCM";
 const KEY_LENGTH = 256;
 
 async function getClientMasterKey() {
-  const token = localStorage.getItem("token");
-
   if (sessionMasterKey) return sessionMasterKey;
 
-  let retry = 0;
-  while (token && !currentUser && retry < 20) {
-    await new Promise(r => setTimeout(r, 100));
-    retry++;
+  // If we have a token but no user profile yet, wait for loadProfile to finish
+  if (localStorage.getItem("token") && !currentUser) {
+    await loadProfile();
   }
 
   if (currentUser && currentUser.masterKey) {
@@ -27,18 +24,16 @@ async function getClientMasterKey() {
     return sessionMasterKey;
   }
 
-  // First time: generate new key
+  // ONLY generate a new key if the user is truly new (no key in DB)
+  // This should normally only happen during Registration, but we keep it as a safety fallback.
   const key = await window.crypto.subtle.generateKey(
     { name: ALGO_NAME, length: KEY_LENGTH }, true,
     ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
   );
-  const exported = await window.crypto.subtle.exportKey("jwk", key);
-  const rawKey = JSON.stringify(exported);
-
-  // FIX: await so failures are visible, not silent
-  if (token) {
-    try { await syncMasterKey(rawKey); }
-    catch (e) { console.error("Master key sync failed:", e); }
+  
+  if (localStorage.getItem("token")) {
+    const exported = await window.crypto.subtle.exportKey("jwk", key);
+    await syncMasterKey(JSON.stringify(exported));
   }
 
   sessionMasterKey = key;
@@ -362,27 +357,48 @@ function logout() {
 // ==========================================
 
 async function loadProfile() {
+  const token = localStorage.getItem("token");
+  if (!token) return;
+
   try {
-    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       currentUser = await res.json();
-      if (currentUser.masterKey && !sessionMasterKey) {
+      
+      // 1. Immediately import the key if it exists
+      if (currentUser.masterKey) {
         sessionMasterKey = await window.crypto.subtle.importKey(
           "jwk", JSON.parse(currentUser.masterKey), { name: ALGO_NAME }, false,
           ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
         );
       }
+
+      // 2. Update UI Elements
+      const usernameDisplays = [
+        document.getElementById("profile-username-display"),
+        document.getElementById("welcome-message")
+      ];
+      const emailDisplay = document.getElementById("profile-email-display");
+
+      if (emailDisplay) emailDisplay.textContent = currentUser.email;
+      usernameDisplays.forEach(el => { if (el) el.textContent = currentUser.username; });
+
+      // 3. Handle Theme
       document.body.classList.remove("theme-cosmic", "theme-light");
-      document.body.classList.add(currentUser.theme_preference && currentUser.theme_preference !== "default" ? currentUser.theme_preference : "theme-light");
-      updateThemeToggleButton(currentUser.theme_preference === "theme-cosmic");
+      const theme = currentUser.theme_preference || "theme-light";
+      document.body.classList.add(theme === "default" ? "theme-light" : theme);
+      updateThemeToggleButton(theme === "theme-cosmic");
+
+      // 4. Update Avatars
       updateAvatarDisplay("header-avatar", currentUser);
-      document.getElementById("profile-username-display").textContent = currentUser.username;
-      document.getElementById("profile-email-display").textContent = currentUser.email;
-      const welcome = document.getElementById("welcome-message");
-      if (welcome) welcome.textContent = `Welcome back, ${currentUser.username}.`;
       updateAvatarDisplay("profile-container", currentUser, true);
+    } else if (res.status === 401 || res.status === 403) {
+      logout();
     }
-  } catch (e) { console.error(e); }
+  } catch (e) { 
+    console.error("Profile Load Error:", e);
+    showToast("Session recovery failed. Please relogin.", "error");
+  }
 }
 
 function updateAvatarDisplay(contextId, user, isBig = false) {
