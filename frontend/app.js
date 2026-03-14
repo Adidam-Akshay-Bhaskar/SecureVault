@@ -723,10 +723,11 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     }
   }
 
+  document.getElementById("view-filename").textContent = truncateName(name);
+  document.getElementById("file-view-modal").classList.remove("hidden");
+  const viewer = document.getElementById("view-content");
+
   if (!alreadyDecrypted) {
-    document.getElementById("view-filename").textContent = truncateName(name);
-    document.getElementById("file-view-modal").classList.remove("hidden");
-    const viewer = document.getElementById("view-content");
     viewer.innerHTML = '<p style="color:#444;">Awaiting Identity Verification...</p>';
 
     const verified = await verifyPIN();
