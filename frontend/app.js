@@ -11,9 +11,14 @@ const KEY_LENGTH = 256;
 async function getClientMasterKey() {
   if (sessionMasterKey) return sessionMasterKey;
 
-  // If we have a token but no user profile yet, wait for loadProfile to finish
+  // If we have a token but no user profile yet, wait for loadProfile
   if (localStorage.getItem("token") && !currentUser) {
-    await loadProfile();
+    try {
+      await loadProfile();
+    } catch (e) {
+      console.error("Critical: Profile load failed, cannot retrieve Master Key.");
+      throw new Error("SECURE_ACCESS_DENIED");
+    }
   }
 
   if (currentUser && currentUser.masterKey) {
@@ -24,18 +29,18 @@ async function getClientMasterKey() {
     return sessionMasterKey;
   }
 
-  // ONLY generate a new key if the user is truly new (no key in DB)
-  // This should normally only happen during Registration, but we keep it as a safety fallback.
+  // If we reach here and have a token, it means we are logged in but have NO key in DB.
+  // This is a critical error state. We SHOULD NOT generate a new random key here
+  // because it will be unable to decrypt existing files.
+  if (localStorage.getItem("token")) {
+    throw new Error("ENCRYPTION_KEY_NOT_FOUND");
+  }
+
+  // Fallback for brand new registration ONLY (where token is not set yet)
   const key = await window.crypto.subtle.generateKey(
     { name: ALGO_NAME, length: KEY_LENGTH }, true,
     ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
   );
-  
-  if (localStorage.getItem("token")) {
-    const exported = await window.crypto.subtle.exportKey("jwk", key);
-    await syncMasterKey(JSON.stringify(exported));
-  }
-
   sessionMasterKey = key;
   return sessionMasterKey;
 }
@@ -362,42 +367,49 @@ async function loadProfile() {
 
   try {
     const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) {
-      currentUser = await res.json();
-      
-      // 1. Immediately import the key if it exists
-      if (currentUser.masterKey) {
-        sessionMasterKey = await window.crypto.subtle.importKey(
-          "jwk", JSON.parse(currentUser.masterKey), { name: ALGO_NAME }, false,
-          ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
-        );
+    
+    if (!res.ok) {
+      // If server says user doesn't exist (404) or database is down (500), 
+      // we must clear the stale token and log out.
+      if (res.status === 404 || res.status === 401 || res.status === 403) {
+        console.warn("Session invalid or user not found. Logging out.");
+        logout();
       }
-
-      // 2. Update UI Elements
-      const usernameDisplays = [
-        document.getElementById("profile-username-display"),
-        document.getElementById("welcome-message")
-      ];
-      const emailDisplay = document.getElementById("profile-email-display");
-
-      if (emailDisplay) emailDisplay.textContent = currentUser.email;
-      usernameDisplays.forEach(el => { if (el) el.textContent = currentUser.username; });
-
-      // 3. Handle Theme
-      document.body.classList.remove("theme-cosmic", "theme-light");
-      const theme = currentUser.theme_preference || "theme-light";
-      document.body.classList.add(theme === "default" ? "theme-light" : theme);
-      updateThemeToggleButton(theme === "theme-cosmic");
-
-      // 4. Update Avatars
-      updateAvatarDisplay("header-avatar", currentUser);
-      updateAvatarDisplay("profile-container", currentUser, true);
-    } else if (res.status === 401 || res.status === 403) {
-      logout();
+      throw new Error(`SERVER_ERROR_${res.status}`);
     }
+
+    currentUser = await res.json();
+    
+    if (currentUser.masterKey) {
+      sessionMasterKey = await window.crypto.subtle.importKey(
+        "jwk", JSON.parse(currentUser.masterKey), { name: ALGO_NAME }, false,
+        ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+      );
+    }
+    const usernameDisplays = [
+      document.getElementById("profile-username-display"),
+      document.getElementById("welcome-message")
+    ];
+    const emailDisplay = document.getElementById("profile-email-display");
+
+    if (emailDisplay) emailDisplay.textContent = currentUser.email;
+    usernameDisplays.forEach(el => { if (el) el.textContent = currentUser.username; });
+
+    // 3. Handle Theme
+    document.body.classList.remove("theme-cosmic", "theme-light");
+    const theme = currentUser.theme_preference || "theme-light";
+    document.body.classList.add(theme === "default" ? "theme-light" : theme);
+    updateThemeToggleButton(theme === "theme-cosmic");
+
+    // 4. Update Avatars
+    updateAvatarDisplay("header-avatar", currentUser);
+    updateAvatarDisplay("profile-container", currentUser, true);
+    
   } catch (e) { 
     console.error("Profile Load Error:", e);
-    showToast("Session recovery failed. Please relogin.", "error");
+    // If it's a server error but not a 404/401/403, we just toast it.
+    // The initAuth will catch the thrown error and handle the redirect.
+    throw e;
   }
 }
 
@@ -975,8 +987,16 @@ async function downloadFile(fileId, encryptedKeyStr, role, providedFileKey = nul
       if (localStorage.getItem("current_view") === "profile") showProfile();
       else showDashboard();
     } catch (e) {
-      console.error("Session verification failed", e);
+      console.error("InitAuth Error:", e.message);
+      // If we can't load the profile, we CANNOT proceed to the dashboard.
+      // The user is likely seeing stale data or the DB is disconnected.
+      localStorage.removeItem("token");
       document.getElementById("auth-section").classList.remove("hidden");
+      document.getElementById("dashboard-section").classList.add("hidden");
+      document.getElementById("app-header").classList.add("hidden");
+      if (e.message.includes("SERVER_ERROR_500")) {
+        showToast("Database Gateway Timeout. Please retry.", "error");
+      }
     }
   } else {
     document.getElementById("auth-section").classList.remove("hidden");

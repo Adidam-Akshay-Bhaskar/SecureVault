@@ -60,6 +60,9 @@ const pool = new Pool({
   database: process.env.DB_NAME,
   port: process.env.DB_PORT || 5432,
   ssl: { rejectUnauthorized: false },
+  // FIX: Supabase transaction-mode pooler (port 6543) doesn't persist search_path
+  // so tables in the 'public' schema appear not to exist. Setting it explicitly fixes this.
+  options: "-c search_path=public",
 });
 
 // FIX: db wrapper correctly returns insertId for both users and files inserts
@@ -118,28 +121,92 @@ pool.query("SELECT 1", (err) => {
   else {
     console.log("Connected to PostgreSQL Database");
     configureBucketCors();
-    ensureOtpTable();
+    ensureAllTables();
   }
 });
 
 // ==========================================
-// OTP TABLE (FIX: replaces in-memory Map that resets on Vercel cold start)
+// DB SCHEMA INITIALIZATION
 // ==========================================
 
-async function ensureOtpTable() {
-  try {
-    await pool.query(`
-      CREATE TABLE IF NOT EXISTS otp_store (
-        email TEXT PRIMARY KEY,
-        otp_hash TEXT NOT NULL,
-        expires_at TIMESTAMP NOT NULL
-      )
-    `);
-    console.log("otp_store table ready");
-  } catch (err) {
-    console.error("Failed to create otp_store table:", err.message);
+async function ensureAllTables() {
+  const createQueries = [
+    `CREATE TABLE IF NOT EXISTS users (
+      user_id SERIAL PRIMARY KEY,
+      username TEXT NOT NULL,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      security_pin_hash TEXT,
+      profile_photo TEXT,
+      theme_preference TEXT DEFAULT 'theme-light',
+      client_master_key TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS files (
+      file_id SERIAL PRIMARY KEY,
+      file_uuid TEXT NOT NULL,
+      owner_id INTEGER REFERENCES users(user_id),
+      file_type TEXT,
+      is_deleted BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS file_metadata (
+      file_id INTEGER REFERENCES files(file_id) ON DELETE CASCADE,
+      encrypted_metadata BYTEA NOT NULL,
+      iv TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS file_keys (
+      file_id INTEGER REFERENCES files(file_id) ON DELETE CASCADE,
+      encrypted_key TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS user_keys (
+      user_id INTEGER PRIMARY KEY REFERENCES users(user_id) ON DELETE CASCADE,
+      encryption_key TEXT NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS otp_store (
+      email TEXT PRIMARY KEY,
+      otp_hash TEXT NOT NULL,
+      expires_at TIMESTAMP NOT NULL
+    )`,
+    `CREATE TABLE IF NOT EXISTS shared_links (
+      link_id SERIAL PRIMARY KEY,
+      file_id INTEGER REFERENCES files(file_id) ON DELETE CASCADE,
+      recipient_email TEXT NOT NULL,
+      token_hash TEXT NOT NULL,
+      encrypted_file_key TEXT NOT NULL,
+      encrypted_metadata BYTEA,
+      iv TEXT,
+      is_used BOOLEAN DEFAULT FALSE,
+      expires_at TIMESTAMP NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS audit_logs (
+      log_id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(user_id) ON DELETE SET NULL,
+      file_id INTEGER REFERENCES files(file_id) ON DELETE SET NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )`
+  ];
+
+  // Migrations: safely add columns that may be missing from older DB deployments
+  const migrations = [
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS client_master_key TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_photo TEXT`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_preference TEXT DEFAULT 'theme-light'`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin_hash TEXT`,
+  ];
+
+  for (const q of createQueries) {
+    try { await pool.query(q); } catch (err) { console.error("Schema create error:", err.message); }
   }
+  for (const q of migrations) {
+    try { await pool.query(q); } catch (err) { /* column already exists - ignore */ }
+  }
+  console.log("All database tables verified/migrated.");
 }
+
 
 async function saveOTP(email, otp) {
   const otpHash = crypto.createHash("sha256").update(String(otp)).digest("hex");
@@ -268,9 +335,10 @@ app.post("/api/register", async (req, res) => {
       [username.trim(), normalizedEmail, hashedPassword, hashedPin, masterKey || null],
       (err, result) => {
         if (err) {
+          console.error("Registration Error:", err);
           if (err.code === "ER_DUP_ENTRY" || err.message.includes("unique constraint"))
             return res.status(400).json({ message: "Email already exists" });
-          return res.status(500).json({ error: err.message });
+          return res.status(500).json({ message: "Server Registration Error: " + err.message });
         }
         // FIX: Also write to user_keys immediately on registration
         // result.insertId now works correctly due to db wrapper fix
