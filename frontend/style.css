@@ -248,8 +248,8 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .incoming-row {
   display: grid;
-  grid-template-columns: minmax(350px, 4.5fr) 1fr 1fr minmax(280px, 3.5fr);
-  align-items: center;
+  grid-template-columns: minmax(300px, 4fr) minmax(220px, 1.5fr) minmax(130px, 1fr) minmax(350px, 3fr);
+  align-items: center; justify-items: start;
 }
 .file-row:last-child { border-bottom: none; }
 

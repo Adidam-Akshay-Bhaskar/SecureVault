@@ -553,18 +553,18 @@ async function renderFiles() {
 
   for (const f of allFiles.sharedFiles) {
     shBody.innerHTML += `
-      <div class="file-row incoming-row" style="padding: 16px 20px 16px 35px;">
+      <div class="file-row incoming-row" style="padding: 16px 20px 16px 35px; background: transparent;">
         <div class="file-info">
-          <p style="font-weight:600;">Encrypted Record</p>
+          <p style="font-weight:700; color: #fff; font-size: 1rem;">Encrypted Record</p>
         </div>
-        <p style="color:var(--text-muted); font-size:0.8rem;">${f.sender_email}</p>
-        <p style="color:var(--text-muted); font-size:0.8rem;">${new Date(f.created_at).toLocaleDateString()}</p>
-        <div class="btn-group">
-          <button class="action-btn" style="border-color:var(--primary); color:var(--primary);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')">
+        <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${f.sender_email}</p>
+        <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${new Date(f.created_at).toLocaleDateString()}</p>
+        <div class="btn-group" style="justify-content: flex-start;">
+          <button class="action-btn" style="border-color:var(--accent-cyan); color:var(--accent-cyan); background: rgba(0,242,255,0.03);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>
             <span>Unlock</span>
           </button>
-          <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})">
+          <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})" style="background: rgba(255,50,50,0.03);">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>
             <span>Delete</span>
           </button>
