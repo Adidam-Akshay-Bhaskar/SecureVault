@@ -182,6 +182,7 @@ async function ensureAllTables() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_preference TEXT DEFAULT 'theme-light'`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin_hash TEXT`,
     `ALTER TABLE files ADD COLUMN IF NOT EXISTS folder_id INTEGER REFERENCES folders(folder_id) ON DELETE SET NULL`,
+    `ALTER TABLE shared_links ADD COLUMN IF NOT EXISTS downloadable BOOLEAN DEFAULT FALSE`,
   ];
 
   for (const q of createQueries) {
