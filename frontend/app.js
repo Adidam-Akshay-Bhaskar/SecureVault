@@ -793,16 +793,18 @@ async function toggleTheme() {
         if (scanningBeam) scanningBeam.classList.add("active");
         
         setTimeout(() => {
-          // 4. ZOOM THROUGH THE TEXT
           if (preloader) preloader.classList.add("zoom-through");
           
-          setTimeout(async () => {
-            // 5. Reveal Auth Card
-            if (preloader) preloader.classList.add("hidden");
+          // Overlap: Reveal auth card slightly before zoom ends to kill the blank screen
+          setTimeout(() => {
             if (authSection) {
               authSection.classList.remove("hidden");
               setTimeout(() => authSection.classList.add("visible"), 50);
             }
+          }, 200);
+
+          setTimeout(async () => {
+            if (preloader) preloader.classList.add("hidden");
             
             if (token) {
               try { 
