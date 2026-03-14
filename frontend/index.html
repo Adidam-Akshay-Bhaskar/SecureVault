@@ -242,12 +242,14 @@
     <div class="modal-content">
       <form id="upload-form">
         <h3 style="margin-bottom: 2rem;">Encrypt & Upload</h3>
-        <select id="upload-folder-select" style="width:100%; padding:15px; background:#000; border:1px solid #333; color:#fff; border-radius:12px; margin-bottom: 1.5rem;">
+        <select id="upload-folder-select" class="modal-input">
           <option value="">Root Vault</option>
         </select>
-        <div style="border: 1px dashed #333; padding: 40px; border-radius: 20px; text-align: center; cursor: pointer; margin-bottom: 2rem;" onclick="document.getElementById('file-input').click()">
-          <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name" />
-          <p id="file-label" style="color:#666;">Drop record or click to browse</p>
+        <div style="background:rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); padding: 50px; border-radius: 24px; text-align: center; cursor: pointer; margin-bottom: 2rem; transition: 0.3s;" 
+             onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'"
+             onclick="document.getElementById('file-input').click()">
+          <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name; document.getElementById('file-label').style.color='#fff'" />
+          <p id="file-label" style="color:#555; font-size: 0.9rem; font-weight: 500;">Drop record or click to browse</p>
         </div>
         <div class="btn-row">
           <button type="button" class="modal-secondary-btn" onclick="closeModal('upload-modal')">Abort</button>
