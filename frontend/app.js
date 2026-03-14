@@ -523,7 +523,12 @@ function openShareModal(id, name, keyStr) {
 
 async function generateShareLink() {
   const email = document.getElementById("share-email").value;
-  if (!email) return;
+  if (!email) return showToast("Recipient email is required", "error");
+  
+  const btn = event.target;
+  const orig = btn.textContent;
+  btn.textContent = "Securing..."; btn.disabled = true;
+
   try {
     const [ivHex, keyBase64] = currentShareFile.keyStr.split(":");
     const masterKey = await getClientMasterKey();
@@ -533,7 +538,7 @@ async function generateShareLink() {
     const { encryptedData: encMetLink, iv: lmIv } = await encryptMetadata({ filename: currentShareFile.name }, linkKey);
     const linkKeyHex = bytesToHex(new Uint8Array(await window.crypto.subtle.exportKey("raw", linkKey)));
     
-    await fetch(`${API_URL}/share`, {
+    const res = await fetch(`${API_URL}/share`, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: JSON.stringify({
         fileId: currentShareFile.id, recipientEmail: email,
@@ -542,11 +547,22 @@ async function generateShareLink() {
         metadataIv: bytesToHex(lmIv), linkKey: linkKeyHex
       })
     });
-    
-    document.getElementById("generated-share-link").textContent = linkKeyHex;
-    document.getElementById("share-step-input").classList.add("hidden");
-    document.getElementById("share-step-result").classList.remove("hidden");
-  } catch {}
+
+    const data = await res.json();
+    if (res.ok) {
+      document.getElementById("generated-share-link").textContent = linkKeyHex;
+      document.getElementById("share-step-input").classList.add("hidden");
+      document.getElementById("share-step-result").classList.remove("hidden");
+      showToast("Secure Link Generated");
+    } else {
+      showToast(data.message || "Sharing protocol failed", "error");
+    }
+  } catch (err) { 
+    console.error(err);
+    showToast("Share Encryption Failed", "error"); 
+  } finally {
+    btn.textContent = orig; btn.disabled = false;
+  }
 }
 
 function copyShareLink() {
