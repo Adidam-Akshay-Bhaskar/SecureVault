@@ -150,7 +150,10 @@ function showConfirm(message, state = "primary") {
 function closeModal(id) { 
   const el = document.getElementById(id);
   if (el) el.classList.add("hidden");
-  if (id === 'folder-explorer-modal') currentExplorerFolderId = null;
+  if (id === 'folder-explorer-modal') {
+    currentExplorerFolderId = null;
+    document.getElementById("upload-modal").classList.add("hidden");
+  }
 }
 
 // Futuristic Space System
@@ -363,7 +366,7 @@ async function loadFolders() {
           <span class="folder-icon">📂</span>
           <p class="folder-name">${disp}</p>
           <p class="folder-count">${dateStr}</p>
-          <button class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Dissolve</button>
+          <button class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
         </div>
       `;
       select.innerHTML += `<option value="${f.folder_id}">${disp}</option>`;
@@ -390,7 +393,7 @@ async function createFolder() {
 }
 
 async function deleteFolder(id) {
-  const conf = await showConfirm("Dissolve this folder? Filestreams will be unassigned but not deleted.");
+  const conf = await showConfirm("Delete this folder? Filestreams will be unassigned but not deleted.");
   if (!conf) return;
   try {
     await fetch(`${API_URL}/folders/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
