@@ -191,6 +191,16 @@ function toggleAuthMode(mode) {
   });
   const active = document.getElementById(`${mode}-form-container`);
   if (active) active.classList.remove("hidden");
+
+  const h1 = document.querySelector(".card-header h1");
+  const p = document.querySelector(".card-header p");
+  if (mode === "login") {
+    h1.textContent = "Sign In";
+    p.textContent = "Enter your credentials to access the vault.";
+  } else if (mode === "register") {
+    h1.textContent = "Sign Up";
+    p.textContent = "Provision a new secure identity.";
+  }
 }
 
 function switchAuthTab(tab) {
