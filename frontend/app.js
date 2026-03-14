@@ -334,10 +334,9 @@ async function loadFolders() {
     allFolders.forEach(f => {
       grid.innerHTML += `
         <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name}')">
-          <span class="folder-icon">📂</span>
           <p class="folder-name">${f.name}</p>
           <p class="folder-count">Stored Data Group</p>
-          <button class="action-btn" style="position:absolute; top:10px; right:10px; padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">🗑</button>
+          <button class="action-btn" style="position:absolute; top:10px; right:10px; padding:4px 8px; font-size:10px;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
         </div>
       `;
       select.innerHTML += `<option value="${f.folder_id}">${f.name}</option>`;
@@ -419,7 +418,6 @@ async function renderFiles() {
       myBody.innerHTML += `
         <div class="file-row">
           <div class="file-info">
-            <div class="file-icon">📄</div>
             <div style="min-width:0;">
               <p class="file-name" title="${meta.filename}">${meta.filename}</p>
               <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Encrypted</p>
@@ -430,10 +428,10 @@ async function renderFiles() {
           <p style="color:var(--text-muted); font-size:0.75rem;">${new Date(f.created_at).toLocaleDateString()}</p>
           <div><p class="file-folder-name">${folderDisplayName}</p></div>
           <div class="btn-group">
-            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})"><span>👁️</span> View</button>
-            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')"><span>💾</span> Save</button>
-            <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')"><span>🔗</span> Share</button>
-            <button class="action-btn delete" onclick="deleteFile(${f.file_id})">🗑</button>
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">View</button>
+            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')">Save</button>
+            <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')">Share</button>
+            <button class="action-btn delete" onclick="deleteFile(${f.file_id})">Delete</button>
           </div>
         </div>
       `;
@@ -446,14 +444,13 @@ async function renderFiles() {
     shBody.innerHTML += `
       <div class="file-row" style="grid-template-columns: 2fr 1fr 1fr 1fr;">
         <div class="file-info">
-          <div class="file-icon">🔒</div>
           <p style="font-weight:600;">Encrypted Record</p>
         </div>
         <p style="color:var(--text-muted); font-size:0.8rem;">${f.sender_email}</p>
         <p style="color:var(--text-muted); font-size:0.8rem;">${new Date(f.created_at).toLocaleDateString()}</p>
         <div class="btn-group">
           <button class="action-btn" style="border-color:var(--primary); color:var(--primary);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}')">Unlock</button>
-          <button class="action-btn" onclick="deleteSharedLink(${f.link_id})" style="color:var(--danger)">🗑</button>
+          <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})">Delete</button>
         </div>
       </div>
     `;
@@ -479,7 +476,12 @@ async function deleteSharedLink(id) {
 // UPLOAD logic
 // ==========================================
 
-function showUploadModal() { document.getElementById("upload-modal").classList.remove("hidden"); }
+function showUploadModal() { 
+  document.getElementById("upload-modal").classList.remove("hidden");
+  // Auto-detect current folder context
+  const select = document.getElementById("upload-folder-select");
+  if (select) select.value = currentFolderId || "";
+}
 
 document.getElementById("upload-form").addEventListener("submit", async (e) => {
   e.preventDefault();
