@@ -601,37 +601,49 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
   } catch (err) { showToast("Download failed", "error"); }
 }
 
-async function viewMyFile(id, keyStr, name, size) {
-  const verified = await verifyPIN();
-  if (!verified) return;
+async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null) {
+  let dec = decBuffer;
+  if (!alreadyDecrypted) {
+    const verified = await verifyPIN();
+    if (!verified) return;
 
-  showToast("Establishing secure preview...", "info");
+    showToast("Establishing secure preview...", "info");
+    try {
+      const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
+      const blob = await (await fetch(downloadUrl)).arrayBuffer();
+      const [ivHex, keyB64] = keyStr.split(":");
+      const mk = await getClientMasterKey();
+      const fk = await decryptKey(base64ToArrayBuffer(keyB64), mk, hexToBytes(ivHex));
+      dec = await decryptFile(new Uint8Array(blob), fk);
+    } catch (err) { return showToast("Decryption Error", "error"); }
+  }
+
   try {
-    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
-    const blob = await (await fetch(downloadUrl)).arrayBuffer();
-    const [ivHex, keyB64] = keyStr.split(":");
-    const mk = await getClientMasterKey();
-    const fk = await decryptKey(base64ToArrayBuffer(keyB64), mk, hexToBytes(ivHex));
-    const dec = await decryptFile(new Uint8Array(blob), fk);
-    
     document.getElementById("view-filename").textContent = name;
     document.getElementById("file-view-modal").classList.remove("hidden");
     const viewer = document.getElementById("view-content");
     viewer.innerHTML = "";
     
+    if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
+
     const ext = name.split('.').pop().toLowerCase();
-    if (["jpg", "jpeg", "png", "gif", "svg"].includes(ext)) {
-      const img = document.createElement("img"); img.src = URL.createObjectURL(new Blob([dec]));
-      img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; viewer.appendChild(img);
+    const blob = new Blob([dec], { type: getMimeType(ext) });
+    currentBlobUrl = URL.createObjectURL(blob);
+
+    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext)) {
+      const img = document.createElement("img"); img.src = currentBlobUrl;
+      img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.objectFit = "contain"; viewer.appendChild(img);
     } else if (ext === "pdf") {
-      const fr = document.createElement("iframe"); fr.src = URL.createObjectURL(new Blob([dec], { type: "application/pdf" }));
+      const fr = document.createElement("iframe"); fr.src = currentBlobUrl + "#toolbar=0";
       fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none"; viewer.appendChild(fr);
-    } else {
+    } else if (["txt","md","json","js","css","html"].includes(ext)) {
       const pre = document.createElement("pre"); pre.textContent = new TextDecoder().decode(dec);
-      pre.style.color = "#fff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; viewer.appendChild(pre);
+      pre.style.color = "#fff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; pre.style.padding = "2rem"; viewer.appendChild(pre);
+    } else {
+      viewer.innerHTML = `<div style="text-align:center;"><p style="font-size:3rem;">📄</p><p>Preview not supported for .${ext}</p></div>`;
     }
     showToast("File Decrypted Successfully");
-  } catch (err) { showToast("Decryption Error", "error"); }
+  } catch (err) { showToast("Display Error", "error"); }
 }
 
 // ==========================================
@@ -689,68 +701,13 @@ async function processUnlockStep2() {
     const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
     
     closeModal("unlock-modal");
-    openSecureViewer(dec, tempUnlockData.meta, tempUnlockData.linkId);
+    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec);
   } catch (err) {
     showToast("Identity Verification Failed", "error");
   }
 }
 
 let currentBlobUrl = null;
-
-async function openSecureViewer(buffer, meta, linkIdToBurn = null) {
-  const modal = document.getElementById("access-modal");
-  const viewer = document.getElementById("access-viewer-body");
-  const footer = document.getElementById("access-footer");
-  
-  document.getElementById("access-filename").textContent = meta.filename;
-  modal.classList.remove("hidden");
-  viewer.innerHTML = "Initializing secure stream...";
-  footer.innerHTML = "";
-
-  if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-  const ext = meta.filename.split(".").pop().toLowerCase();
-  const blob = new Blob([buffer], { type: getMimeType(ext) });
-  currentBlobUrl = URL.createObjectURL(blob);
-
-  // Render Preview
-  if (["png","jpg","jpeg","gif","webp"].includes(ext)) {
-    viewer.innerHTML = `<img src="${currentBlobUrl}" style="max-width:100%; max-height:100%; object-fit:contain;">`;
-  } else if (ext === "pdf") {
-    viewer.innerHTML = `<iframe src="${currentBlobUrl}#toolbar=0" style="width:100%; height:100%; border:none;"></iframe>`;
-  } else if (["txt","md","json","js","css","html"].includes(ext)) {
-    const text = await blob.text();
-    viewer.innerHTML = `<pre style="color:#fff; padding:2rem; width:100%; overflow:auto; text-align:left;">${text.replace(/</g,"&lt;")}</pre>`;
-  } else {
-    viewer.innerHTML = `<div style="text-align:center;"><p style="font-size:3rem;">📄</p><p>Preview not supported for .${ext}</p></div>`;
-  }
-
-  // Footer Actions
-  const dlBtn = document.createElement("button");
-  dlBtn.className = "action-btn";
-  dlBtn.textContent = "Download Decrypted";
-  dlBtn.onclick = () => {
-    const a = document.createElement("a"); a.href = currentBlobUrl; a.download = meta.filename; a.click();
-  };
-  footer.appendChild(dlBtn);
-
-  if (linkIdToBurn) {
-    const burnBtn = document.createElement("button");
-    burnBtn.className = "primary-btn";
-    burnBtn.style.background = "var(--danger)";
-    burnBtn.textContent = "Close & Burn Link";
-    burnBtn.onclick = async () => {
-      await deleteSharedLink(linkIdToBurn);
-      closeViewer();
-    };
-    footer.appendChild(burnBtn);
-  }
-}
-
-function closeViewer() {
-  document.getElementById("access-modal").classList.add("hidden");
-  if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
-  currentBlobUrl = null;
-}
 
 function getMimeType(ext) {
   const Map = { 
@@ -789,13 +746,16 @@ async function generateShareLink(btn) {
     const { encryptedData: encMetLink, iv: lmIv } = await encryptMetadata({ filename: currentShareFile.name }, linkKey);
     const linkKeyHex = bytesToHex(new Uint8Array(await window.crypto.subtle.exportKey("raw", linkKey)));
     
+    const downloadable = document.getElementById("share-downloadable").checked;
+    
     const res = await fetch(`${API_URL}/share`, {
       method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
       body: JSON.stringify({
         fileId: currentShareFile.id, recipientEmail: email,
         encryptedFileKeyForLink: bytesToHex(lIv) + ":" + arrayBufferToBase64(encKeyLink),
         encryptedMetadataForLink: arrayBufferToBase64(encMetLink),
-        metadataIv: bytesToHex(lmIv), linkKey: linkKeyHex
+        metadataIv: bytesToHex(lmIv), linkKey: linkKeyHex,
+        downloadable
       })
     });
 
