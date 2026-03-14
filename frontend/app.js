@@ -118,7 +118,7 @@ function showToast(message, type = "success") {
   setTimeout(() => toast.remove(), 4000);
 }
 
-function truncateName(name, limit = 46) {
+function truncateName(name, limit = 42) {
   if (!name) return "";
   return name.length > limit ? name.substring(0, limit) + "..." : name;
 }
