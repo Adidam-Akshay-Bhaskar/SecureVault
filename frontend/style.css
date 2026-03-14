@@ -239,10 +239,10 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 .btn-group { display: flex; align-items: center; gap: 6px; justify-content: flex-start; }
 .action-btn {
   background: rgba(255, 255, 255, 0.03); color: #fff; border: 1px solid #222;
-  padding: 9px 15px; border-radius: 12px; cursor: pointer; font-size: 0.75rem; font-weight: 700;
+  padding: 10.5px 17px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 700;
   transition: 0.3s; display: flex; align-items: center; gap: 8px; white-space: nowrap;
 }
-.action-btn svg { width: 18px; height: 18px; pointer-events: none; }
+.action-btn svg { width: 19px; height: 19px; pointer-events: none; }
 .action-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: #444; transform: translateY(-2px); }
 .action-btn.view { color: var(--accent-cyan); border-color: rgba(0, 242, 255, 0.2); }
 .action-btn.save { color: #4ade80; border-color: rgba(74, 222, 128, 0.2); }
