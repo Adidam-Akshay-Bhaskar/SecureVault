@@ -184,7 +184,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .file-row {
   display: grid; 
-  grid-template-columns: minmax(200px, 3.5fr) minmax(60px, 0.7fr) minmax(80px, 1fr) minmax(100px, 1.2fr) minmax(380px, 3.5fr); 
+  grid-template-columns: minmax(200px, 3.5fr) minmax(60px, 0.7fr) minmax(80px, 1fr) minmax(100px, 1.2fr) minmax(420px, 3.5fr); 
   align-items: center; justify-items: stretch;
   padding: 20px 12px; border-bottom: 1px solid #151518; transition: 0.3s;
 }
@@ -201,13 +201,13 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 .file-icon { font-size: 1.5rem; flex-shrink: 0; }
 .file-folder-name { color: var(--accent-cyan); font-weight: 600; font-size: 0.8rem; background: rgba(0, 242, 255, 0.05); padding: 4px 10px; border-radius: 6px; display: inline-block; }
 
-.btn-group { display: flex; align-items: center; gap: 8px; justify-content: flex-start; }
+.btn-group { display: flex; align-items: center; gap: 6px; justify-content: flex-start; }
 .action-btn {
   background: rgba(255, 255, 255, 0.03); color: #fff; border: 1px solid #222;
-  padding: 10px 18px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 700;
+  padding: 8px 14px; border-radius: 12px; cursor: pointer; font-size: 0.75rem; font-weight: 700;
   transition: 0.3s; display: flex; align-items: center; gap: 8px; white-space: nowrap;
 }
-.action-btn svg { width: 20px; height: 20px; pointer-events: none; }
+.action-btn svg { width: 18px; height: 18px; pointer-events: none; }
 .action-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: #444; transform: translateY(-2px); }
 .action-btn.view { color: var(--accent-cyan); border-color: rgba(0, 242, 255, 0.2); }
 .action-btn.save { color: #4ade80; border-color: rgba(74, 222, 128, 0.2); }

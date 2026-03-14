@@ -450,7 +450,7 @@ async function renderFiles() {
 
   for (const f of allFiles.sharedFiles) {
     shBody.innerHTML += `
-      <div class="file-row" style="grid-template-columns: 3.5fr 1.5fr 1fr 3.5fr;">
+      <div class="file-row" style="grid-template-columns: minmax(200px, 3.5fr) minmax(130px, 1.5fr) minmax(100px, 1fr) minmax(300px, 3.5fr);">
         <div class="file-info">
           <p style="font-weight:600;">Encrypted Record</p>
         </div>
