@@ -52,7 +52,7 @@ async function encryptKey(fileKey, masterKey) {
 
 async function decryptKey(encryptedKey, masterKey, iv) {
   const decrypted = await window.crypto.subtle.decrypt({ name: ALGO_NAME, iv }, masterKey, encryptedKey);
-  return await window.crypto.subtle.importKey("raw", decrypted, { name: ALGO_NAME }, false, ["encrypt", "decrypt"]);
+  return await window.crypto.subtle.importKey("raw", decrypted, { name: ALGO_NAME }, true, ["encrypt", "decrypt"]);
 }
 
 async function getClientMasterKey() {
