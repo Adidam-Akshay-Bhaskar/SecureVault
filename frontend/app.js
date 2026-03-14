@@ -970,6 +970,8 @@ async function loadProfile() {
         const el = document.getElementById(id);
         if (el) { el.src = data.profile_photo; el.classList.remove("hidden"); }
       });
+      const hAvatar = document.getElementById("header-avatar");
+      if (hAvatar) hAvatar.classList.add("hidden");
     } else {
       pPhoto.classList.add("hidden");
       pInitials.classList.remove("hidden");
@@ -977,6 +979,8 @@ async function loadProfile() {
       
       const hImg = document.getElementById("header-avatar-img");
       if (hImg) hImg.classList.add("hidden");
+      const hAvatar = document.getElementById("header-avatar");
+      if (hAvatar) hAvatar.classList.remove("hidden");
     }
   } catch (err) { console.warn("Profile sync deferred:", err); }
 }
