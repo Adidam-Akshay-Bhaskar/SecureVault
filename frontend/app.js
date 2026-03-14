@@ -946,6 +946,7 @@ async function loadProfile() {
     
     if (data.username) {
       document.getElementById("profile-username-display").textContent = data.username;
+      document.getElementById("profile-username-header").textContent = data.username;
       document.getElementById("display-alias").textContent = data.username;
       document.getElementById("profile-email-full").textContent = data.email;
       document.getElementById("display-email").textContent = data.email;
@@ -1044,6 +1045,20 @@ async function toggleTheme() {
   
   showToast("Visual protocol updated", "success");
 }
+
+function toggleHeaderMenu() {
+  const menu = document.getElementById("header-dropdown-menu");
+  menu.classList.toggle("hidden");
+}
+
+// Global click to close dropdown
+window.addEventListener("click", (e) => {
+  const menu = document.getElementById("header-dropdown-menu");
+  const box = document.querySelector(".user-profile-box");
+  if (menu && box && !menu.contains(e.target) && !box.contains(e.target)) {
+    menu.classList.add("hidden");
+  }
+});
 
 // Init
 (async function init() {
