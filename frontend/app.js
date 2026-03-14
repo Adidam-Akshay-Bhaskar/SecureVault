@@ -547,7 +547,8 @@ async function renderFiles() {
     }
   }
 
-  for (const f of allFiles.sharedFiles) {
+  const sortedShared = [...allFiles.sharedFiles].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  for (const f of sortedShared) {
     shBody.innerHTML += `
       <div class="file-row incoming-row">
         <p style="font-weight:700; color: #fff; font-size: 1rem;">Encrypted Record</p>
