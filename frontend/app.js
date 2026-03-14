@@ -143,27 +143,18 @@ function closeModal(id) { document.getElementById(id).classList.add("hidden"); }
 // AUTH LOGIC
 // ==========================================
 
-function switchAuthTab(tab) {
-  const tabs = ["login", "register", "verify", "reset"];
-  tabs.forEach(t => {
-    const el = document.getElementById(`${t}-form`) || document.getElementById(`reset-identity-form`);
+function toggleAuthMode(mode) {
+  const modes = ["login", "register", "verify"];
+  modes.forEach(m => {
+    const el = document.getElementById(`${m}-form-container`);
     if (el) el.classList.add("hidden");
-    const tabBtn = document.getElementById(`tab-${t}`);
-    if (tabBtn) tabBtn.classList.remove("active");
   });
+  const active = document.getElementById(`${mode}-form-container`);
+  if (active) active.classList.remove("hidden");
+}
 
-  const activeForm = document.getElementById(`${tab}-form`);
-  if (activeForm) activeForm.classList.remove("hidden");
-  else if (tab === "reset") document.getElementById("reset-identity-form").classList.remove("hidden");
-  else if (tab === "verify") document.getElementById("verify-pin-form").classList.remove("hidden");
-
-  const activeTabBtn = document.getElementById(`tab-${tab}`);
-  if (activeTabBtn) activeTabBtn.classList.add("active");
-
-  const sub = document.getElementById("auth-subtitle");
-  if (tab === "login") sub.textContent = "Identity Verification Required";
-  if (tab === "register") sub.textContent = "Initialize Secure Account";
-  if (tab === "reset") sub.textContent = "Identity Recovery Protocol";
+function switchAuthTab(tab) {
+  toggleAuthMode(tab);
 }
 
 document.getElementById("login-form").addEventListener("submit", async (e) => {
@@ -249,7 +240,7 @@ function logout() {
   sessionMasterKey = null;
   document.getElementById("view-dashboard").classList.add("hidden");
   document.getElementById("auth-section").classList.remove("hidden");
-  switchAuthTab("login");
+  toggleAuthMode("login");
 }
 
 function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }
