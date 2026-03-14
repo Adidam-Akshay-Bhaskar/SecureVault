@@ -10,8 +10,7 @@
   <link rel="stylesheet" href="style.css?v=43" />
 </head>
 <body>
-  <!-- AUTH SECTION (Modern Split UI) -->
-  <!-- AUTH SECTION (Immersive Centered UI) -->
+  <!-- MAIN APPLICATION UI -->
   <!-- MINIMALIST FUTURISTIC PRELOADER -->
   <div id="preloader">
     <div class="preloader-gateway">
@@ -42,34 +41,23 @@
         
         <div class="card-content">
           <div class="card-header">
-            <div class="platform-badge">SECURE PROTOCOL v2.0</div>
-            <div class="main-logo">V</div>
-            <h1>Universal Security</h1>
-            <p>Access your private encrypted records through zero-knowledge architecture.</p>
+            <h1>Secure Login</h1>
+            <p>Enter your credentials to access the vault.</p>
           </div>
 
           <div class="form-wrapper">
             <!-- Login Form -->
             <div id="login-form-container">
-              <form id="login-form" class="premium-form">
+              <form id="login-form">
                 <div class="input-field">
-                  <label>IDENTITY CORE (EMAIL)</label>
-                  <div class="input-wrapper">
-                    <input type="email" id="login-email" placeholder="name@protocol.com" required />
-                    <div class="input-focus-border"></div>
-                  </div>
+                  <label>Email Address</label>
+                  <input type="email" id="login-email" placeholder="email@example.com" required />
                 </div>
                 <div class="input-field">
-                  <label>MASTER PASSKEY</label>
-                  <div class="input-wrapper">
-                    <input type="password" id="login-password" placeholder="••••••••" required />
-                    <div class="input-focus-border"></div>
-                  </div>
+                  <label>Password</label>
+                  <input type="password" id="login-password" placeholder="••••••••" required />
                 </div>
-                <button type="submit" class="glitch-btn">
-                  <span class="btn-text">INITIALIZE SESSION</span>
-                  <div class="btn-shine"></div>
-                </button>
+                <button type="submit" class="primary-btn">Sign In</button>
               </form>
               <div class="card-footer">
                 New identity in the system? <a href="#" onclick="toggleAuthMode('register')">Provision Vault</a>
@@ -78,28 +66,24 @@
 
             <!-- Register Form -->
             <div id="register-form-container" class="hidden">
-              <form id="register-form" class="premium-form">
+              <form id="register-form">
                 <div class="input-field">
-                  <label>IDENTITY NAME</label>
-                  <input type="text" id="reg-username" placeholder="Alias or ID" required />
+                  <label>Full Name</label>
+                  <input type="text" id="reg-username" placeholder="Your Name" required />
                 </div>
                 <div class="input-field">
-                  <label>EMAIL (ROOT ID)</label>
-                  <input type="email" id="reg-email" placeholder="name@protocol.com" required />
+                  <label>Email Address</label>
+                  <input type="email" id="reg-email" placeholder="email@example.com" required />
                 </div>
-                <div class="grid-inputs">
-                  <div class="input-field">
-                    <label>PASSKEY</label>
-                    <input type="password" id="reg-password" placeholder="••••••••" required />
-                  </div>
-                  <div class="input-field">
-                    <label>SEC PIN</label>
-                    <input type="password" id="reg-pin" placeholder="123456" maxlength="6" required />
-                  </div>
+                <div class="input-field">
+                  <label>Create Password</label>
+                  <input type="password" id="reg-password" placeholder="••••••••" required />
                 </div>
-                <button type="submit" class="glitch-btn">
-                  <span class="btn-text">PROVISION VAULT</span>
-                </button>
+                <div class="input-field">
+                  <label>Security PIN (for recovery)</label>
+                  <input type="password" id="reg-pin" placeholder="1234" maxlength="6" required />
+                </div>
+                <button type="submit" class="primary-btn">Create Account</button>
               </form>
               <div class="card-footer">
                 Existing protocol user? <a href="#" onclick="toggleAuthMode('login')">Access Vault</a>
@@ -116,8 +100,8 @@
                 <div class="pin-input-field">
                   <input type="password" id="verify-pin-input" placeholder="••••••" maxlength="6" required />
                 </div>
-                <button type="submit" class="glitch-btn">CONFIRM IDENTITY</button>
-                <button type="button" class="abort-btn" onclick="cancelVerify()">TERMINATE ATTEMPT</button>
+                <button type="submit" class="primary-btn">Confirm Identity</button>
+                <button type="button" class="text-btn" onclick="cancelVerify()">Cancel Attempt</button>
               </form>
             </div>
           </div>

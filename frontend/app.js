@@ -211,10 +211,9 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
          );
       }
       showToast("Identity Verified"); await loadProfile(); showView("my-vault");
-    } else if (data.message === "2FA_REQUIRED") {
-      tempLoginCredentials = { email, password };
-      switchAuthTab("verify");
-    } else showToast(data.message, "error");
+    } else {
+      showToast(data.message || "Failed to authenticate", "error");
+    }
   } catch (err) { showToast("Connection Failed", "error"); }
   finally { btn.textContent = orig; btn.disabled = false; }
 });

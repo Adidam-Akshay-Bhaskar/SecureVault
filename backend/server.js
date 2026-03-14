@@ -370,13 +370,15 @@ app.post("/api/login", (req, res) => {
     bcrypt.compare(password, user.password_hash, (err, isValid) => {
       if (err || !isValid) return res.status(401).json({ message: "Invalid Credentials" });
 
-      if (user.security_pin_hash) {
-        if (!securityPin) return res.status(401).json({ message: "2FA_REQUIRED", details: "Security PIN needed" });
+      // FIX: User requested to not be asked for PIN during login
+      // We still keep the check if they DO provide it for 2FA flows, but otherwise proceed.
+      if (user.security_pin_hash && securityPin) {
         bcrypt.compare(securityPin, user.security_pin_hash, (err, pinValid) => {
           if (err || !pinValid) return res.status(401).json({ message: "Invalid Security PIN" });
           generateTokenAndResponse(res, user);
         });
       } else {
+        // Just password is enough now
         generateTokenAndResponse(res, user);
       }
     });
