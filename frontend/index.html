@@ -177,12 +177,12 @@
 
         <div style="margin-bottom: 2rem;">
           <button class="tab-btn active" id="tab-my-files" onclick="toggleVaultSubView('files')">Files</button>
-          <button class="tab-btn" id="tab-my-folders" onclick="toggleVaultSubView('folders')">Groups</button>
+          <button class="tab-btn" id="tab-my-folders" onclick="toggleVaultSubView('folders')">Folders</button>
         </div>
 
         <div id="my-folders-view" class="hidden">
           <div style="margin-bottom: 1.5rem; display: flex; justify-content: flex-end;">
-            <button onclick="showCreateFolderModal()" class="action-btn">New Group +</button>
+            <button onclick="showCreateFolderModal()" class="action-btn">New Folder +</button>
           </div>
           <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:20px;" id="folder-list"></div>
         </div>
@@ -194,6 +194,7 @@
               <span>Type</span>
               <span>Size</span>
               <span>Timestamp</span>
+              <span>Folder</span>
               <span style="text-align: right">Operations</span>
             </div>
             <div id="file-list-body"></div>
@@ -279,6 +280,20 @@
       <div style="display:flex; gap:15px;">
         <button id="confirm-cancel-btn" class="action-btn" style="flex:1">Abort</button>
         <button id="confirm-ok-btn" class="primary-btn" style="flex:1; background:var(--danger); color:#fff;">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="folder-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 2rem;">Define Folder</h3>
+      <div class="input-field">
+        <label>Folder Name</label>
+        <input type="text" id="new-folder-name" placeholder="e.g. Confidential Records" />
+      </div>
+      <div style="display:flex; gap:15px;">
+        <button class="action-btn" style="flex:1" onclick="closeModal('folder-modal')">Cancel</button>
+        <button class="primary-btn" style="flex:2" onclick="createFolder()">Initialize Folder</button>
       </div>
     </div>
   </div>

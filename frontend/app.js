@@ -356,7 +356,7 @@ async function createFolder() {
       body: JSON.stringify({ name }),
     });
     if (res.ok) {
-      showToast("Group Defined"); closeModal("folder-modal");
+      showToast("Folder Initialized"); closeModal("folder-modal");
       document.getElementById("new-folder-name").value = "";
       loadFolders();
     }
@@ -399,13 +399,23 @@ async function renderFiles() {
   
   const masterKey = await getClientMasterKey();
   
-  const filteredMy = currentFolderId ? allFiles.myFiles.filter(f => f.folder_id === currentFolderId) : allFiles.myFiles;
+  // Sort by latest first (Stack function)
+  const sortedFiles = [...allFiles.myFiles].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  
+  // Logic: Show ONLY root files (no folder) in main view, or ONLY folder files if viewing a folder
+  const filteredMy = currentFolderId 
+    ? sortedFiles.filter(f => f.folder_id === parseInt(currentFolderId))
+    : sortedFiles.filter(f => !f.folder_id);
+
   document.getElementById("stat-file-count").textContent = filteredMy.length;
 
   for (const f of filteredMy) {
     try {
       const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
       const ext = meta.filename.split(".").pop().toUpperCase();
+      const folderRef = allFolders.find(fold => fold.folder_id === f.folder_id);
+      const folderDisplayName = folderRef ? folderRef.name : "Root Vault";
+
       myBody.innerHTML += `
         <div class="file-row">
           <div class="file-info">
@@ -418,6 +428,7 @@ async function renderFiles() {
           <p style="color:var(--text-muted);">${ext}</p>
           <p style="color:var(--text-muted);">${formatBytes(meta.size)}</p>
           <p style="color:var(--text-muted); font-size:0.85rem;">${new Date(f.created_at).toLocaleString()}</p>
+          <p class="file-folder-name">${folderDisplayName}</p>
           <div class="btn-group">
             <button class="action-btn" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">View</button>
             <button class="action-btn" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')">Save</button>
