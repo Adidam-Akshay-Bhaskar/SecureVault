@@ -247,8 +247,8 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 }
 .incoming-row {
   display: grid;
-  grid-template-columns: 5fr 2fr 2fr 4.5fr;
-  align-items: center; justify-items: stretch; gap: 30px;
+  grid-template-columns: 2fr 6fr 2fr 4.5fr;
+  align-items: center; justify-items: stretch; gap: 40px;
 }
 .file-row:last-child { border-bottom: none; }
 
@@ -257,7 +257,7 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 .file-icon { font-size: 1.5rem; flex-shrink: 0; }
 .file-folder-name { color: var(--accent-cyan); font-weight: 600; font-size: 0.8rem; background: rgba(0, 242, 255, 0.05); padding: 4px 10px; border-radius: 6px; display: inline-block; }
 
-.btn-group { display: flex; align-items: center; gap: 6px; justify-content: flex-start; }
+.btn-group { display: flex; align-items: center; gap: 12px; justify-content: flex-start; }
 .action-btn {
   background: rgba(255, 255, 255, 0.03); color: #fff; border: 1px solid #222;
   padding: 10.5px 17px; border-radius: 12px; cursor: pointer; font-size: 0.8rem; font-weight: 700;
