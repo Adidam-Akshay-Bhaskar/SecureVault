@@ -190,7 +190,8 @@ document.getElementById("verify-pin-form").addEventListener("submit", async (e) 
   e.preventDefault();
   const securityPin = document.getElementById("verify-pin-input").value;
   const btn = e.target.querySelector("button");
-  btn.textContent = "Unsealing..."; btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = "Authenticating..."; btn.disabled = true;
   try {
     const res = await fetch(`${API_URL}/login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -205,9 +206,9 @@ document.getElementById("verify-pin-form").addEventListener("submit", async (e) 
          );
       }
       showToast("Identity Verified"); await loadProfile(); showView("my-vault");
-    } else showToast(data.message, "error");
-  } catch { showToast("Error", "error"); }
-  finally { btn.disabled = false; btn.textContent = "Unseal Records"; }
+    } else showToast(data.message || "Verification failed", "error");
+  } catch (err) { showToast("Security link broken", "error"); }
+  finally { btn.disabled = false; btn.textContent = orig; }
 });
 
 document.getElementById("register-form").addEventListener("submit", async (e) => {
@@ -217,7 +218,8 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
   const password = document.getElementById("reg-password").value;
   const securityPin = document.getElementById("reg-pin").value;
   const btn = e.target.querySelector("button");
-  btn.textContent = "Generating Keys..."; btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = "Initializing..."; btn.disabled = true;
   try {
     const mk = await window.crypto.subtle.generateKey({ name: ALGO_NAME, length: 256 }, true, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]);
     const jwk = await window.crypto.subtle.exportKey("jwk", mk);
@@ -228,11 +230,11 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     });
     const data = await res.json();
     if (res.ok) {
-      showToast("Account Initialized. Log in to access vault.");
-      switchAuthTab("login");
+      showToast("Account Initialized");
+      toggleAuthMode("login");
     } else showToast(data.message, "error");
-  } catch { showToast("Initialization Failed", "error"); }
-  finally { btn.disabled = false; btn.textContent = "Initialize Account"; }
+  } catch { showToast("Registration failure", "error"); }
+  finally { btn.disabled = false; btn.textContent = orig; }
 });
 
 function logout() {
