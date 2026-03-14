@@ -116,7 +116,6 @@ async function ensureAllTables() {
       password_hash TEXT NOT NULL,
       security_pin_hash TEXT,
       profile_photo TEXT,
-      theme_preference TEXT DEFAULT 'theme-light',
       client_master_key TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -435,7 +434,7 @@ app.post("/api/reset-password", (req, res) => {
 app.get("/api/profile", authenticateToken, (req, res) => {
   // FIX: COALESCE so profile always returns masterKey even if user_keys is empty
   const sql = `
-    SELECT u.username, u.email, u.profile_photo, u.theme_preference,
+    SELECT u.username, u.email, u.profile_photo,
       COALESCE(k.encryption_key, u.client_master_key) as "masterKey"
     FROM users u
     LEFT JOIN user_keys k ON u.user_id = k.user_id

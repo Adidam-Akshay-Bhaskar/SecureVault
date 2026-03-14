@@ -441,30 +441,3 @@ input[type="checkbox"]:checked::after {
     padding: 12px 24px; border-radius: 14px; cursor: pointer; font-weight: 700; transition: 0.3s;
 }
 .danger-btn:hover { background: var(--danger); color: #fff; transform: translateY(-2px); }
-
-.theme-control-nexus {
-    background: rgba(255,255,255,0.02); padding: 25px; border-radius: 20px; 
-    border: 1px solid rgba(255,255,255,0.05); display: flex; align-items: center; justify-content: space-between;
-}
-.theme-switch-zone {
-    position: relative; width: 220px; height: 55px; background: #000;
-    border-radius: 50px; border: 1px solid var(--border-glass); cursor: pointer;
-    display: flex; align-items: center; overflow: hidden; transition: 0.4s;
-}
-.theme-switch-zone:hover { border-color: var(--accent-cyan); }
-.theme-switch-glow {
-    position: absolute; width: 100px; height: 100%; 
-    background: linear-gradient(90deg, transparent, var(--accent-glow), transparent);
-    animation: flow 3s infinite;
-}
-@keyframes flow { 0% { left: -100px; } 100% { left: 100%; } }
-.theme-switch-text { 
-    position: relative; z-index: 2; margin: 0 auto; 
-    font-weight: 800; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px;
-}
-.theme-switch-indicator {
-    position: absolute; right: 10px; width: 35px; height: 35px;
-    background: var(--accent-cyan); border-radius: 50%;
-    box-shadow: 0 0 15px var(--accent-glow); transition: 0.5s cubic-bezier(0.23, 1, 0.32, 1);
-}
-.theme-light .theme-switch-indicator { transform: translateX(-165px); background: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.3); }

@@ -1032,19 +1032,6 @@ async function terminateIdentity() {
   location.reload();
 }
 
-async function toggleTheme() {
-  const verified = await verifyPIN();
-  if (!verified) return;
-  document.body.classList.toggle("theme-dark");
-  document.body.classList.toggle("theme-light");
-  
-  const status = document.getElementById("theme-status-text");
-  if (status) {
-    status.textContent = document.body.classList.contains("theme-light") ? "Daylight Manifest" : "Midnight Protocol";
-  }
-  
-  showToast("Visual protocol updated", "success");
-}
 
 function toggleHeaderMenu() {
   const menu = document.getElementById("header-dropdown-menu");
