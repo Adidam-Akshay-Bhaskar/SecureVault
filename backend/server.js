@@ -231,8 +231,23 @@ async function verifyAndConsumeOTP(email, otp) {
 // ==========================================
 
 const emailTransporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: { user: process.env.SYSTEM_EMAIL, pass: process.env.SYSTEM_EMAIL_PASS },
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true, // Use SSL
+  auth: {
+    user: process.env.SYSTEM_EMAIL,
+    pass: process.env.SYSTEM_EMAIL_PASS ? process.env.SYSTEM_EMAIL_PASS.replace(/\s+/g, "") : "",
+  },
+  tls: { rejectUnauthorized: false }
+});
+
+// Verify connection configuration
+emailTransporter.verify((error, success) => {
+  if (error) {
+    console.error("Critical: SMTP Connection Failed:", error.message);
+  } else {
+    console.log("Recovery Protocol: SMTP Transmission Channel Online");
+  }
 });
 
 // ==========================================
@@ -315,13 +330,14 @@ app.post("/api/auth/recover-request", (req, res) => {
   if (!email || !type) return res.status(400).json({ message: "Email and recovery type are required." });
 
   const normalizedEmail = email.trim().toLowerCase();
-  db.query("SELECT user_id, username, email FROM users WHERE email = ?", [normalizedEmail], (err, results) => {
+  db.query("SELECT user_id, username, email FROM users WHERE LOWER(email) = ?", [normalizedEmail], (err, results) => {
     if (err) {
       console.error("Recovery DB Error (Lookup):", err);
       return res.status(500).json({ message: "Database synchronization error." });
     }
     
     if (!results || results.length === 0) {
+      console.log(`Recovery failed: No account found for ${normalizedEmail}`);
       return res.json({ message: "If an account exists, a recovery link will be dispatched." });
     }
 
@@ -343,7 +359,7 @@ app.post("/api/auth/recover-request", (req, res) => {
         
         const mailOptions = {
           from: `"SecureVault Support" <${process.env.SYSTEM_EMAIL}>`,
-          to: user.email,
+          to: normalizedEmail,
           subject: `SecureVault - ${type.toUpperCase()} Reset Link`,
           html: `
             <div style="font-family: sans-serif; padding: 20px; color: #333; background: #f9f9f9; border-radius: 12px; border: 1px solid #eee;">
@@ -358,8 +374,18 @@ app.post("/api/auth/recover-request", (req, res) => {
           `
         };
 
+        console.log(`Attempting SMTP dispatch to: ${normalizedEmail}`);
+
         emailTransporter.sendMail(mailOptions, (error) => {
-          if (error) console.error("SMTP Transmission Error:", error);
+          if (error) {
+            console.error("SMTP Transmission Error:", error);
+            console.log("\n[DEVELOPER FALLBACK] Reset Link generated but SMTP failed:");
+            console.log("RECIPIENT:", normalizedEmail);
+            console.log("LINK:", resetLink);
+            console.log("---------------------------------------------------\n");
+          } else {
+            console.log(`Recovery link successfully accepted by Gmail for: ${normalizedEmail}`);
+          }
           // Always return success for security
           res.json({ message: "Recovery link dispatched to your email." });
         });
