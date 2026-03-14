@@ -118,7 +118,7 @@ function showToast(message, type = "success") {
   setTimeout(() => toast.remove(), 4000);
 }
 
-function truncateName(name, limit = 50) {
+function truncateName(name, limit = 46) {
   if (!name) return "";
   return name.length > limit ? name.substring(0, limit) + "..." : name;
 }
@@ -497,7 +497,6 @@ async function renderFiles() {
         <div class="file-row">
           <div style="min-width:0; width:100%;">
             <p class="file-name" title="${meta.filename}">${displayTitle}</p>
-            <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin:0;">Encrypted</p>
           </div>
           <p style="color:var(--text-muted); font-size:0.8rem;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
