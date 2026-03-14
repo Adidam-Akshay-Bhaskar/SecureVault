@@ -416,11 +416,9 @@ async function renderFiles() {
 
       myBody.innerHTML += `
         <div class="file-row">
-          <div class="file-info">
-            <div style="min-width:0;">
-              <p class="file-name" title="${meta.filename}">${meta.filename}</p>
-              <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px;">Encrypted</p>
-            </div>
+          <div style="min-width:0; width:100%;">
+            <p class="file-name" title="${meta.filename}">${meta.filename}</p>
+            <p style="font-size:0.7rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:1px; margin:0;">Encrypted</p>
           </div>
           <p style="color:var(--text-muted); font-size:0.8rem;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
