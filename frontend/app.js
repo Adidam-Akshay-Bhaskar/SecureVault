@@ -238,6 +238,17 @@ function toggleSidebar() {
   sessionStorage.setItem("sidebarCollapsed", isCollapsed);
 }
 
+function togglePassword(inputId, iconElement) {
+  const input = document.getElementById(inputId);
+  if (input.type === "password") {
+    input.type = "text";
+    iconElement.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+  } else {
+    input.type = "password";
+    iconElement.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+  }
+}
+
 document.getElementById("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("login-email").value.trim().toLowerCase();
@@ -513,7 +524,8 @@ async function deleteFolder(id) {
 }
 
 async function openFolder(id, name, date) {
-  // Security protocol updated: Bypassing PIN requirement for authenticated dashboard
+  const verified = await verifyPIN();
+  if (!verified) return;
   
   currentExplorerFolderId = id;
   document.getElementById("explorer-folder-name").textContent = name;
@@ -674,7 +686,8 @@ async function renderFiles() {
 async function deleteFile(id, keyStr, filename) {
   const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete "${filename}"?`, "danger");
   if (!conf) return;
-  // Security PIN check purged for seamless dashboard operations
+  const verified = await verifyPIN();
+  if (!verified) return;
   
   await fetch(`${API_URL}/delete-file`, { 
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
@@ -725,7 +738,8 @@ function verifyPIN() {
 async function deleteSharedLink(id) {
   const conf = await showConfirm(`Remove this shared record from your incoming feed?`, "danger");
   if (!conf) return;
-  // Security PIN check purged for seamless dashboard operations
+  const verified = await verifyPIN();
+  if (!verified) return;
   
   showToast("Suspending shared access...");
   await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
@@ -738,7 +752,8 @@ async function deleteSharedLink(id) {
 // ==========================================
 
 async function showUploadModal(preselectFolderId = null) {
-  // Security PIN check purged for seamless dashboard operations
+  const verified = await verifyPIN();
+  if (!verified) return;
 
   document.getElementById("upload-modal").classList.remove("hidden");
   const select = document.getElementById("upload-folder-select");
@@ -793,7 +808,8 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
     if (!verifiedAlready) {
       const conf = await showConfirm(`Are you sure you want to download "${filename}"?`, "success");
       if (!conf) return;
-      // Security PIN requirement bypassed in active vault session
+      const verified = await verifyPIN();
+      if (!verified) return;
     }
 
     showToast("Decrypting secure stream...");
@@ -847,7 +863,13 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
   const viewer = document.getElementById("view-content");
 
   if (!alreadyDecrypted) {
-    // Security PIN bypass for authenticated record manifestation
+    viewer.innerHTML = '<p style="color:#444;">Awaiting Identity Verification...</p>';
+
+    const verified = await verifyPIN();
+    if (!verified) {
+      closeModal('file-view-modal');
+      return;
+    }
 
     viewer.innerHTML = '<p style="color:#444;">Establishing Secure Feed...</p>';
     try {
@@ -1038,7 +1060,28 @@ async function processUnlockStep1() {
     tempUnlockData.fileKey = fileKey;
     tempUnlockData.meta = meta;
     
-    // Seamless Protocol: Bypassing PIN step and manifesting record directly
+    tempUnlockData.meta = meta;
+    
+    document.getElementById("unlock-step-1").classList.add("hidden");
+    document.getElementById("unlock-step-2").classList.remove("hidden");
+    document.getElementById("unlock-pin-input").value = "";
+    document.getElementById("unlock-pin-input").focus();
+  } catch (err) {
+    showToast("Invalid Transmission Key", "error");
+  }
+}
+
+async function processUnlockStep2() {
+  const securityPin = document.getElementById("unlock-pin-input").value;
+  if (!securityPin) return showToast("Security PIN required", "error");
+  
+  try {
+    const res = await fetch(`${API_URL}/verify-file-pin`, {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      body: JSON.stringify({ securityPin }),
+    });
+    if (!res.ok) throw new Error("Verification Failed");
+    
     showToast("Identity Confirmed. Decrypting record...");
     const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
     const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
@@ -1047,7 +1090,7 @@ async function processUnlockStep1() {
     closeModal("unlock-modal");
     viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable, tempUnlockData.linkId);
   } catch (err) {
-    showToast("Invalid Transmission Key", "error");
+    showToast("Identity Verification Failed", "error");
   }
 }
 
@@ -1193,7 +1236,12 @@ async function loadProfile() {
       document.getElementById("profile-username-header").textContent = data.username;
       document.getElementById("display-alias").textContent = data.username;
       document.getElementById("profile-email-full").textContent = data.email;
-      document.getElementById("display-email").textContent = data.email;
+      const displayEmail = document.getElementById("display-email");
+      if (displayEmail) displayEmail.textContent = data.email;
+      
+      const headerEmail = document.getElementById("header-email");
+      if (headerEmail) headerEmail.textContent = data.email;
+      
       const initial = data.username[0].toUpperCase();
       document.getElementById("profile-initials").textContent = initial;
       if (document.getElementById("avatar-initials")) document.getElementById("avatar-initials").textContent = initial;
