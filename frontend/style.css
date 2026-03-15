@@ -29,29 +29,26 @@ body { font-family: var(--font-main); -webkit-font-smoothing: antialiased; }
 }
 #preloader.fade-out { opacity: 0; pointer-events: none; transform: scale(1.1); }
 .preloader-gateway { position: relative; text-align: center; }
-.scanned-text {
-  font-family: var(--font-heading); font-size: 5.5rem; font-weight: 900;
-  display: flex; gap: 0; opacity: 0; transform: scale(0.98); transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
-  will-change: transform, opacity; transform-style: preserve-3d;
+#reveal-target {
+  opacity: 0; transform: scale(0.9); transition: all 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
 }
-.scanned-text.visible { opacity: 1; transform: scale(1) translateZ(0); }
+#reveal-target.visible { opacity: 1 !important; transform: scale(1) !important; }
 
-.logo-group { display: flex; align-items: baseline; }
-.initial { color: #fff; }
-.vault-accent { color: var(--accent-cyan); text-shadow: 0 0 20px var(--accent-glow); margin-left: 20px; transition: margin 0.8s cubic-bezier(0.7,0,0.3,1); }
+/* Legacy preloader text logic removed */
 
-.filling {
-  display: inline-block;
-  max-width: 0; opacity: 0; overflow: hidden; white-space: nowrap; color: #fff;
-  transition: max-width 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-  will-change: max-width, opacity;
+/* Scan and lines re-enabled for "Searching" aesthetic */
+.gateway-line { 
+  position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%);
+  width: 200px; height: 1px; background: var(--accent-cyan); 
+  box-shadow: 0 0 20px var(--accent-cyan); opacity: 0.5;
 }
-
-#preloader.expanded .filling { max-width: 400px; opacity: 1; }
-#preloader.expanded .vault-accent { margin-left: 5px; }
-
-/* Scan and lines removed for simplicity as requested */
-.gateway-line, .scanning-beam { display: none !important; }
+.scanning-beam { 
+  position: absolute; top: 0; left: 0; width: 100%; height: 2px; 
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
+  animation: scan 2s infinite alternate ease-in-out;
+}
+@keyframes scan { from { top: 0%; } to { top: 100%; } }
 
 #preloader.zoom-through .preloader-gateway {
   transform: scale(1.1) translateZ(0); opacity: 0; filter: none;
