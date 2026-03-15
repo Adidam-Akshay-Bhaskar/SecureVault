@@ -248,7 +248,10 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
            "jwk", JSON.parse(data.user.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
          );
       }
-      showToast("Identity Verified"); await loadProfile(); showView("my-vault");
+      showToast("Identity Verified");
+      e.target.reset();
+      await loadProfile();
+      showView("my-vault");
     } else {
       showToast(data.message || "Failed to authenticate", "error");
     }
@@ -301,6 +304,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     const data = await res.json();
     if (res.ok) {
       showToast("Account Initialized");
+      e.target.reset();
       toggleAuthMode("login");
     } else showToast(data.message, "error");
   } catch { showToast("Registration failure", "error"); }

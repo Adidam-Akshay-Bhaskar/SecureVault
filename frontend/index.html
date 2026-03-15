@@ -42,10 +42,10 @@
           <div class="form-wrapper">
             <!-- Login Form -->
             <div id="login-form-container">
-              <form id="login-form">
+              <form id="login-form" action="#" method="POST">
                 <div class="input-field">
                   <label>Email Address</label>
-                  <input type="email" id="login-email" name="email" autocomplete="email" placeholder="email@example.com" required />
+                  <input type="email" id="login-email" name="username" autocomplete="username" placeholder="email@example.com" required />
                 </div>
                 <div class="input-field">
                   <label>Password</label>
@@ -61,14 +61,14 @@
 
             <!-- Register Form -->
             <div id="register-form-container" class="hidden">
-              <form id="register-form">
+              <form id="register-form" action="#" method="POST">
                 <div class="input-field">
                   <label>Full Name</label>
                   <input type="text" id="reg-username" name="name" autocomplete="name" placeholder="Akshay Bhaskar" required />
                 </div>
                 <div class="input-field">
                   <label>Email Address</label>
-                  <input type="email" id="reg-email" name="email" autocomplete="email" placeholder="ak@vault.com" required />
+                  <input type="email" id="reg-email" name="username" autocomplete="username" placeholder="ak@vault.com" required />
                 </div>
                 <div class="input-field">
                   <label>Master Password</label>
@@ -76,7 +76,7 @@
                 </div>
                 <div class="input-field">
                   <label>Security PIN (for recovery)</label>
-                  <input type="password" id="reg-pin" placeholder="1234" maxlength="6" required />
+                  <input type="password" id="reg-pin" name="pin" placeholder="1234" maxlength="6" required />
                 </div>
                 <button type="submit" class="primary-btn">Sign Up</button>
               </form>
