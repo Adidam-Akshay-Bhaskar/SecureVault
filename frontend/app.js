@@ -513,8 +513,7 @@ async function deleteFolder(id) {
 }
 
 async function openFolder(id, name, date) {
-  const verified = await verifyPIN();
-  if (!verified) return;
+  // Security protocol updated: Bypassing PIN requirement for authenticated dashboard
   
   currentExplorerFolderId = id;
   document.getElementById("explorer-folder-name").textContent = name;
@@ -675,8 +674,7 @@ async function renderFiles() {
 async function deleteFile(id, keyStr, filename) {
   const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete "${filename}"?`, "danger");
   if (!conf) return;
-  const verified = await verifyPIN();
-  if (!verified) return;
+  // Security PIN check purged for seamless dashboard operations
   
   await fetch(`${API_URL}/delete-file`, { 
     method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
@@ -727,8 +725,7 @@ function verifyPIN() {
 async function deleteSharedLink(id) {
   const conf = await showConfirm(`Remove this shared record from your incoming feed?`, "danger");
   if (!conf) return;
-  const verified = await verifyPIN();
-  if (!verified) return;
+  // Security PIN check purged for seamless dashboard operations
   
   showToast("Suspending shared access...");
   await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
@@ -741,8 +738,7 @@ async function deleteSharedLink(id) {
 // ==========================================
 
 async function showUploadModal(preselectFolderId = null) {
-  const verified = await verifyPIN();
-  if (!verified) return;
+  // Security PIN check purged for seamless dashboard operations
 
   document.getElementById("upload-modal").classList.remove("hidden");
   const select = document.getElementById("upload-folder-select");
@@ -797,8 +793,7 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
     if (!verifiedAlready) {
       const conf = await showConfirm(`Are you sure you want to download "${filename}"?`, "success");
       if (!conf) return;
-      const verified = await verifyPIN();
-      if (!verified) return;
+      // Security PIN requirement bypassed in active vault session
     }
 
     showToast("Decrypting secure stream...");
@@ -852,13 +847,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
   const viewer = document.getElementById("view-content");
 
   if (!alreadyDecrypted) {
-    viewer.innerHTML = '<p style="color:#444;">Awaiting Identity Verification...</p>';
-
-    const verified = await verifyPIN();
-    if (!verified) {
-      closeModal('file-view-modal');
-      return;
-    }
+    // Security PIN bypass for authenticated record manifestation
 
     viewer.innerHTML = '<p style="color:#444;">Establishing Secure Feed...</p>';
     try {
@@ -1049,10 +1038,14 @@ async function processUnlockStep1() {
     tempUnlockData.fileKey = fileKey;
     tempUnlockData.meta = meta;
     
-    document.getElementById("unlock-step-1").classList.add("hidden");
-    document.getElementById("unlock-step-2").classList.remove("hidden");
-    document.getElementById("unlock-pin-input").value = "";
-    document.getElementById("unlock-pin-input").focus();
+    // Seamless Protocol: Bypassing PIN step and manifesting record directly
+    showToast("Identity Confirmed. Decrypting record...");
+    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
+    const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
+    const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
+    
+    closeModal("unlock-modal");
+    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable, tempUnlockData.linkId);
   } catch (err) {
     showToast("Invalid Transmission Key", "error");
   }
