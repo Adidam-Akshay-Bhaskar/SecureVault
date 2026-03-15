@@ -73,7 +73,7 @@ body { font-family: var(--font-main); -webkit-font-smoothing: antialiased; }
 
 /* --- CLEAN LOGIN CARD --- */
 #auth-section {
-  width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center;
   position: relative; z-index: 10; opacity: 0; transform: scale(0.98);
   transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
 }
@@ -257,15 +257,14 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
   font-weight: 900; color: var(--accent-cyan); box-shadow: 0 10px 20px rgba(0,0,0,0.3);
 }
 
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; margin-bottom: 3rem; }
 .stat-card {
   background: rgba(15, 15, 20, 0.6); backdrop-filter: blur(20px);
-  border: 1px solid #1a1a1f; border-radius: 28px; padding: 2.5rem;
-  transition: 0.4s; position: relative; overflow: hidden; cursor: pointer; user-select: none;
+  border: 1px solid #1a1a1f; border-radius: 28px; padding: 2rem;
+  transition: 0.4s; position: relative; overflow: hidden; user-select: none;
 }
-.stat-card:hover { transform: translateY(-5px); border-color: var(--accent-cyan); box-shadow: 0 20px 40px rgba(0, 242, 255, 0.05); }
-.stat-card:active { transform: scale(0.97); transition: 0.1s; }
-.stat-card p { color: #fff; font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; opacity: 1; }
-.stat-value { font-size: 5rem; font-weight: 900; font-family: var(--font-heading); margin-top: 10px; color: #fff; line-height: 1; text-shadow: 0 0 20px rgba(255,255,255,0.1); }
+.stat-card p { color: #fff; font-weight: 700; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.7; }
+.stat-value { font-size: 4rem; font-weight: 900; font-family: var(--font-heading); margin-top: 5px; color: #fff; line-height: 1; }
 
 .tab-btn {
   background: none; border: none; font-size: 1.1rem; font-weight: 800; color: var(--text-dim);
@@ -496,7 +495,7 @@ input[type="checkbox"]:checked::after {
   .sidebar.collapsed { width: 100% !important; padding: 1rem; }
   .sidebar-header { margin-bottom: 0; padding: 0; width: auto; }
   #sidebar-brand { font-size: 1.2rem; letter-spacing: 2px; }
-  .sidebar-toggle { display: none; } /* Hide toggle on mobile, use horizontal nav */
+  .sidebar-toggle { display: none !important; } 
   
   nav { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 5px; }
   .nav-item { margin-bottom: 0; padding: 10px 15px; gap: 8px; border-radius: 10px; white-space: nowrap; }
@@ -504,21 +503,23 @@ input[type="checkbox"]:checked::after {
   .nav-text { font-size: 0.85rem; }
   .sidebar.collapsed .nav-text { display: block; }
 
-  .main-wrapper { padding: 1.5rem; height: auto; overflow: visible; }
-  header { flex-direction: column; align-items: flex-start; gap: 20px; text-align: left; }
-  header h1 { font-size: 2rem; }
-  .user-profile-box { width: 100%; justify-content: space-between; }
+  .main-wrapper { padding: 1rem; height: auto; overflow: visible; }
+  header { flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; margin-bottom: 1rem; }
+  header h1 { font-size: 1.5rem; line-height: 1.2; }
+  #view-subtitle { font-size: 0.7rem; margin-top: 2px; }
+  .user-profile-box { width: 100%; justify-content: space-between; margin-top: 10px; padding: 4px 5px 4px 15px; }
 
   .scanned-text { font-size: 2.5rem; }
   .auth-card-premium { padding: 30px 20px; border-radius: 24px; width: 95%; margin: 0 auto; }
   
-  .stat-grid { grid-template-columns: 1fr; gap: 15px; }
-  .stat-card { padding: 1.5rem; }
-  .stat-value { font-size: 3rem; }
+  .stat-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 1rem !important; }
+  .stat-card { padding: 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
+  .stat-card p { font-size: 0.65rem; }
+  .stat-value { font-size: 2.2rem; }
   
   .file-row { 
-    grid-template-columns: 1fr; gap: 10px; padding: 15px;
-    border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 10px;
+    grid-template-columns: 1fr; gap: 5px; padding: 12px;
+    border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; margin-bottom: 15px;
   }
   .file-row.header { display: none; }
   .file-row p, .file-row span { font-size: 0.9rem; }
