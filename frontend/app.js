@@ -1229,7 +1229,7 @@ async function loadProfile() {
     const data = await res.json();
     if (!data || !data.username) return;
 
-    if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = data.username;
+    if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = data.email;
     
     if (data.username) {
       document.getElementById("profile-username-display").textContent = data.username;

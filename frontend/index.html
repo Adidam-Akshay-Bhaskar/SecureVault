@@ -208,15 +208,12 @@
       <header style="margin-top: -10px;">
         <div>
           <h1 id="view-title">Vault Base</h1>
-          <p id="view-subtitle">Operator: <span id="welcome-message">Agent</span></p>
+          <p id="view-subtitle">Operator: <span id="welcome-message" style="text-transform: none; color: var(--accent-cyan); letter-spacing: 0.5px;">Agent</span></p>
         </div>
         <div style="position: relative;">
-          <div class="user-profile-box" onclick="toggleHeaderMenu()" style="margin-top: -15px;">
-            <div style="display: flex; flex-direction: column; align-items: flex-end; justify-content: center; margin-right: 5px;">
-              <span id="profile-username-header" style="color:#fff; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Agent</span>
-              <span id="header-email" style="color:var(--accent-cyan); font-size: 0.75rem; font-weight: 500;"></span>
-            </div>
-            <div class="auth-logo-box" style="width:40px; height:40px; font-size:1rem; position: relative;">
+          <div class="user-profile-box" onclick="toggleHeaderMenu()">
+            <span id="profile-username-header" style="color:#fff; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Agent</span>
+            <div class="auth-logo-box" style="width:36px; height:36px; font-size:0.95rem; position: relative;">
               <span id="header-avatar">?</span>
               <img id="header-avatar-img" class="hidden" src="" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />
             </div>
