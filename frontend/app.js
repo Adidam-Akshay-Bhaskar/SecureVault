@@ -865,17 +865,52 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     const blob = new Blob([dec], { type: getMimeType(ext) });
     currentBlobUrl = URL.createObjectURL(blob);
 
-    if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(ext)) {
+    if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "heic"].includes(ext)) {
       const img = document.createElement("img"); img.src = currentBlobUrl;
-      img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.objectFit = "contain"; viewer.appendChild(img);
+      img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.objectFit = "contain"; 
+      img.style.borderRadius = "20px"; img.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5)";
+      viewer.appendChild(img);
     } else if (ext === "pdf") {
       const fr = document.createElement("iframe"); fr.src = currentBlobUrl + "#toolbar=0";
-      fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none"; viewer.appendChild(fr);
-    } else if (["txt","md","json","js","css","html"].includes(ext)) {
+      fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none"; 
+      fr.style.background = "#fff"; fr.style.borderRadius = "12px";
+      viewer.appendChild(fr);
+    } else if (["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "mpeg", "mpg", "3gp"].includes(ext)) {
+      const video = document.createElement("video"); video.src = currentBlobUrl;
+      video.controls = true; video.style.maxWidth = "100%"; video.style.maxHeight = "100%";
+      video.style.borderRadius = "16px"; video.style.background = "#000";
+      viewer.appendChild(video);
+    } else if (["mp3", "wav", "aac", "flac", "ogg", "m4a", "wma", "aiff"].includes(ext)) {
+      viewer.innerHTML = `
+        <div style="text-align:center; padding: 3rem; background: rgba(255,255,255,0.03); border-radius: 30px; border: 1px solid rgba(255,255,255,0.05);">
+          <div style="font-size:4rem; margin-bottom: 2rem;">🎵</div>
+          <audio src="${currentBlobUrl}" controls style="width:100%;"></audio>
+          <p style="margin-top:20px; color:var(--text-dim); font-size: 0.9rem;">${name}</p>
+        </div>
+      `;
+    } else if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql"].includes(ext)) {
       const pre = document.createElement("pre"); pre.textContent = new TextDecoder().decode(dec);
-      pre.style.color = "#fff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; pre.style.padding = "2rem"; viewer.appendChild(pre);
+      pre.style.color = "#00f2ff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; 
+      pre.style.padding = "25px"; pre.style.background = "rgba(0,0,0,0.4)"; pre.style.borderRadius = "16px";
+      pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', monospace";
+      viewer.appendChild(pre);
     } else {
-      viewer.innerHTML = `<div style="text-align:center;"><p style="font-size:3rem;">📄</p><p>Preview not supported for .${ext}</p></div>`;
+      const icons = {
+        xlsx: "📊", xls: "📊", csv: "📊", ods: "📊", tsv: "📊", numbers: "📊",
+        pptx: "📽️", ppt: "📽️", odp: "📽️", key: "📽️",
+        doc: "📂", docx: "📂", odt: "📂", rtf: "📂", pages: "📂",
+        zip: "🗜️", rar: "🗜️", "7z": "🗜️", tar: "🗜️", gz: "🗜️",
+        exe: "⚙️", msi: "⚙️", bat: "⚙️", apk: "⚙️",
+        db: "🗄️", sqlite: "🗄️", sql: "🗄️"
+      };
+      viewer.innerHTML = `
+        <div style="text-align:center; padding: 4rem 2rem;">
+          <div style="font-size:6rem; margin-bottom: 1.5rem; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));">${icons[ext] || "📄"}</div>
+          <h3 style="margin-bottom:10px; font-size: 1.4rem;">${ext.toUpperCase()} Manifest</h3>
+          <p style="color:var(--text-dim); margin-bottom: 30px;">Decrypted successfully but requires a native platform viewer.</p>
+          <button class="primary-btn" onclick="document.getElementById('view-download-btn').click()" style="width:auto; padding: 12px 30px;">Download to View</button>
+        </div>
+      `;
     }
     showToast("File Decrypted Successfully");
   } catch (err) { showToast("Display Error", "error"); }
@@ -945,9 +980,26 @@ let currentBlobUrl = null;
 
 function getMimeType(ext) {
   const Map = { 
-    pdf: "application/pdf", png: "image/png", jpg: "image/jpeg", 
-    jpeg: "image/jpeg", gif: "image/gif", txt: "text/plain",
-    html: "text/html", json: "application/json"
+    // Documents
+    pdf: "application/pdf", txt: "text/plain", doc: "application/msword", docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    odt: "application/vnd.oasis.opendocument.text", rtf: "application/rtf", pages: "application/x-iwork-pages-sffpages",
+    // Spreadsheets
+    xls: "application/vnd.ms-excel", xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    csv: "text/csv", ods: "application/vnd.oasis.opendocument.spreadsheet", tsv: "text/tab-separated-values", numbers: "application/x-iwork-numbers-sffnumbers",
+    // Presentations
+    ppt: "application/vnd.ms-powerpoint", pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    odp: "application/vnd.oasis.opendocument.presentation", key: "application/x-iwork-keynote-sffkey",
+    // Images
+    png: "image/png", jpg: "image/jpeg", jpeg: "image/jpeg", gif: "image/gif", webp: "image/webp", svg: "image/svg+xml",
+    bmp: "image/bmp", tiff: "image/tiff", tif: "image/tiff", ico: "image/x-icon", heic: "image/heic",
+    // Audio
+    mp3: "audio/mpeg", wav: "audio/wav", aac: "audio/aac", flac: "audio/flac", ogg: "audio/ogg", m4a: "audio/mp4", wma: "audio/x-ms-wma", aiff: "audio/x-aiff",
+    // Video
+    mp4: "video/mp4", mkv: "video/x-matroska", avi: "video/x-msvideo", mov: "video/quicktime", wmv: "video/x-ms-wmv", flv: "video/x-flv", webm: "video/webm", mpeg: "video/mpeg", mpg: "video/mpeg", "3gp": "video/3gpp",
+    // Compressed
+    zip: "application/zip", rar: "application/x-rar-compressed", "7z": "application/x-7z-compressed", tar: "application/x-tar",
+    // Code
+    html: "text/html", css: "text/css", js: "text/javascript", json: "application/json", py: "text/x-python", xml: "text/xml", sql: "text/x-sql"
   };
   return Map[ext] || "application/octet-stream";
 }
