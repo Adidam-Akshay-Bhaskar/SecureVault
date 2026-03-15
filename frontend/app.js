@@ -258,10 +258,16 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
            "jwk", JSON.parse(data.user.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
          );
       }
-      showToast("Identity Verified");
-      e.target.reset();
-      await loadProfile();
-      showView("my-vault");
+      
+      // Browser Heuristic: Wait for toast and identity capture before view swap
+      showToast("Access Granted - Synchronizing Credentials");
+      
+      setTimeout(async () => {
+        await loadProfile();
+        showView("my-vault");
+        // Reset only after transition to let manager capture data
+        setTimeout(() => e.target.reset(), 200);
+      }, 500);
     } else {
       showToast(data.message || "Failed to authenticate", "error");
     }
@@ -896,63 +902,47 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
       video.style.borderRadius = "16px"; video.style.background = "#000"; video.style.boxShadow = "0 20px 40px rgba(0,0,0,0.5)";
       viewer.appendChild(video);
     } 
-    // 4. AUDIO PROTOCOL
-    else if (["mp3", "wav", "aac", "flac", "ogg", "m4a", "wma", "aiff"].includes(ext)) {
-      viewer.innerHTML = `
-        <div style="text-align:center; padding: 3rem; background: rgba(255,255,255,0.03); border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 400px;">
-          <div style="font-size:5rem; margin-bottom: 2rem; filter: drop-shadow(0 0 20px var(--accent-cyan));">🎵</div>
-          <audio src="${currentBlobUrl}" controls style="width:100%;"></audio>
-          <p style="margin-top:25px; color:#fff; font-weight: 700; font-size: 1rem;">${name}</p>
-          <p style="color:var(--text-dim); font-size: 0.8rem; margin-top: 5px;">Secure Audio Stream Active</p>
-        </div>
-      `;
-    } 
-    // 5. CODE & DATA PROTOCOL (Direct Display)
-    else if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql","sh","bat","cmd"].includes(ext)) {
-      const container = document.createElement("div");
-      container.style.width = "100%"; container.style.height = "100%"; container.style.display = "flex"; container.style.flexDirection = "column";
-      
-      const header = document.createElement("div");
-      header.style.padding = "10px 20px"; header.style.background = "rgba(255,255,255,0.05)"; header.style.fontSize = "0.7rem";
-      header.style.color = "var(--accent-cyan)"; header.style.fontWeight = "700"; header.style.textTransform = "uppercase";
-      header.style.borderTopLeftRadius = "16px"; header.style.borderTopRightRadius = "16px";
-      header.textContent = `Terminal Feed: ${name}`;
-      
-      const pre = document.createElement("pre"); 
-      try { pre.textContent = new TextDecoder().decode(dec); } catch { pre.textContent = "[Binary Data Identified - Rendering Suppressed]"; }
-      pre.style.color = "#00f2ff"; pre.style.flex = "1"; pre.style.whiteSpace = "pre-wrap"; 
-      pre.style.padding = "25px"; pre.style.background = "rgba(10,10,15,0.8)"; pre.style.borderBottomLeftRadius = "16px";
-      pre.style.borderBottomRightRadius = "16px"; pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', 'Courier New', monospace";
-      pre.style.overflowY = "auto"; pre.style.margin = "0";
-      
-      container.appendChild(header); container.appendChild(pre);
-      viewer.appendChild(container);
-    } 
-    // 6. VAULT MANIFEST FALLBACK (Direct Display for Complex Types)
+    // 5. THE "DIRECT FIELD" UNIVERSAL PROTOCOL
+    // Purged all 'Manifest' receipts. Everything manifests directly.
     else {
-      const icons = {
-        xlsx: "📊", xls: "📊", csv: "📊", ods: "📊", tsv: "📊", numbers: "📊",
-        pptx: "📽️", ppt: "📽️", odp: "📽️", key: "📽️",
-        doc: "📂", docx: "📂", odt: "📂", rtf: "📂", pages: "📂",
-        zip: "🗜️", rar: "🗜️", "7z": "🗜️", tar: "🗜️", gz: "🗜️", bz2: "🗜️", xz: "🗜️", iso: "🗜️",
-        exe: "⚙️", msi: "⚙️", apk: "⚙️", app: "⚙️",
-        db: "🗄️", sqlite: "🗄️", mdb: "🗄️", accdb: "🗄️"
-      };
-      viewer.innerHTML = `
-        <div style="text-align:center; padding: 4rem 2rem; background: rgba(10,10,15,0.5); border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); width: 95%;">
-          <div style="font-size:7rem; margin-bottom: 2rem; filter: drop-shadow(0 0 30px rgba(255,255,255,0.1));">${icons[ext] || "📄"}</div>
-          <h3 style="margin-bottom:15px; font-size: 1.6rem; font-family:var(--font-heading); color:#fff;">${name}</h3>
-          <div style="display:inline-block; padding: 8px 16px; background: rgba(0,242,255,0.1); color: var(--accent-cyan); border-radius: 50px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 25px;">
-            Vault Security Manifest: ${ext.toUpperCase()}
-          </div>
-          <p style="color:var(--text-dim); margin-bottom: 35px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.6;">
-            This ${ext.toUpperCase()} record has been decrypted within the secure enclave. You can now transmit the payload to your native platform for final execution.
-          </p>
-          <button class="primary-btn" onclick="document.getElementById('view-download-btn').click()" style="width:auto; padding: 18px 45px; border-radius: 50px; font-size: 1rem;">
-            Export Payload to System
-          </button>
-        </div>
-      `;
+      // 5.1 CODE & DATA PROTOCOL (Direct Decoder Feed)
+      if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql","sh","bat","cmd","csv","tsv"].includes(ext)) {
+        const container = document.createElement("div");
+        container.style.width = "100%"; container.style.height = "100%"; container.style.display = "flex"; container.style.flexDirection = "column";
+        
+        const header = document.createElement("div");
+        header.style.padding = "10px 20px"; header.style.background = "rgba(255,255,255,0.05)"; header.style.fontSize = "0.7rem";
+        header.style.color = "var(--accent-cyan)"; header.style.fontWeight = "700"; header.style.textTransform = "uppercase";
+        header.style.borderTopLeftRadius = "16px"; header.style.borderTopRightRadius = "16px";
+        header.textContent = `Terminal Feed: ${name}`;
+        
+        const pre = document.createElement("pre"); 
+        try { pre.textContent = new TextDecoder().decode(dec); } catch { pre.textContent = "[Binary Data Feed - Unable to render as UTF-8]"; }
+        pre.style.color = "#00f2ff"; pre.style.flex = "1"; pre.style.whiteSpace = "pre-wrap"; 
+        pre.style.padding = "25px"; pre.style.background = "rgba(10,10,15,0.8)"; pre.style.borderBottomLeftRadius = "16px";
+        pre.style.borderBottomRightRadius = "16px"; pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', 'Courier New', monospace";
+        pre.style.overflowY = "auto"; pre.style.margin = "0";
+        
+        container.appendChild(header); container.appendChild(pre);
+        viewer.appendChild(container);
+      } 
+      // 5.2 DOCUMENT & PROPRIETARY PROTOCOL (Direct Native Feed)
+      else {
+        const fr = document.createElement("iframe");
+        fr.src = currentBlobUrl + (ext === 'pdf' ? "#toolbar=0&navpanes=0" : "");
+        fr.style.width = "100%";
+        fr.style.height = "100%";
+        fr.style.border = "none";
+        fr.style.background = "#fff";
+        fr.style.borderRadius = "16px";
+        fr.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5)";
+        viewer.appendChild(fr);
+        
+        // Mobile UX Override: If iframe is suspected to show 'Open' prompt, we ensure it spans full container
+        if (window.innerWidth < 768) {
+          fr.style.minHeight = "70vh";
+        }
+      }
     }
     showToast("File Decrypted Successfully");
   } catch (err) { showToast("Display Error", "error"); }
