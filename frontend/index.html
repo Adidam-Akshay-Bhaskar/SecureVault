@@ -105,24 +105,26 @@
 
             <!-- Recovery Request Form -->
             <div id="recover-form-container" class="hidden">
-              <div class="verify-header">
-                <h2>Vault Recovery</h2>
-                <p>Request a secure restoration link.</p>
-              </div>
-              <form id="recover-form">
-                <div class="input-field">
+              <form id="recover-form" style="margin-top: 10px;">
+                <div class="input-field" style="margin-bottom: 25px;">
                   <label>Email Address</label>
                   <input type="email" id="recover-email" placeholder="email@example.com" required />
                 </div>
-                <div class="input-field">
+                <div class="input-field" style="margin-bottom: 30px;">
                   <label>Recovery Type</label>
-                  <select id="recover-type" required>
-                    <option value="password">Reset Password</option>
-                    <option value="pin">Reset Security PIN</option>
-                  </select>
+                  <div class="recovery-options">
+                    <div class="recovery-option">
+                      <input type="radio" name="rec-type" id="type-password" value="password" checked />
+                      <label for="type-password">Password</label>
+                    </div>
+                    <div class="recovery-option">
+                      <input type="radio" name="rec-type" id="type-pin" value="pin" />
+                      <label for="type-pin">Security PIN</label>
+                    </div>
+                  </div>
                 </div>
                 <button type="submit" class="primary-btn">Send Link</button>
-                <button type="button" class="text-btn" onclick="toggleAuthMode('login')">Return to Login</button>
+                <button type="button" class="text-btn" style="margin-top: 15px;" onclick="toggleAuthMode('login')">Return to Login</button>
               </form>
             </div>
 

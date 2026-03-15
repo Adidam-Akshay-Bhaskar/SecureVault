@@ -310,7 +310,7 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
 document.getElementById("recover-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("recover-email").value.trim().toLowerCase();
-  const type = document.getElementById("recover-type").value;
+  const type = document.querySelector('input[name="rec-type"]:checked').value;
   const btn = e.target.querySelector("button");
   const orig = btn.textContent;
   btn.textContent = "Dispatched..."; btn.disabled = true;
