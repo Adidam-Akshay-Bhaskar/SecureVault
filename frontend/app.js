@@ -377,12 +377,14 @@ function logout() {
     preloader.classList.add("expanded");
   }
 
-  showToast("Suspending terminal access...");
+  // Clear session data immediately
+  sessionStorage.clear();
+  sessionMasterKey = null;
+
+  // Faster transition as requested
   setTimeout(() => {
-    sessionStorage.clear();
-    sessionMasterKey = null;
     location.reload();
-  }, 1000);
+  }, 600);
 }
 
 function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }

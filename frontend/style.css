@@ -73,9 +73,10 @@ body { font-family: var(--font-main); -webkit-font-smoothing: antialiased; }
 
 /* --- CLEAN LOGIN CARD --- */
 #auth-section {
-  width: 100%; height: 100%; min-height: 100vh; display: flex; align-items: center; justify-content: center;
-  position: relative; z-index: 10; opacity: 0; transform: scale(0.98);
+  position: fixed; inset: 0; width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center;
+  z-index: 1000; opacity: 0; transform: scale(0.98);
   transition: all 1s cubic-bezier(0.23, 1, 0.32, 1);
+  background: #000;
 }
 #auth-section.visible { opacity: 1; transform: scale(1); }
 
@@ -233,10 +234,10 @@ header h1 { font-family: var(--font-heading); font-size: 3rem; font-weight: 900;
 .user-profile-box:active { transform: scale(0.96); }
 
 .dropdown-manifest {
-    position: absolute; top: calc(100% + 15px); right: 0; width: 240px;
-    background: rgba(10, 10, 15, 0.95); backdrop-filter: blur(30px);
-    border: 1px solid var(--border-glass); border-radius: 24px; padding: 12px;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.6); z-index: 1000;
+    position: absolute; top: 100%; right: 0; width: 220px;
+    background: rgba(10, 10, 15, 0.98); backdrop-filter: blur(40px);
+    border: 1px solid var(--border-glass); border-radius: 20px; padding: 10px;
+    box-shadow: 0 20px 60px rgba(0,0,0,1); z-index: 9999;
     animation: menuFade 0.4s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 }
 @keyframes menuFade { from { opacity:0; transform: translateY(10px) scale(0.95); } to { opacity:1; transform: translateY(0) scale(1); } }
@@ -503,25 +504,21 @@ input[type="checkbox"]:checked::after {
   .nav-item span:first-child { font-size: 1rem; }
   .nav-text { font-size: 0.85rem; }
   .sidebar.collapsed .nav-text { display: block; }
-  .sidebar-logout-btn { 
-    display: flex !important; align-items: center; justify-content: center;
-    width: 44px; height: 44px; background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.2);
-    border-radius: 12px; color: var(--danger); cursor: pointer; transition: 0.3s;
-  }
+  .dropdown-manifest { right: 5%; width: 90%; top: calc(100% + 10px); }
 
-  .main-wrapper { padding: 1rem; height: auto; overflow: visible; }
-  header { flex-direction: column; align-items: flex-start; gap: 5px; text-align: left; margin-bottom: 1rem; }
-  header h1 { font-size: 1.5rem; line-height: 1.2; }
-  #view-subtitle { font-size: 0.7rem; margin-top: 2px; }
-  .user-profile-box { width: 100%; justify-content: space-between; margin-top: 10px; padding: 4px 5px 4px 15px; }
+  .main-wrapper { padding: 1rem; height: auto; overflow: visible; width: 100%; margin: 0; }
+  header { flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 2rem; width: 100%; }
+  header h1 { font-size: 1.8rem; line-height: 1.2; text-align: left; }
+  #view-subtitle { font-size: 0.75rem; margin-top: 5px; }
+  .user-profile-box { width: 100%; justify-content: space-between; padding: 10px 15px; border-radius: 16px; align-self: stretch; }
 
   .scanned-text { font-size: 2.5rem; }
   .auth-card-premium { padding: 30px 20px; border-radius: 24px; width: 95%; margin: 0 auto; }
   
-  .stat-grid { grid-template-columns: 1fr; gap: 10px; margin-bottom: 1rem !important; }
-  .stat-card { padding: 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-  .stat-card p { font-size: 0.65rem; }
-  .stat-value { font-size: 2.2rem; }
+  .stat-grid { grid-template-columns: 1fr; gap: 12px; margin-bottom: 2rem !important; }
+  .stat-card { padding: 1.5rem; border-radius: 20px; border: 1px solid rgba(255,255,255,0.08); }
+  .stat-card p { font-size: 0.7rem; }
+  .stat-value { font-size: 2.5rem; }
   
   .file-row { 
     grid-template-columns: 1fr; gap: 8px; padding: 15px;
@@ -530,16 +527,25 @@ input[type="checkbox"]:checked::after {
   .file-row.header { display: none; }
   .file-row p, .file-row span { font-size: 0.9rem; margin-bottom: 2px; }
   .file-row p:nth-child(2), .file-row p:nth-child(3) { color: var(--text-dim); font-size: 0.8rem; }
-  .action-group { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 15px; }
-  .action-btn { width: 100%; display: flex; align-items: center; justify-content: center; padding: 12px; font-size: 0.85rem; border-radius: 12px !important; }
+  .action-group { width: 100%; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 15px; }
+  .file-row .action-btn { width: 100%; padding: 12px 2px !important; font-size: 0.7rem !important; border-radius: 10px !important; display: flex !important; justify-content: center; align-items: center; white-space: nowrap; }
+  .file-row .action-btn span { font-size: 0.7rem !important; }
   .action-btn.delete { color: var(--danger) !important; background: rgba(255,71,87,0.05) !important; border-color: rgba(255,71,87,0.15) !important; }
 
-  .modal-content { width: 95% !important; padding: 30px 20px !important; margin: 20px auto; border-radius: 28px; }
-  .identity-grid { grid-template-columns: 1fr; gap: 15px; }
+  .modal-content { width: 95% !important; padding: 25px 15px !important; margin: 10px auto; border-radius: 24px; }
+  .identity-grid { grid-template-columns: 1fr; gap: 10px; }
   
-  #section-profile .profile-architecture { flex-direction: column; gap: 30px; }
-  #section-profile .avatar-manifest { width: 100%; padding: 30px 20px; border-radius: 24px; text-align: center; }
+  #folder-explorer-modal .modal-content { height: 95vh; margin: 5px auto; padding: 15px !important; width: 98% !important; }
+  #folder-explorer-modal .modal-content > div:first-child { flex-direction: column; align-items: stretch !important; gap: 15px; margin-bottom: 1.5rem; }
+  #folder-explorer-modal .modal-content > div:first-child > div:last-child { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  
+  #section-profile .profile-architecture { display: flex; flex-direction: column; gap: 20px; width: 100%; }
+  #section-profile .avatar-manifest { width: 100%; padding: 25px 15px; border-radius: 24px; position: static; }
   #section-profile .manifest-content { width: 100%; }
+  #section-profile .protocol-card { padding: 25px 15px; border-radius: 24px; width: 100%; }
+  
+  .auth-container.centered-mode { width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; margin: 0; }
+  .auth-card-premium { width: 92%; max-width: 440px; margin: 0 auto; padding: 40px 25px; }
 }
 
 @media (max-width: 480px) {
