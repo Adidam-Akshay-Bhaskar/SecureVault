@@ -370,11 +370,19 @@ document.getElementById("reset-form").addEventListener("submit", async (e) => {
 });
 
 function logout() {
-  sessionStorage.clear();
-  sessionMasterKey = null;
-  document.getElementById("view-dashboard").classList.add("hidden");
-  document.getElementById("auth-section").classList.remove("hidden");
-  toggleAuthMode("login");
+  const preloader = document.getElementById("preloader");
+  if (preloader) {
+    preloader.style.display = "flex";
+    preloader.classList.remove("hidden", "fade-out");
+    preloader.classList.add("expanded");
+  }
+
+  showToast("Suspending terminal access...");
+  setTimeout(() => {
+    sessionStorage.clear();
+    sessionMasterKey = null;
+    location.reload();
+  }, 1000);
 }
 
 function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }
@@ -1238,9 +1246,9 @@ window.addEventListener("click", (e) => {
         setTimeout(() => {
           if (authSection) {
             authSection.classList.remove("hidden");
-            setTimeout(() => authSection.classList.add("visible"), 50);
+            authSection.classList.add("visible");
           }
-        }, 300);
+        }, 500);
 
         setTimeout(async () => {
           // Preloader finally removed from layout
