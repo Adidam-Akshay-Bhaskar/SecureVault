@@ -913,9 +913,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                 .then(result => {
                     const div = document.createElement("div");
                     div.className = "direct-doc-view";
-                    div.style.background = "#fff"; div.style.color = "#222"; div.style.padding = "40px";
-                    div.style.borderRadius = "12px"; div.style.width = "100%"; div.style.minHeight = "100%";
-                    div.style.overflowY = "auto"; div.innerHTML = result.value || "[Empty Document Content]";
+                    div.innerHTML = result.value || "[Empty Document Content]";
                     viewer.innerHTML = "";
                     viewer.appendChild(div);
                 })
@@ -934,18 +932,19 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     else if (ext === "pdf") {
         viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">MANIFESTING PDF DATA FIELDS...</div>';
         const pdfJS = window['pdfjs-dist/build/pdf'];
-        pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
-        
+        pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';        
         pdfJS.getDocument({ data: dec }).promise.then(pdf => {
             viewer.innerHTML = "";
             const container = document.createElement("div");
+            container.className = "pdf-canvas-container";
             container.style.width = "100%"; container.style.height = "100%"; container.style.overflowY = "auto";
             viewer.appendChild(container);
             
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 pdf.getPage(pageNum).then(page => {
-                    const viewport = page.getViewport({ scale: 1.5 });
+                    const viewport = page.getViewport({ scale: 2 });
                     const canvas = document.createElement("canvas");
+                    canvas.className = "pdf-page-canvas";
                     canvas.style.width = "100%"; canvas.style.marginBottom = "20px";
                     canvas.style.borderRadius = "8px"; canvas.style.boxShadow = "0 10px 30px rgba(0,0,0,0.3)";
                     const context = canvas.getContext('2d');
@@ -964,11 +963,12 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         try {
             const workbook = XLSX.read(dec, { type: 'array' });
             const html = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
-            const div = document.createElement("div");
-            div.style.background = "#fff"; div.style.color = "#333"; div.style.padding = "20px";
-            div.style.borderRadius = "12px"; div.style.width = "100%"; div.style.overflowX = "auto";
-            div.innerHTML = `<style>table{border-collapse:collapse;width:100%}td{border:1px solid #ddd;padding:8px;font-size:0.8rem;font-family:sans-serif}</style>${html}`;
-            viewer.innerHTML = ""; viewer.appendChild(div);
+            const container = document.createElement("div");
+            container.className = "matrix-table-container";
+            container.innerHTML = html;
+            const table = container.querySelector('table');
+            if (table) table.className = "matrix-table";
+            viewer.innerHTML = ""; viewer.appendChild(container);
         } catch (err) {
             viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Spreadsheet parsing failed.</p>`;
         }
@@ -978,13 +978,14 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">PROBING ARCHIVE ENCLAVE...</div>';
         try {
             JSZip.loadAsync(dec).then(zip => {
-                let list = `<div style="padding:30px; color:#fff; font-family:monospace; width:100%;">
-                    <h4 style="color:var(--accent-cyan); margin-bottom:20px; border-bottom:1px solid rgba(0,242,255,0.2); padding-bottom:10px;">ARCHIVE DIRECTORY:</h4>`;
+                const container = document.createElement("div");
+                container.className = "archive-manifest-list";
+                let list = `<h4 style="color:var(--accent-cyan); margin-bottom:20px; border-bottom:1px solid rgba(0,242,255,0.2); padding-bottom:10px;">ARCHIVE DIRECTORY:</h4>`;
                 zip.forEach((relativePath, file) => {
-                    list += `<p style="margin:8px 0; font-size:0.9rem; color: #888;">📂 ${relativePath}</p>`;
+                    list += `<div class="archive-item">📂 ${relativePath}</div>`;
                 });
-                list += `</div>`;
-                viewer.innerHTML = list;
+                container.innerHTML = list;
+                viewer.innerHTML = ""; viewer.appendChild(container);
             }).catch(() => {
                 viewer.innerHTML = '<p style="color:var(--danger); padding:20px;">Binary Error: Unable to probe archive content.</p>';
             });

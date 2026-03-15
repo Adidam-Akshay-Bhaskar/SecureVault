@@ -409,6 +409,32 @@ input[type="checkbox"]:checked::after {
 .folder-name { font-weight: 800; font-size: 1.2rem; color: #fff; margin: 0; }
 .folder-count { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-top: 10px; font-weight: 600; }
 
+/* --- OMNI-VIEWER SYMPHONY --- */
+.direct-doc-view { 
+  background: white !important; 
+  color: #111 !important; 
+  line-height: 1.6; 
+  font-family: 'Inter', sans-serif; 
+  max-width: 900px; 
+  margin: 0 auto; 
+  padding: 60px 40px !important; 
+  box-shadow: 0 0 100px rgba(0,0,0,0.5); 
+  border-radius: 4px;
+}
+.direct-doc-view h1, .direct-doc-view h2 { color: #000; margin-bottom: 1.5rem; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+.direct-doc-view p { margin-bottom: 1.2rem; }
+
+.matrix-table-container { background: white; border-radius: 12px; overflow: auto; width: 100%; box-shadow: 0 20px 50px rgba(0,0,0,0.4); }
+.matrix-table { border-collapse: collapse; width: 100%; min-width: 600px; }
+.matrix-table td { border: 1px solid #e0e0e0; padding: 12px 15px; color: #333; font-size: 0.85rem; font-family: 'Inter', sans-serif; }
+.matrix-table tr:nth-child(even) { background: #f9f9f9; }
+
+.pdf-canvas-container { padding: 40px 10px; display: flex; flex-direction: column; align-items: center; gap: 30px; }
+.pdf-page-canvas { max-width: 100%; height: auto !important; box-shadow: 0 30px 60px rgba(0,0,0,0.5); border-radius: 4px; background: white; }
+
+.archive-manifest-list { padding: 40px; }
+.archive-item { display: flex; align-items: center; gap: 15px; padding: 12px 20px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); border-radius: 10px; margin-bottom: 10px; color: #fff; font-size: 0.9rem; }
+
 .folder-grid-container {
   padding: 32px;
   background: rgba(255, 255, 255, 0.01);
@@ -507,6 +533,9 @@ input[type="checkbox"]:checked::after {
   .dropdown-manifest { right: 5%; width: 90%; top: calc(100% + 10px); }
 
   .main-wrapper { padding: 1rem; height: auto; overflow: visible; width: 100%; margin: 0; }
+  #file-view-modal .modal-content { height: 98vh; width: 98vw; max-width: 98vw; margin: 1vh auto; padding: 0 !important; border-radius: 20px; }
+  #view-content { padding: 10px !important; }
+  
   header { flex-direction: column; align-items: stretch; gap: 15px; margin-bottom: 2rem; width: 100%; }
   header h1 { font-size: 1.8rem; line-height: 1.2; text-align: left; }
   #view-subtitle { font-size: 0.75rem; margin-top: 5px; }
