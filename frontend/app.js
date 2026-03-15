@@ -905,78 +905,117 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         </div>
       `;
     }
-    // 4. MICROSOFT WORD PROTOCOL (Direct Display)
-    else if (["docx", "doc"].includes(ext)) {
-        viewer.innerHTML = '<p style="color:var(--accent-cyan); text-align:center; padding:20px;">Decoding Word Manifest...</p>';
+    // 4. MICROSOFT WORD PROTOCOL (Direct DOM Rendering)
+    else if (["docx", "doc", "odt", "rtf", "pages"].includes(ext)) {
+        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px; font-family:var(--font-heading);">MANIFESTING DOCUMENT CONTENT...</div>';
         try {
             mammoth.convertToHtml({ arrayBuffer: dec })
                 .then(result => {
                     const div = document.createElement("div");
-                    div.style.background = "#fff"; div.style.color = "#333"; div.style.padding = "40px";
-                    div.style.borderRadius = "16px"; div.style.width = "100%"; div.style.minHeight = "100%";
-                    div.style.overflowY = "auto"; div.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5)";
-                    div.innerHTML = result.value;
+                    div.className = "direct-doc-view";
+                    div.style.background = "#fff"; div.style.color = "#222"; div.style.padding = "40px";
+                    div.style.borderRadius = "12px"; div.style.width = "100%"; div.style.minHeight = "100%";
+                    div.style.overflowY = "auto"; div.innerHTML = result.value || "[Empty Document Content]";
                     viewer.innerHTML = "";
                     viewer.appendChild(div);
                 })
-                .catch(err => { throw err; });
+                .catch(() => {
+                    // Fallback to text decoder if Mammoth fails (for .doc or text-like)
+                    const pre = document.createElement("pre");
+                    pre.textContent = new TextDecoder().decode(dec);
+                    pre.style.color = "var(--accent-cyan)"; pre.style.padding = "20px"; pre.style.whiteSpace = "pre-wrap";
+                    viewer.innerHTML = ""; viewer.appendChild(pre);
+                });
         } catch (err) {
-            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Failure: Unable to render Word manifest.</p>`;
+            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Direct rendering unavailable.</p>`;
         }
     }
-    // 5. SPREADSHEET PROTOCOL (Direct Display)
+    // 5. PDF PROTOCOL (Direct Canvas Rendering - Bypasses Browser Interface)
+    else if (ext === "pdf") {
+        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">MANIFESTING PDF DATA FIELDS...</div>';
+        const pdfJS = window['pdfjs-dist/build/pdf'];
+        pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+        
+        pdfJS.getDocument({ data: dec }).promise.then(pdf => {
+            viewer.innerHTML = "";
+            const container = document.createElement("div");
+            container.style.width = "100%"; container.style.height = "100%"; container.style.overflowY = "auto";
+            viewer.appendChild(container);
+            
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                pdf.getPage(pageNum).then(page => {
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    const canvas = document.createElement("canvas");
+                    canvas.style.width = "100%"; canvas.style.marginBottom = "20px";
+                    canvas.style.borderRadius = "8px"; canvas.style.boxShadow = "0 10px 30px rgba(0,0,0,0.3)";
+                    const context = canvas.getContext('2d');
+                    canvas.height = viewport.height; canvas.width = viewport.width;
+                    container.appendChild(canvas);
+                    page.render({ canvasContext: context, viewport: viewport });
+                });
+            }
+        }).catch(() => {
+            viewer.innerHTML = '<p style="color:var(--danger); padding:20px;">Identity Error: PDF Stream Corrupted.</p>';
+        });
+    }
+    // 6. SPREADSHEET PROTOCOL (Direct Matrix Rendering)
     else if (["xlsx", "xls", "csv", "ods", "tsv", "numbers"].includes(ext)) {
-        viewer.innerHTML = '<p style="color:var(--accent-cyan); text-align:center; padding:20px;">Parsing Spreadsheet Matrix...</p>';
+        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">DECODING MATRIX DATA...</div>';
         try {
             const workbook = XLSX.read(dec, { type: 'array' });
-            const firstSheet = workbook.SheetNames[0];
-            const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
+            const html = XLSX.utils.sheet_to_html(workbook.Sheets[workbook.SheetNames[0]]);
             const div = document.createElement("div");
             div.style.background = "#fff"; div.style.color = "#333"; div.style.padding = "20px";
             div.style.borderRadius = "12px"; div.style.width = "100%"; div.style.overflowX = "auto";
-            div.innerHTML = `
-                <style>table { border-collapse: collapse; width: 100%; } td { border: 1px solid #ddd; padding: 8px; font-size: 0.8rem; }</style>
-                ${html}
-            `;
-            viewer.innerHTML = "";
-            viewer.appendChild(div);
+            div.innerHTML = `<style>table{border-collapse:collapse;width:100%}td{border:1px solid #ddd;padding:8px;font-size:0.8rem;font-family:sans-serif}</style>${html}`;
+            viewer.innerHTML = ""; viewer.appendChild(div);
         } catch (err) {
-            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Failure: Unable to parse spreadsheet matrix.</p>`;
+            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Spreadsheet parsing failed.</p>`;
         }
     }
-    // 6. PDF & UNIVERSAL NATIVE PROTOCOL
-    else if (ext === "pdf" || ["rtf", "pages", "key", "numbers"].includes(ext)) {
-      const fr = document.createElement("iframe");
-      fr.src = currentBlobUrl + (ext === 'pdf' ? "#toolbar=0&navpanes=0" : "");
-      fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none";
-      fr.style.background = "#fff"; fr.style.borderRadius = "16px";
-      viewer.appendChild(fr);
+    // 7. ARCHIVE PROTOCOL (Direct Directory Manifest)
+    else if (["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "iso"].includes(ext)) {
+        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">PROBING ARCHIVE ENCLAVE...</div>';
+        try {
+            JSZip.loadAsync(dec).then(zip => {
+                let list = `<div style="padding:30px; color:#fff; font-family:monospace; width:100%;">
+                    <h4 style="color:var(--accent-cyan); margin-bottom:20px; border-bottom:1px solid rgba(0,242,255,0.2); padding-bottom:10px;">ARCHIVE DIRECTORY:</h4>`;
+                zip.forEach((relativePath, file) => {
+                    list += `<p style="margin:8px 0; font-size:0.9rem; color: #888;">📂 ${relativePath}</p>`;
+                });
+                list += `</div>`;
+                viewer.innerHTML = list;
+            }).catch(() => {
+                viewer.innerHTML = '<p style="color:var(--danger); padding:20px;">Binary Error: Unable to probe archive content.</p>';
+            });
+        } catch (err) {
+            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Identity Error: Archive protocol deviation.</p>`;
+        }
     }
-    // 7. PROGRAMMING & CONFIG PROTOCOL (Direct Display)
-    else if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql","sh","bat","cmd"].includes(ext)) {
-      const pre = document.createElement("pre"); 
-      try { pre.textContent = new TextDecoder().decode(dec); } catch { pre.textContent = "[Binary Protocol Identified]"; }
-      pre.style.color = "#00f2ff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; 
-      pre.style.padding = "25px"; pre.style.background = "rgba(0,0,0,0.4)"; pre.style.borderRadius = "16px";
-      pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', monospace";
-      viewer.appendChild(pre);
-    } 
-    // 8. BINARY DEEP-VIEW (Direct Hex Protocol for Executables/Databases)
+    // 8. UNIVERSAL "ORIGINAL CONTENT" PROTOCOL (Text/Code/Binary-Strings)
     else {
-      let hex = "";
-      const bytes = new Uint8Array(dec.slice(0, 2000));
-      for(let i=0; i<bytes.length; i++) {
-          hex += bytes[i].toString(16).padStart(2, '0') + " ";
-          if ((i+1) % 16 === 0) hex += "\n";
+      // For EVERYTHING ELSE (.exe, .apk, .py, .db, .sql, etc.): We project the RAW STRING CONTENT.
+      const pre = document.createElement("pre");
+      try {
+          // Attempt high-fidelity text decoding
+          pre.textContent = new TextDecoder().decode(dec);
+      } catch {
+          // Fallback to binary string representation of the ORIGINAL content
+          let binary = "";
+          const bytes = new Uint8Array(dec.slice(0, 10000)); // Sample 10k for performance
+          for (let i = 0; i < bytes.length; i++) {
+              binary += String.fromCharCode(bytes[i]);
+          }
+          pre.textContent = binary;
       }
-      viewer.innerHTML = `
-        <div style="width:100%; height:100%; background:#0a0a0c; padding:20px; border-radius:16px; display:flex; flex-direction:column;">
-            <p style="color:var(--accent-cyan); font-weight:800; font-size:0.75rem; margin-bottom:15px; border-bottom:1px solid rgba(0,242,255,0.2); padding-bottom:10px;">BINARY DIRECT FEED: ${name}</p>
-            <pre style="color:#444; font-size:0.7rem; flex:1; overflow-y:auto; font-family:monospace;">${hex}\n... Payload continues ...</pre>
-            <p style="color:var(--text-dim); font-size:0.65rem; margin-top:10px;">Security Protocol: Raw data manifesting directly without system exposure.</p>
-        </div>
-      `;
+      pre.style.color = "#00f2ff"; pre.style.width = "100%"; pre.style.height = "100%";
+      pre.style.whiteSpace = "pre-wrap"; pre.style.padding = "25px";
+      pre.style.background = "rgba(10,10,15,0.9)"; pre.style.borderRadius = "16px";
+      pre.style.fontSize = "0.8rem"; pre.style.fontFamily = "'Fira Code', monospace";
+      pre.style.overflowY = "auto"; pre.style.margin = "0";
+      viewer.appendChild(pre);
     }
+   
     showToast("File Decrypted Successfully");
   } catch (err) { showToast("Display Error", "error"); }
 }
