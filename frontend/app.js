@@ -249,6 +249,33 @@ function togglePassword(inputId, iconElement) {
   }
 }
 
+// Global Keyboard Accessibility Protocol
+document.addEventListener('DOMContentLoaded', () => {
+  // auto-assign focus paths to interactive elements missing native focus
+  document.querySelectorAll('[onclick]').forEach(el => {
+    if (!el.hasAttribute('tabindex') &&
+        el.tagName !== 'BUTTON' && 
+        el.tagName !== 'INPUT' && 
+        el.tagName !== 'A') {
+      el.setAttribute('tabindex', '0');
+    }
+  });
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' || e.key === ' ') {
+    if (document.activeElement &&
+        document.activeElement.hasAttribute('tabindex') &&
+        document.activeElement.tagName !== 'BUTTON' &&
+        document.activeElement.tagName !== 'INPUT' &&
+        document.activeElement.tagName !== 'A' &&
+        document.activeElement.tagName !== 'TEXTAREA') {
+      e.preventDefault();
+      document.activeElement.click();
+    }
+  }
+});
+
 document.getElementById("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const email = document.getElementById("login-email").value.trim().toLowerCase();
@@ -483,11 +510,11 @@ async function loadFolders() {
       
       grid.innerHTML += `
         <div class="folder-row-item" style="margin-bottom:0;">
-          <div class="folder-card" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}')">
+          <div class="folder-card" tabindex="0" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}')">
             <span class="folder-icon">📂</span>
             <p class="folder-name">${disp}</p>
             <p class="folder-count">${fCount} Files • ${dateStr}</p>
-            <button class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
+            <button tabindex="-1" class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
           </div>
         </div>
       `;
