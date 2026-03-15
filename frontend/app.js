@@ -881,68 +881,101 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     const blob = new Blob([dec], { type: getMimeType(ext) });
     currentBlobUrl = URL.createObjectURL(blob);
 
-    // 1. IMAGE PROTOCOL
+    // 1. IMAGE PROTOCOL (Direct)
     if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "heic"].includes(ext)) {
       const img = document.createElement("img"); img.src = currentBlobUrl;
       img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.objectFit = "contain"; 
       img.style.borderRadius = "20px"; img.style.boxShadow = "0 30px 60px rgba(0,0,0,0.6)";
       viewer.appendChild(img);
     } 
-    // 2. PDF PROTOCOL
-    else if (ext === "pdf") {
-      const fr = document.createElement("iframe"); fr.src = currentBlobUrl + "#toolbar=0";
-      fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none"; 
-      fr.style.background = "#fff"; fr.style.borderRadius = "12px";
-      viewer.appendChild(fr);
-    } 
-    // 3. VIDEO PROTOCOL
+    // 2. VIDEO PROTOCOL (Direct)
     else if (["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "mpeg", "mpg", "3gp"].includes(ext)) {
       const video = document.createElement("video"); video.src = currentBlobUrl;
       video.controls = true; video.style.maxWidth = "100%"; video.style.maxHeight = "100%";
       video.style.borderRadius = "16px"; video.style.background = "#000"; video.style.boxShadow = "0 20px 40px rgba(0,0,0,0.5)";
       viewer.appendChild(video);
     } 
-    // 5. THE "DIRECT FIELD" UNIVERSAL PROTOCOL
-    // Purged all 'Manifest' receipts. Everything manifests directly.
-    else {
-      // 5.1 CODE & DATA PROTOCOL (Direct Decoder Feed)
-      if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql","sh","bat","cmd","csv","tsv"].includes(ext)) {
-        const container = document.createElement("div");
-        container.style.width = "100%"; container.style.height = "100%"; container.style.display = "flex"; container.style.flexDirection = "column";
-        
-        const header = document.createElement("div");
-        header.style.padding = "10px 20px"; header.style.background = "rgba(255,255,255,0.05)"; header.style.fontSize = "0.7rem";
-        header.style.color = "var(--accent-cyan)"; header.style.fontWeight = "700"; header.style.textTransform = "uppercase";
-        header.style.borderTopLeftRadius = "16px"; header.style.borderTopRightRadius = "16px";
-        header.textContent = `Terminal Feed: ${name}`;
-        
-        const pre = document.createElement("pre"); 
-        try { pre.textContent = new TextDecoder().decode(dec); } catch { pre.textContent = "[Binary Data Feed - Unable to render as UTF-8]"; }
-        pre.style.color = "#00f2ff"; pre.style.flex = "1"; pre.style.whiteSpace = "pre-wrap"; 
-        pre.style.padding = "25px"; pre.style.background = "rgba(10,10,15,0.8)"; pre.style.borderBottomLeftRadius = "16px";
-        pre.style.borderBottomRightRadius = "16px"; pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', 'Courier New', monospace";
-        pre.style.overflowY = "auto"; pre.style.margin = "0";
-        
-        container.appendChild(header); container.appendChild(pre);
-        viewer.appendChild(container);
-      } 
-      // 5.2 DOCUMENT & PROPRIETARY PROTOCOL (Direct Native Feed)
-      else {
-        const fr = document.createElement("iframe");
-        fr.src = currentBlobUrl + (ext === 'pdf' ? "#toolbar=0&navpanes=0" : "");
-        fr.style.width = "100%";
-        fr.style.height = "100%";
-        fr.style.border = "none";
-        fr.style.background = "#fff";
-        fr.style.borderRadius = "16px";
-        fr.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5)";
-        viewer.appendChild(fr);
-        
-        // Mobile UX Override: If iframe is suspected to show 'Open' prompt, we ensure it spans full container
-        if (window.innerWidth < 768) {
-          fr.style.minHeight = "70vh";
+    // 3. AUDIO PROTOCOL (Direct)
+    else if (["mp3", "wav", "aac", "flac", "ogg", "m4a", "wma", "aiff"].includes(ext)) {
+      viewer.innerHTML = `
+        <div style="text-align:center; padding: 2rem; background: rgba(255,255,255,0.02); border-radius: 24px; width: 100%;">
+          <div style="font-size:4rem; margin-bottom: 1rem;">🎵</div>
+          <audio src="${currentBlobUrl}" controls style="width:100%;"></audio>
+          <p style="margin-top:15px; color:#fff; font-weight: 700;">${name}</p>
+        </div>
+      `;
+    }
+    // 4. MICROSOFT WORD PROTOCOL (Direct Display)
+    else if (["docx", "doc"].includes(ext)) {
+        viewer.innerHTML = '<p style="color:var(--accent-cyan); text-align:center; padding:20px;">Decoding Word Manifest...</p>';
+        try {
+            mammoth.convertToHtml({ arrayBuffer: dec })
+                .then(result => {
+                    const div = document.createElement("div");
+                    div.style.background = "#fff"; div.style.color = "#333"; div.style.padding = "40px";
+                    div.style.borderRadius = "16px"; div.style.width = "100%"; div.style.minHeight = "100%";
+                    div.style.overflowY = "auto"; div.style.boxShadow = "0 10px 30px rgba(0,0,0,0.5)";
+                    div.innerHTML = result.value;
+                    viewer.innerHTML = "";
+                    viewer.appendChild(div);
+                })
+                .catch(err => { throw err; });
+        } catch (err) {
+            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Failure: Unable to render Word manifest.</p>`;
         }
+    }
+    // 5. SPREADSHEET PROTOCOL (Direct Display)
+    else if (["xlsx", "xls", "csv", "ods", "tsv", "numbers"].includes(ext)) {
+        viewer.innerHTML = '<p style="color:var(--accent-cyan); text-align:center; padding:20px;">Parsing Spreadsheet Matrix...</p>';
+        try {
+            const workbook = XLSX.read(dec, { type: 'array' });
+            const firstSheet = workbook.SheetNames[0];
+            const html = XLSX.utils.sheet_to_html(workbook.Sheets[firstSheet]);
+            const div = document.createElement("div");
+            div.style.background = "#fff"; div.style.color = "#333"; div.style.padding = "20px";
+            div.style.borderRadius = "12px"; div.style.width = "100%"; div.style.overflowX = "auto";
+            div.innerHTML = `
+                <style>table { border-collapse: collapse; width: 100%; } td { border: 1px solid #ddd; padding: 8px; font-size: 0.8rem; }</style>
+                ${html}
+            `;
+            viewer.innerHTML = "";
+            viewer.appendChild(div);
+        } catch (err) {
+            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Failure: Unable to parse spreadsheet matrix.</p>`;
+        }
+    }
+    // 6. PDF & UNIVERSAL NATIVE PROTOCOL
+    else if (ext === "pdf" || ["rtf", "pages", "key", "numbers"].includes(ext)) {
+      const fr = document.createElement("iframe");
+      fr.src = currentBlobUrl + (ext === 'pdf' ? "#toolbar=0&navpanes=0" : "");
+      fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none";
+      fr.style.background = "#fff"; fr.style.borderRadius = "16px";
+      viewer.appendChild(fr);
+    }
+    // 7. PROGRAMMING & CONFIG PROTOCOL (Direct Display)
+    else if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql","sh","bat","cmd"].includes(ext)) {
+      const pre = document.createElement("pre"); 
+      try { pre.textContent = new TextDecoder().decode(dec); } catch { pre.textContent = "[Binary Protocol Identified]"; }
+      pre.style.color = "#00f2ff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; 
+      pre.style.padding = "25px"; pre.style.background = "rgba(0,0,0,0.4)"; pre.style.borderRadius = "16px";
+      pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', monospace";
+      viewer.appendChild(pre);
+    } 
+    // 8. BINARY DEEP-VIEW (Direct Hex Protocol for Executables/Databases)
+    else {
+      let hex = "";
+      const bytes = new Uint8Array(dec.slice(0, 2000));
+      for(let i=0; i<bytes.length; i++) {
+          hex += bytes[i].toString(16).padStart(2, '0') + " ";
+          if ((i+1) % 16 === 0) hex += "\n";
       }
+      viewer.innerHTML = `
+        <div style="width:100%; height:100%; background:#0a0a0c; padding:20px; border-radius:16px; display:flex; flex-direction:column;">
+            <p style="color:var(--accent-cyan); font-weight:800; font-size:0.75rem; margin-bottom:15px; border-bottom:1px solid rgba(0,242,255,0.2); padding-bottom:10px;">BINARY DIRECT FEED: ${name}</p>
+            <pre style="color:#444; font-size:0.7rem; flex:1; overflow-y:auto; font-family:monospace;">${hex}\n... Payload continues ...</pre>
+            <p style="color:var(--text-dim); font-size:0.65rem; margin-top:10px;">Security Protocol: Raw data manifesting directly without system exposure.</p>
+        </div>
+      `;
     }
     showToast("File Decrypted Successfully");
   } catch (err) { showToast("Display Error", "error"); }
