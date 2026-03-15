@@ -875,50 +875,82 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     const blob = new Blob([dec], { type: getMimeType(ext) });
     currentBlobUrl = URL.createObjectURL(blob);
 
+    // 1. IMAGE PROTOCOL
     if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "tiff", "tif", "ico", "heic"].includes(ext)) {
       const img = document.createElement("img"); img.src = currentBlobUrl;
       img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.objectFit = "contain"; 
-      img.style.borderRadius = "20px"; img.style.boxShadow = "0 20px 50px rgba(0,0,0,0.5)";
+      img.style.borderRadius = "20px"; img.style.boxShadow = "0 30px 60px rgba(0,0,0,0.6)";
       viewer.appendChild(img);
-    } else if (ext === "pdf") {
+    } 
+    // 2. PDF PROTOCOL
+    else if (ext === "pdf") {
       const fr = document.createElement("iframe"); fr.src = currentBlobUrl + "#toolbar=0";
       fr.style.width = "100%"; fr.style.height = "100%"; fr.style.border = "none"; 
       fr.style.background = "#fff"; fr.style.borderRadius = "12px";
       viewer.appendChild(fr);
-    } else if (["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "mpeg", "mpg", "3gp"].includes(ext)) {
+    } 
+    // 3. VIDEO PROTOCOL
+    else if (["mp4", "mkv", "avi", "mov", "wmv", "flv", "webm", "mpeg", "mpg", "3gp"].includes(ext)) {
       const video = document.createElement("video"); video.src = currentBlobUrl;
       video.controls = true; video.style.maxWidth = "100%"; video.style.maxHeight = "100%";
-      video.style.borderRadius = "16px"; video.style.background = "#000";
+      video.style.borderRadius = "16px"; video.style.background = "#000"; video.style.boxShadow = "0 20px 40px rgba(0,0,0,0.5)";
       viewer.appendChild(video);
-    } else if (["mp3", "wav", "aac", "flac", "ogg", "m4a", "wma", "aiff"].includes(ext)) {
+    } 
+    // 4. AUDIO PROTOCOL
+    else if (["mp3", "wav", "aac", "flac", "ogg", "m4a", "wma", "aiff"].includes(ext)) {
       viewer.innerHTML = `
-        <div style="text-align:center; padding: 3rem; background: rgba(255,255,255,0.03); border-radius: 30px; border: 1px solid rgba(255,255,255,0.05);">
-          <div style="font-size:4rem; margin-bottom: 2rem;">🎵</div>
+        <div style="text-align:center; padding: 3rem; background: rgba(255,255,255,0.03); border-radius: 30px; border: 1px solid rgba(255,255,255,0.05); width: 100%; max-width: 400px;">
+          <div style="font-size:5rem; margin-bottom: 2rem; filter: drop-shadow(0 0 20px var(--accent-cyan));">🎵</div>
           <audio src="${currentBlobUrl}" controls style="width:100%;"></audio>
-          <p style="margin-top:20px; color:var(--text-dim); font-size: 0.9rem;">${name}</p>
+          <p style="margin-top:25px; color:#fff; font-weight: 700; font-size: 1rem;">${name}</p>
+          <p style="color:var(--text-dim); font-size: 0.8rem; margin-top: 5px;">Secure Audio Stream Active</p>
         </div>
       `;
-    } else if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql"].includes(ext)) {
-      const pre = document.createElement("pre"); pre.textContent = new TextDecoder().decode(dec);
-      pre.style.color = "#00f2ff"; pre.style.width = "100%"; pre.style.whiteSpace = "pre-wrap"; 
-      pre.style.padding = "25px"; pre.style.background = "rgba(0,0,0,0.4)"; pre.style.borderRadius = "16px";
-      pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', monospace";
-      viewer.appendChild(pre);
-    } else {
+    } 
+    // 5. CODE & DATA PROTOCOL (Direct Display)
+    else if (["txt","md","json","js","css","html","py","java","c","cpp","cs","php","rb","go","swift","xml","yaml","yml","ini","cfg","sql","sh","bat","cmd"].includes(ext)) {
+      const container = document.createElement("div");
+      container.style.width = "100%"; container.style.height = "100%"; container.style.display = "flex"; container.style.flexDirection = "column";
+      
+      const header = document.createElement("div");
+      header.style.padding = "10px 20px"; header.style.background = "rgba(255,255,255,0.05)"; header.style.fontSize = "0.7rem";
+      header.style.color = "var(--accent-cyan)"; header.style.fontWeight = "700"; header.style.textTransform = "uppercase";
+      header.style.borderTopLeftRadius = "16px"; header.style.borderTopRightRadius = "16px";
+      header.textContent = `Terminal Feed: ${name}`;
+      
+      const pre = document.createElement("pre"); 
+      try { pre.textContent = new TextDecoder().decode(dec); } catch { pre.textContent = "[Binary Data Identified - Rendering Suppressed]"; }
+      pre.style.color = "#00f2ff"; pre.style.flex = "1"; pre.style.whiteSpace = "pre-wrap"; 
+      pre.style.padding = "25px"; pre.style.background = "rgba(10,10,15,0.8)"; pre.style.borderBottomLeftRadius = "16px";
+      pre.style.borderBottomRightRadius = "16px"; pre.style.fontSize = "0.85rem"; pre.style.fontFamily = "'Fira Code', 'Courier New', monospace";
+      pre.style.overflowY = "auto"; pre.style.margin = "0";
+      
+      container.appendChild(header); container.appendChild(pre);
+      viewer.appendChild(container);
+    } 
+    // 6. VAULT MANIFEST FALLBACK (Direct Display for Complex Types)
+    else {
       const icons = {
         xlsx: "📊", xls: "📊", csv: "📊", ods: "📊", tsv: "📊", numbers: "📊",
         pptx: "📽️", ppt: "📽️", odp: "📽️", key: "📽️",
         doc: "📂", docx: "📂", odt: "📂", rtf: "📂", pages: "📂",
-        zip: "🗜️", rar: "🗜️", "7z": "🗜️", tar: "🗜️", gz: "🗜️",
-        exe: "⚙️", msi: "⚙️", bat: "⚙️", apk: "⚙️",
-        db: "🗄️", sqlite: "🗄️", sql: "🗄️"
+        zip: "🗜️", rar: "🗜️", "7z": "🗜️", tar: "🗜️", gz: "🗜️", bz2: "🗜️", xz: "🗜️", iso: "🗜️",
+        exe: "⚙️", msi: "⚙️", apk: "⚙️", app: "⚙️",
+        db: "🗄️", sqlite: "🗄️", mdb: "🗄️", accdb: "🗄️"
       };
       viewer.innerHTML = `
-        <div style="text-align:center; padding: 4rem 2rem;">
-          <div style="font-size:6rem; margin-bottom: 1.5rem; filter: drop-shadow(0 0 20px rgba(255,255,255,0.1));">${icons[ext] || "📄"}</div>
-          <h3 style="margin-bottom:10px; font-size: 1.4rem;">${ext.toUpperCase()} Manifest</h3>
-          <p style="color:var(--text-dim); margin-bottom: 30px;">Decrypted successfully but requires a native platform viewer.</p>
-          <button class="primary-btn" onclick="document.getElementById('view-download-btn').click()" style="width:auto; padding: 12px 30px;">Download to View</button>
+        <div style="text-align:center; padding: 4rem 2rem; background: rgba(10,10,15,0.5); border-radius: 32px; border: 1px solid rgba(255,255,255,0.05); width: 95%;">
+          <div style="font-size:7rem; margin-bottom: 2rem; filter: drop-shadow(0 0 30px rgba(255,255,255,0.1));">${icons[ext] || "📄"}</div>
+          <h3 style="margin-bottom:15px; font-size: 1.6rem; font-family:var(--font-heading); color:#fff;">${name}</h3>
+          <div style="display:inline-block; padding: 8px 16px; background: rgba(0,242,255,0.1); color: var(--accent-cyan); border-radius: 50px; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; margin-bottom: 25px;">
+            Vault Security Manifest: ${ext.toUpperCase()}
+          </div>
+          <p style="color:var(--text-dim); margin-bottom: 35px; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.6;">
+            This ${ext.toUpperCase()} record has been decrypted within the secure enclave. You can now transmit the payload to your native platform for final execution.
+          </p>
+          <button class="primary-btn" onclick="document.getElementById('view-download-btn').click()" style="width:auto; padding: 18px 45px; border-radius: 50px; font-size: 1rem;">
+            Export Payload to System
+          </button>
         </div>
       `;
     }
@@ -1006,10 +1038,16 @@ function getMimeType(ext) {
     mp3: "audio/mpeg", wav: "audio/wav", aac: "audio/aac", flac: "audio/flac", ogg: "audio/ogg", m4a: "audio/mp4", wma: "audio/x-ms-wma", aiff: "audio/x-aiff",
     // Video
     mp4: "video/mp4", mkv: "video/x-matroska", avi: "video/x-msvideo", mov: "video/quicktime", wmv: "video/x-ms-wmv", flv: "video/x-flv", webm: "video/webm", mpeg: "video/mpeg", mpg: "video/mpeg", "3gp": "video/3gpp",
-    // Compressed
-    zip: "application/zip", rar: "application/x-rar-compressed", "7z": "application/x-7z-compressed", tar: "application/x-tar",
-    // Code
-    html: "text/html", css: "text/css", js: "text/javascript", json: "application/json", py: "text/x-python", xml: "text/xml", sql: "text/x-sql"
+    // Archive
+    zip: "application/zip", rar: "application/x-rar-compressed", "7z": "application/x-7z-compressed", tar: "application/x-tar", gz: "application/gzip", bz2: "application/x-bzip2", xz: "application/x-xz", iso: "application/x-iso9660-image",
+    // Programming
+    html: "text/html", css: "text/css", js: "text/javascript", json: "application/json", py: "text/x-python", xml: "text/xml", sql: "text/x-sql", java: "text/x-java-source", c: "text/x-c", cpp: "text/x-c", cs: "text/plain", php: "application/x-httpd-php", rb: "application/x-ruby", go: "text/x-go", swift: "text/x-swift",
+    // Executable
+    exe: "application/x-msdownload", msi: "application/x-msi", bat: "application/x-bat", cmd: "application/cmd", sh: "application/x-sh", apk: "application/vnd.android.package-archive", app: "application/octet-stream",
+    // Database
+    db: "application/x-sqlite3", sqlite: "application/x-sqlite3", mdb: "application/x-msaccess", accdb: "application/vnd.ms-access",
+    // Config/Data
+    yaml: "text/yaml", yml: "text/yaml", ini: "text/plain", cfg: "text/plain"
   };
   return Map[ext] || "application/octet-stream";
 }
