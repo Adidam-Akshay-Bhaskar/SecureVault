@@ -28,4 +28,4 @@ Prerequisites: Node.js, PostgreSQL and an AWS S3 Bucket.
 Utilize a local HTTP server inside the `/frontend` directory to interface with the active backend engine securely.
 
 ---
-*Engineered by AK5H0Y*
+*Engineered by AKSHAY*
