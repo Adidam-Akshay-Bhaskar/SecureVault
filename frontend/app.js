@@ -331,7 +331,14 @@ document.getElementById("reset-form").addEventListener("submit", async (e) => {
   const urlParams = new URLSearchParams(window.location.search);
   const token = urlParams.get("recovery_token");
   const newValue = document.getElementById("reset-new-value").value;
+  const confirmValue = document.getElementById("reset-confirm-value").value;
+
+  if (newValue !== confirmValue) {
+    return showToast("Protocol Discrepancy: Values do not match", "error");
+  }
+
   const btn = e.target.querySelector("button");
+  const orig = btn.textContent;
   btn.textContent = "Updating..."; btn.disabled = true;
   try {
     const res = await fetch(`${API_URL}/auth/reset-execute`, {
@@ -345,7 +352,7 @@ document.getElementById("reset-form").addEventListener("submit", async (e) => {
       toggleAuthMode("login");
     } else showToast(data.message, "error");
   } catch (err) { showToast("Protocol update failed", "error"); }
-  finally { btn.disabled = false; btn.textContent = "Update Vault"; }
+  finally { btn.disabled = false; btn.textContent = orig; }
 });
 
 function logout() {
@@ -518,13 +525,9 @@ async function renderFolderExplorer(folderId) {
           <p style="color:var(--text-muted); font-size:0.8rem; font-weight:600;">${ext}</p>
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
           <div class="btn-group">
-            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size}, false, null, false)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
               <span>View</span>
-            </button>
-            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')" style="background:rgba(50,255,100,0.05); color:#44ff77; border-color:rgba(50,255,100,0.1);">
-              <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px; height:14px;"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-              Save
             </button>
             <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')" style="background:rgba(250,204,21,0.05); color:#facc15; border-color:rgba(250,204,21,0.1);">
               <svg viewBox="0 0 24 24" fill="currentColor" style="width:14px; height:14px;"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -588,13 +591,9 @@ async function renderFiles() {
           <p style="color:var(--text-muted); font-size:0.8rem;">${formatBytes(meta.size)}</p>
           <p style="color:var(--text-muted); font-size:0.75rem;">${new Date(f.created_at).toLocaleDateString()}</p>
           <div class="btn-group">
-            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size})">
+            <button class="action-btn view" onclick="viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}', ${meta.size}, false, null, false)">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
               <span>View</span>
-            </button>
-            <button class="action-btn save" onclick="downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\'")}')">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
-              <span>Save</span>
             </button>
             <button class="action-btn share" onclick="openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\'")}', '${f.encrypted_key}')">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
@@ -1173,10 +1172,19 @@ window.addEventListener("click", (e) => {
             
             if (recoveryToken) {
               toggleAuthMode("reset");
-              document.getElementById("reset-title").textContent = `Reset ${recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1)}`;
-              document.getElementById("reset-label").textContent = `New ${recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1)}`;
-              document.getElementById("reset-new-value").placeholder = recoveryType === "pin" ? "••••••" : "••••••••";
-              if (recoveryType === "pin") document.getElementById("reset-new-value").maxLength = 6;
+              const title = recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1);
+              document.getElementById("reset-title").textContent = `Reset ${title}`;
+              document.getElementById("reset-label").textContent = `New ${title}`;
+              document.getElementById("reset-confirm-label").textContent = `Confirm New ${title}`;
+              
+              const placeholder = recoveryType === "pin" ? "••••••" : "••••••••";
+              document.getElementById("reset-new-value").placeholder = placeholder;
+              document.getElementById("reset-confirm-value").placeholder = placeholder;
+              
+              if (recoveryType === "pin") {
+                document.getElementById("reset-new-value").maxLength = 6;
+                document.getElementById("reset-confirm-value").maxLength = 6;
+              }
             } else {
               toggleAuthMode("login");
             }

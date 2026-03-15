@@ -130,14 +130,18 @@
 
             <!-- Reset Execution Form -->
             <div id="reset-form-container" class="hidden">
-              <div class="verify-header">
-                <h2 id="reset-title">Reset Credential</h2>
+              <div class="verify-header" style="margin-bottom: 30px;">
+                <h2 id="reset-title" style="margin-bottom: 10px;">Reset Credential</h2>
                 <p>Establish a new secure protocol.</p>
               </div>
               <form id="reset-form">
-                <div class="input-field">
+                <div class="input-field" style="margin-bottom: 20px;">
                   <label id="reset-label">New Value</label>
                   <input type="password" id="reset-new-value" placeholder="••••••••" required />
+                </div>
+                <div class="input-field" style="margin-bottom: 25px;">
+                  <label id="reset-confirm-label">Confirm New Value</label>
+                  <input type="password" id="reset-confirm-value" placeholder="••••••••" required />
                 </div>
                 <button type="submit" class="primary-btn">Update Vault</button>
               </form>

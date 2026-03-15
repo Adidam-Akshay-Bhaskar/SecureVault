@@ -360,16 +360,30 @@ app.post("/api/auth/recover-request", (req, res) => {
         const mailOptions = {
           from: `"SecureVault Support" <${process.env.SYSTEM_EMAIL}>`,
           to: normalizedEmail,
-          subject: `SecureVault - ${type.toUpperCase()} Reset Link`,
+          subject: `SecureVault - ${type.toUpperCase()} Reset Protocol`,
           html: `
-            <div style="font-family: sans-serif; padding: 20px; color: #333; background: #f9f9f9; border-radius: 12px; border: 1px solid #eee;">
-              <h2 style="color: #00f2ff; margin-bottom: 20px;">Vault Recovery Protocol</h2>
-              <p>Hello, <strong>${user.username}</strong>.</p>
-              <p>We received a request to reset your <strong>${type}</strong>. This secure link will expire in 15 minutes.</p>
-              <div style="margin: 30px 0;">
-                <a href="${resetLink}" style="display: inline-block; padding: 14px 28px; background: #00f2ff; color: #000; text-decoration: none; border-radius: 10px; font-weight: 900; text-transform: uppercase;">Reset ${type}</a>
+            <div style="background-color: #0c0c0d; padding: 40px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; text-align: center; border-radius: 16px;">
+              <div style="margin-bottom: 30px;">
+                <h1 style="color: #00f2ff; font-size: 28px; letter-spacing: 4px; margin: 0; text-transform: uppercase; font-weight: 900;">SecureVault</h1>
+                <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 5px; letter-spacing: 2px;">SECURE DISPATCH PROTOCOL</p>
               </div>
-              <p style="font-size: 0.8rem; color: #888; border-top: 1px solid #eee; padding-top: 15px;">If you did not request this, please secure your account immediately. This is an automated transmission.</p>
+              
+              <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 35px; border-radius: 20px; max-width: 500px; margin: 0 auto;">
+                <h2 style="font-size: 20px; margin-bottom: 15px; color: #fff;">Vault Restoration</h2>
+                <p style="color: #a0a0a0; line-height: 1.6; margin-bottom: 25px;">
+                  Hello, <strong style="color: #fff;">${user.username}</strong>. A request was detected to reset your <strong>${type}</strong>. 
+                  Synchronize your credentials using the secure link below.
+                </p>
+                
+                <a href="${resetLink}" style="display: inline-block; padding: 18px 36px; background: #00f2ff; color: #000000; text-decoration: none; border-radius: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(0,242,255,0.2);">Reset ${type}</a>
+                
+                <p style="color: #666; font-size: 12px; margin-top: 30px;">This encrypted link expires in <span style="color: #ff3e3e;">15 minutes</span>.</p>
+              </div>
+              
+              <div style="margin-top: 35px;">
+                <p style="color: #444; font-size: 11px; margin: 0;">If you did not initiate this protocol, please disregard this transmission.</p>
+                <p style="color: #222; font-size: 10px; margin-top: 10px;">&copy; ${new Date().getFullYear()} SecureVault Labs. All rights reserved.</p>
+              </div>
             </div>
           `
         };
