@@ -59,7 +59,7 @@ async function decryptKey(encryptedKey, masterKey, iv) {
 async function getClientMasterKey() {
   if (sessionMasterKey) return sessionMasterKey;
   try {
-    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     if (!res.ok) throw new Error("UNAUTHORIZED");
     const data = await res.json();
     if (data.masterKey) {
@@ -147,6 +147,16 @@ function showConfirm(message, state = "primary") {
   });
 }
 
+// Silent Recovery System
+async function silentSync() {
+  try {
+    const p = loadProfile();
+    const f = loadFolders();
+    const fi = loadFiles();
+    await Promise.all([p, f, fi]);
+  } catch {}
+}
+
 function closeModal(id) { 
   const el = document.getElementById(id);
   if (el) el.classList.add("hidden");
@@ -225,7 +235,7 @@ function toggleSidebar() {
   const sidebar = document.querySelector(".sidebar");
   const isCollapsed = sidebar.classList.toggle("collapsed");
   document.body.classList.toggle("sidebar-collapsed");
-  localStorage.setItem("sidebarCollapsed", isCollapsed);
+  sessionStorage.setItem("sidebarCollapsed", isCollapsed);
 }
 
 document.getElementById("login-form").addEventListener("submit", async (e) => {
@@ -242,7 +252,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
     });
     const data = await res.json();
     if (res.ok) {
-      localStorage.setItem("token", data.accessToken);
+      sessionStorage.setItem("token", data.accessToken);
       if (data.user?.masterKey) {
          sessionMasterKey = await window.crypto.subtle.importKey(
            "jwk", JSON.parse(data.user.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
@@ -272,7 +282,7 @@ document.getElementById("verify-pin-form").addEventListener("submit", async (e) 
     });
     const data = await res.json();
     if (res.ok) {
-      localStorage.setItem("token", data.accessToken);
+      sessionStorage.setItem("token", data.accessToken);
       if (data.user?.masterKey) {
          sessionMasterKey = await window.crypto.subtle.importKey(
            "jwk", JSON.parse(data.user.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
@@ -360,7 +370,7 @@ document.getElementById("reset-form").addEventListener("submit", async (e) => {
 });
 
 function logout() {
-  localStorage.removeItem("token");
+  sessionStorage.clear();
   sessionMasterKey = null;
   document.getElementById("view-dashboard").classList.add("hidden");
   document.getElementById("auth-section").classList.remove("hidden");
@@ -375,8 +385,9 @@ function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }
 
 function showView(view) {
   currentView = view;
-  const views = ["my-vault", "incoming", "profile"];
-  views.forEach(v => document.getElementById(`section-${v}`).classList.add("hidden"));
+  sessionStorage.setItem("activeView", view);
+  const sections = ["my-vault", "incoming", "profile"];
+  sections.forEach(v => document.getElementById(`section-${v}`).classList.add("hidden"));
   document.getElementById(`section-${view}`).classList.remove("hidden");
   
   document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("active"));
@@ -426,7 +437,7 @@ function toggleVaultSubView(sub) {
 
 async function loadFolders() {
   try {
-    const res = await fetch(`${API_URL}/folders`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    const res = await fetch(`${API_URL}/folders`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     const data = await res.json();
     // Sort latest displayed first
     allFolders = data.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
@@ -465,7 +476,7 @@ async function createFolder() {
   if (!name) return;
   try {
     const res = await fetch(`${API_URL}/folders`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       body: JSON.stringify({ name }),
     });
     if (res.ok) {
@@ -480,8 +491,8 @@ async function deleteFolder(id) {
   const conf = await showConfirm("Delete this folder? Filestreams will be unassigned but not deleted.");
   if (!conf) return;
   try {
-    await fetch(`${API_URL}/folders/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
-    loadFolders(); loadFiles();
+    await fetch(`${API_URL}/folders/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
+    silentSync();
   } catch {}
 }
 
@@ -559,7 +570,7 @@ async function renderFolderExplorer(folderId) {
 // ==========================================
 
 async function loadFiles() {
-  const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+  const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
   allFiles = await res.json();
   renderFiles();
   if (currentExplorerFolderId) {
@@ -651,13 +662,12 @@ async function deleteFile(id, keyStr, filename) {
   const verified = await verifyPIN();
   if (!verified) return;
   
-  showToast("Terminal deletion in progress...");
-  
   await fetch(`${API_URL}/delete-file`, { 
-    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
     body: JSON.stringify({ fileId: id })
   });
-  loadFiles();
+  silentSync();
+  showToast("Record Terminalized", "success");
 }
 
 function verifyPIN() {
@@ -673,7 +683,7 @@ function verifyPIN() {
       try {
         const res = await fetch(`${API_URL}/verify-file-pin`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
           body: JSON.stringify({ securityPin: pin })
         });
         const data = await res.json();
@@ -705,7 +715,7 @@ async function deleteSharedLink(id) {
   if (!verified) return;
   
   showToast("Suspending shared access...");
-  await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+  await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
   loadFiles();
   showToast("Record removed from feed", "success");
 }
@@ -740,14 +750,14 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     const { encryptedData: encMeta, iv: metaIv } = await encryptMetadata({ filename: file.name, size: file.size, type: file.type }, masterKey);
     const { encryptedKey: encKey, iv: keyIv } = await encryptKey(fileKey, masterKey);
     
-    const urlRes = await fetch(`${API_URL}/upload-url`, { method: "POST", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    const urlRes = await fetch(`${API_URL}/upload-url`, { method: "POST", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     const { uploadUrl, fileUuid } = await urlRes.json();
     
     await fetch(uploadUrl, { method: "PUT", body: encryptedFileBuffer, headers: { "Content-Type": "application/octet-stream" } });
     
     await fetch(`${API_URL}/complete-upload`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       body: JSON.stringify({
         fileUuid, fileType: file.name.split(".").pop().toLowerCase(),
         encryptedMetadata: arrayBufferToBase64(encMeta), metadataIv: bytesToHex(metaIv),
@@ -755,7 +765,9 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
         folderId: folderId || null
       }),
     });
-    showToast("Transmission Successful"); closeModal("upload-modal"); loadFiles();
+    showToast("Transmission Successful"); 
+    closeModal("upload-modal"); 
+    silentSync();
   } catch (err) { showToast("Error: " + err.message, "error"); }
   finally { btn.textContent = orig; btn.disabled = false; }
 });
@@ -774,7 +786,7 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
     }
 
     showToast("Decrypting secure stream...");
-    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${fileId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
+    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
     const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
     const [ivHex, keyBase64] = encryptedKeyStr.split(":");
     const mk = await getClientMasterKey();
@@ -809,7 +821,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
   if (linkId) {
     closeBtn.onclick = async () => {
       try {
-        await fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+        await fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
         closeModal('file-view-modal');
         loadFiles();
         showToast("Shared access terminated and record cleared", "info");
@@ -834,7 +846,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
 
     viewer.innerHTML = '<p style="color:#444;">Establishing Secure Feed...</p>';
     try {
-      const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
+      const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
       const blob = await (await fetch(downloadUrl)).arrayBuffer();
       const [ivHex, keyB64] = keyStr.split(":");
       const mk = await getClientMasterKey();
@@ -912,13 +924,13 @@ async function processUnlockStep2() {
   
   try {
     const res = await fetch(`${API_URL}/verify-file-pin`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       body: JSON.stringify({ securityPin }),
     });
     if (!res.ok) throw new Error("Verification Failed");
     
     showToast("Identity Confirmed. Decrypting record...");
-    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } })).json();
+    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
     const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
     const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
     
@@ -974,7 +986,7 @@ async function generateShareLink(btn) {
     const downloadable = document.getElementById("share-downloadable").checked;
     
     const res = await fetch(`${API_URL}/share`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
       body: JSON.stringify({
         fileId: currentShareFile.id, recipientEmail: email,
         encryptedFileKeyForLink: bytesToHex(lIv) + ":" + arrayBufferToBase64(encKeyLink),
@@ -1013,7 +1025,7 @@ function copyShareLink() {
 
 async function loadProfile() {
   try {
-    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+    const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     if (!res.ok) return;
     const data = await res.json();
     if (!data || !data.username) return;
@@ -1072,7 +1084,7 @@ async function handleProfilePhotoUpload(input) {
     showToast("Updating identity manifest...");
     try {
       const res = await fetch(`${API_URL}/profile/photo`, {
-        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${localStorage.getItem("token")}` },
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         body: JSON.stringify({ photoBase64 }),
       });
       if (res.ok) {
@@ -1090,7 +1102,7 @@ async function removeProfilePhoto() {
 
   try {
     const res = await fetch(`${API_URL}/profile/photo`, {
-      method: "DELETE", headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
+      method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
     });
     if (res.ok) {
       showToast("Identity image purged", "success");
@@ -1108,7 +1120,7 @@ async function terminateIdentity() {
 
   showToast("Purging terminal data...");
   // Normally would call DELETE /api/user, for now just logout
-  localStorage.clear();
+  sessionStorage.clear();
   location.reload();
 }
 
@@ -1139,15 +1151,25 @@ window.addEventListener("click", (e) => {
   const gatewayLine = document.querySelector(".gateway-line");
   const scanningBeam = document.querySelector(".scanning-beam");
   
-  if (localStorage.getItem("sidebarCollapsed") === "true") {
+  if (sessionStorage.getItem("sidebarCollapsed") === "true") {
     const sidebar = document.querySelector(".sidebar");
     if (sidebar) {
       sidebar.classList.add("collapsed");
       document.body.classList.add("sidebar-collapsed");
     }
   }
-  const token = localStorage.getItem("token");
-  // Ultra-Smooth Premium Pacing
+  const token = sessionStorage.getItem("token");
+  const storedView = sessionStorage.getItem("activeView") || "my-vault";
+
+  // Refresh Persistence Bypass (Requirement 2)
+  if (token) {
+    const preloader = document.getElementById("preloader");
+    if (preloader) preloader.style.display = "none";
+    silentSync().then(() => showView(storedView));
+    return; // Termination of preloader sequence for active sessions
+  }
+
+  // Ultra-Smooth Premium Pacing (Requirement 4)
   setTimeout(() => {
     // 1. Reveal "SV"
     if (revealTarget) revealTarget.classList.add("visible");
@@ -1175,7 +1197,7 @@ window.addEventListener("click", (e) => {
           if (token) {
             try { 
               await loadProfile(); 
-              showView("my-vault"); 
+              showView(storedView); 
             } catch (err) { logout(); }
           } else {
             const urlParams = new URLSearchParams(window.location.search);
