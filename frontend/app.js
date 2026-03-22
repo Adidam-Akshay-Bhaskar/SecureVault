@@ -711,7 +711,7 @@ async function renderFiles() {
 }
 
 async function deleteFile(id, keyStr, filename) {
-  const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete "${filename}"?`, "danger");
+  const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete this file?`, "danger");
   if (!conf) return;
   const verified = await verifyPIN();
   if (!verified) return;
@@ -833,7 +833,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
 async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready = false) {
   try {
     if (!verifiedAlready) {
-      const conf = await showConfirm(`Are you sure you want to download "${filename}"?`, "success");
+      const conf = await showConfirm(`Are you sure you want to download this file?`, "success");
       if (!conf) return;
       const verified = await verifyPIN();
       if (!verified) return;
@@ -1031,13 +1031,137 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Identity Error: Archive protocol deviation.</p>`;
         }
     }
-    // 8. UNIVERSAL "ORIGINAL CONTENT" PROTOCOL (Text/Code/Binary-Strings)
+    // 8. PRESENTATION PROTOCOL (Direct PPTX Generation via JSZip Content Extraction)
+    else if (["pptx", "ppt"].includes(ext)) {
+        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">EXTRACTING PRESENTATION CONTENT...</div>';
+        
+        try {
+            const zip = await JSZip.loadAsync(dec);
+            
+            const container = document.createElement("div");
+            container.style.width = "100%";
+            container.style.height = "100%";
+            container.style.overflow = "auto";
+            container.style.background = "transparent";
+            container.style.backdropFilter = "none";
+            container.style.border = "none";
+            container.style.borderRadius = "0";
+            container.style.padding = "30px";
+            container.style.boxSizing = "border-box";
+            container.style.fontFamily = "var(--font-main)";
+            container.style.color = "#fff";
+            
+            const title = document.createElement("h2");
+            title.textContent = "Presentation Content";
+            title.style.borderBottom = "none";
+            title.style.paddingBottom = "10px";
+            container.appendChild(title);
+
+            // Extract slide text
+            const slideRegex = /^ppt\/slides\/slide(\d+)\.xml$/;
+            const slideFiles = Object.keys(zip.files).filter(f => slideRegex.test(f));
+            
+            if (slideFiles.length > 0) {
+                // Sort numerically
+                slideFiles.sort((a,b) => parseInt(a.match(slideRegex)[1]) - parseInt(b.match(slideRegex)[1]));
+                
+                for (const slideFile of slideFiles) {
+                    const xml = await zip.file(slideFile).async("string");
+                    const slideDiv = document.createElement("div");
+                    slideDiv.style.marginBottom = "30px";
+                    slideDiv.style.padding = "10px";
+                    slideDiv.style.background = "transparent";
+                    slideDiv.style.borderRadius = "0";
+                    slideDiv.style.border = "none";
+                    
+                    const slideHeader = document.createElement("h3");
+                    slideHeader.textContent = `Slide ${slideFile.match(slideRegex)[1]}`;
+                    slideHeader.style.color = "var(--accent-cyan)";
+                    slideHeader.style.fontSize = "1.0rem";
+                    slideHeader.style.fontWeight = "400";
+                    slideHeader.style.marginBottom = "15px";
+                    slideHeader.style.borderBottom = "none";
+                    slideHeader.style.paddingBottom = "5px";
+                    slideDiv.appendChild(slideHeader);
+                    
+                    const pMatches = xml.match(/<a:p[\s>][\s\S]*?<\/a:p>/g) || [];
+                    let paragraphs = pMatches.map(p => {
+                        const textMatches = p.match(/<a:t[\s>][\s\S]*?<\/a:t>/g) || [];
+                        return textMatches.map(m => m.replace(/<\/?[^>]+(>|$)/g, "")).join("");
+                    }).filter(t => t.trim().length > 0);
+                    
+                    let slideText = paragraphs.join("\n\n");
+                    
+                    if (slideText) {
+                        const pre = document.createElement("pre");
+                        pre.style.whiteSpace = "pre-wrap";
+                        pre.style.wordWrap = "break-word";
+                        pre.style.fontFamily = "var(--font-main)";
+                        pre.style.fontSize = "0.95rem";
+                        pre.style.lineHeight = "1.8";
+                        pre.style.color = "#fff";
+                        pre.style.margin = "0";
+                        pre.textContent = slideText;
+                        slideDiv.appendChild(pre);
+                    } else {
+                        const p = document.createElement("p");
+                        p.textContent = "[No textual content on this slide]";
+                        p.style.fontStyle = "italic";
+                        p.style.color = "rgba(255,255,255,0.5)";
+                        slideDiv.appendChild(p);
+                    }
+                    container.appendChild(slideDiv);
+                }
+            } else {
+                const p = document.createElement("p");
+                p.textContent = "No slides found or unsupported PPTX format.";
+                container.appendChild(p);
+            }
+
+            // Extract media files
+            const mediaFiles = Object.keys(zip.files).filter(f => f.startsWith("ppt/media/"));
+            if (mediaFiles.length > 0) {
+                const mediaHeader = document.createElement("h3");
+                mediaHeader.textContent = "Presentation Media";
+                mediaHeader.style.marginTop = "40px";
+                mediaHeader.style.marginBottom = "20px";
+                mediaHeader.style.borderBottom = "none";
+                mediaHeader.style.paddingBottom = "10px";
+                container.appendChild(mediaHeader);
+                
+                const grid = document.createElement("div");
+                grid.style.display = "grid";
+                grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(200px, 1fr))";
+                grid.style.gap = "15px";
+                
+                for (const media of mediaFiles) {
+                    if (media.match(/\.(png|jpe?g|gif|svg)$/i)) {
+                        const blob = await zip.file(media).async("blob");
+                        const img = document.createElement("img");
+                        img.src = URL.createObjectURL(blob);
+                        img.style.width = "100%";
+                        img.style.borderRadius = "8px";
+                        img.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                        grid.appendChild(img);
+                    }
+                }
+                container.appendChild(grid);
+            }
+
+            viewer.innerHTML = "";
+            viewer.appendChild(container);
+            
+        } catch (err) {
+            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Could not extract presentation content. (${err.message})</p>`;
+        }
+    }
+    // 9. UNIVERSAL "ORIGINAL CONTENT" PROTOCOL (Text/Code/Binary-Strings)
     else {
       // For EVERYTHING ELSE (.exe, .apk, .py, .db, .sql, etc.): We project the RAW STRING CONTENT.
       const pre = document.createElement("pre");
       try {
           // Attempt high-fidelity text decoding
-          pre.textContent = new TextDecoder().decode(dec);
+          pre.textContent = new TextDecoder('utf-8', { fatal: true }).decode(dec);
       } catch {
           // Fallback to binary string representation of the ORIGINAL content
           let binary = "";
