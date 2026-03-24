@@ -889,6 +889,19 @@ app.get("/api/folders", authenticateToken, (req, res) => {
   );
 });
 
+app.put("/api/folders/:id", authenticateToken, (req, res) => {
+  const { name } = req.body;
+  if (!name) return res.status(400).json({ message: "Folder name required" });
+  db.query(
+    "UPDATE folders SET name = ? WHERE folder_id = ? AND owner_id = ?",
+    [name.trim(), req.params.id, req.user.user_id],
+    (err) => {
+      if (err) return res.status(500).json({ message: "DB Error" });
+      res.json({ message: "Folder renamed" });
+    }
+  );
+});
+
 app.delete("/api/folders/:id", authenticateToken, (req, res) => {
   db.query(
     "DELETE FROM folders WHERE folder_id = ? AND owner_id = ?",

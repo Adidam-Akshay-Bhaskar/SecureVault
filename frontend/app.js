@@ -514,6 +514,7 @@ async function loadFolders() {
             <span class="folder-icon">📂</span>
             <p class="folder-name">${disp}</p>
             <p class="folder-count">${fCount} Files • ${dateStr}</p>
+            <button tabindex="-1" class="action-btn" style="position:absolute; top:12px; right:64px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(250,204,21,0.1); border-color:rgba(250,204,21,0.2); color:#facc15;" onclick="event.stopPropagation(); renameFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\\\'")}')">Rename</button>
             <button tabindex="-1" class="action-btn" style="position:absolute; top:12px; right:12px; padding:6px 10px; font-size:10px; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#ff5555;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
           </div>
         </div>
@@ -539,6 +540,26 @@ async function createFolder() {
       loadFolders();
     }
   } catch {}
+}
+
+async function renameFolder(id, currentName) {
+  const newName = prompt("Enter new folder name:", currentName);
+  if (!newName || newName.trim() === "" || newName === currentName) return;
+  try {
+    const res = await fetch(`${API_URL}/folders/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      body: JSON.stringify({ name: newName.trim() })
+    });
+    if (res.ok) {
+      showToast("Folder Renamed");
+      loadFolders();
+    } else {
+      showToast("Failed to rename folder", "error");
+    }
+  } catch {
+    showToast("Error renaming folder", "error");
+  }
 }
 
 async function deleteFolder(id) {
