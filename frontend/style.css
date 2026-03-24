@@ -396,12 +396,12 @@ input[type="checkbox"]:checked::after {
 }
 
 /* --- TOAST --- */
-#toast-container { position: fixed; bottom: 40px; right: 40px; z-index: 4000; display: flex; flex-direction: column; gap: 12px; }
+#toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 4000; display: flex; flex-direction: column; gap: 8px; }
 .toast {
-  background: rgba(10, 10, 15, 0.9); backdrop-filter: blur(20px); border: 1px solid var(--border-glass);
-  padding: 16px 24px; border-radius: 16px; display: flex; align-items: center; gap: 15px;
-  color: #fff; font-weight: 600; font-size: 0.95rem; animation: slideIn 0.4s cubic-bezier(0.23, 1, 0.32, 1);
-  box-shadow: 0 15px 30px rgba(0,0,0,0.5); z-index: 4001;
+  background: rgba(18, 18, 22, 0.95); border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 16px; border-radius: 8px; display: flex; align-items: center; gap: 10px;
+  color: #eee; font-weight: 500; font-size: 0.8rem; animation: slideIn 0.3s ease-out;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5); z-index: 4001;
 }
 @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 

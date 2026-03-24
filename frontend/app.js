@@ -110,7 +110,13 @@ function formatBytes(bytes, decimals = 2) {
 }
 
 function showToast(message, type = "success") {
-  // Messages completely disabled based on user request
+  const container = document.getElementById("toast-container");
+  if (!container) return;
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.innerHTML = `<span style="font-size: 1rem;">${type === "error" ? "⚠️" : "✨"}</span><span>${message}</span>`;
+  container.appendChild(toast);
+  setTimeout(() => toast.remove(), 3500);
 }
 
 function truncateName(name, limit = 42) {
