@@ -446,6 +446,20 @@
     </div>
   </div>
 
+  <div id="rename-folder-modal" class="modal hidden">
+    <div class="modal-content">
+      <h3 style="margin-bottom: 2rem;">Rename Folder</h3>
+      <div class="input-field">
+        <label>New Name</label>
+        <input type="text" id="rename-folder-name" placeholder="Enter new folder name" />
+      </div>
+      <div class="btn-row">
+        <button class="modal-secondary-btn" onclick="closeModal('rename-folder-modal')">Cancel</button>
+        <button class="primary-btn" id="rename-folder-submit-btn">Rename Folder</button>
+      </div>
+    </div>
+  </div>
+
   <div id="pin-modal" class="modal hidden">
     <div class="modal-content" style="background: rgba(12,12,18,0.7); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05); max-width: 380px; padding: 40px; text-align: center; position: relative;">
       
