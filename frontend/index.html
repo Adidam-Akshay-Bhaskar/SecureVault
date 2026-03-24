@@ -266,15 +266,8 @@
         </div>
 
         <div id="my-files-view">
-          <div class="file-list">
-            <div class="file-row header">
-              <span>File Name</span>
-              <span>Type</span>
-              <span>Size</span>
-              <span>Date</span>
-              <span>Operations</span>
-            </div>
-            <div id="file-list-body"></div>
+          <div class="folder-grid-container">
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="file-list-body"></div>
           </div>
         </div>
       </div>
@@ -546,14 +539,8 @@
         </div>
       </div>
       
-      <div class="file-list" style="margin-top: 0; background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 20px; flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-        <div class="file-row explorer-row header">
-          <span>File Name</span>
-          <span>Type</span>
-          <span>Size</span>
-          <span>Operations</span>
-        </div>
-        <div id="explorer-file-list" style="flex: 1; overflow-y: auto; padding-right: 0;"></div>
+      <div class="folder-grid-container" style="flex: 1; overflow-y: auto; margin-top: 0;">
+        <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="explorer-file-list"></div>
       </div>
     </div>
   </div>
