@@ -125,6 +125,7 @@ async function ensureAllTables() {
       owner_id INTEGER REFERENCES users(user_id),
       file_type TEXT,
       is_deleted BOOLEAN DEFAULT FALSE,
+      deleted_at TIMESTAMP,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )`,
     `CREATE TABLE IF NOT EXISTS file_metadata (
@@ -195,6 +196,39 @@ async function ensureAllTables() {
   for (const q of createQueries) {
     try { await pool.query(q); } catch (err) { console.error("Schema create error:", err.message); }
   }
+  
+  // MIGRATION: Ensure deleted_at exists
+  pool.query("ALTER TABLE files ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP", (err) => {
+    if (err) console.error("Migration Error:", err.message);
+  });
+
+  // BACKGROUND TASK: PRUNE RECYCLE BIN (Every 6 Hours)
+  const cleanupRecycleBin = () => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    console.log(`[CLEANUP] Pruning files deleted before ${sevenDaysAgo}...`);
+
+    db.query(
+      "SELECT file_uuid FROM files WHERE is_deleted = TRUE AND deleted_at < ?",
+      [sevenDaysAgo],
+      (err, results) => {
+        if (err) return console.error("[CLEANUP-FAIL]", err);
+        if (results && results.length > 0) {
+          results.forEach(f => {
+            s3.deleteObject({ Bucket: process.env.S3_BUCKET_NAME, Key: f.file_uuid }, (s3err) => {
+              if (s3err) console.error(`[S3-CLEANUP-FAIL] ${f.file_uuid}`, s3err);
+            });
+          });
+          db.query("DELETE FROM files WHERE is_deleted = TRUE AND deleted_at < ?", [sevenDaysAgo], (delErr) => {
+            if (delErr) console.error("[DB-CLEANUP-FAIL]", delErr);
+            else console.log(`[CLEANUP-DONE] Purged ${results.length} records.`);
+          });
+        }
+      }
+    );
+  };
+  setInterval(cleanupRecycleBin, 6 * 60 * 60 * 1000);
+  cleanupRecycleBin(); // Initial run
+
   for (const q of migrations) {
     try { await pool.query(q); } catch (err) { /* column already exists - ignore */ }
   }
@@ -766,10 +800,41 @@ app.get("/api/download-url/:fileId", authenticateToken, (req, res) => {
 // DELETE FILE
 app.post("/api/delete-file", authenticateToken, (req, res) => {
   const { fileId } = req.body;
-  db.query("UPDATE files SET is_deleted = TRUE WHERE file_id = ? AND owner_id = ?", [fileId, req.user.user_id], (err, result) => {
+  db.query("UPDATE files SET is_deleted = TRUE, deleted_at = CURRENT_TIMESTAMP WHERE file_id = ? AND owner_id = ?", [fileId, req.user.user_id], (err, result) => {
     if (err) return res.status(500).json({ error: err });
     if (result.affectedRows === 0) return res.status(403).json({ message: "Unauthorized or file not found" });
-    res.json({ message: "File deleted" });
+    res.json({ message: "Record encrypted and moved to Recycle Bin." });
+  });
+});
+
+app.get("/api/recycle-bin", authenticateToken, (req, res) => {
+  db.query(
+    `SELECT f.file_id, f.file_uuid, f.deleted_at, fm.encrypted_metadata, fm.iv, fk.encrypted_key 
+     FROM files f
+     JOIN file_metadata fm ON f.file_id = fm.file_id
+     JOIN file_keys fk ON f.file_id = fk.file_id
+     WHERE f.owner_id = ? AND f.is_deleted = TRUE`,
+    [req.user.user_id],
+    (err, results) => {
+      if (err) return res.status(500).json({ error: err });
+      res.json(results);
+    }
+  );
+});
+
+app.post("/api/restore-file", authenticateToken, (req, res) => {
+  const { fileId } = req.body;
+  db.query("UPDATE files SET is_deleted = FALSE, deleted_at = NULL WHERE file_id = ? AND owner_id = ?", [fileId, req.user.user_id], (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+    res.json({ message: "Record restored to Vault Base." });
+  });
+});
+
+app.post("/api/permanent-delete", authenticateToken, (req, res) => {
+  const { fileId } = req.body;
+  db.query("DELETE FROM files WHERE file_id = ? AND owner_id = ?", [fileId, req.user.user_id], (err, result) => {
+    if (err) return res.status(500).json({ error: err });
+    res.json({ message: "Record permanently purged from encrypted storage." });
   });
 });
 
@@ -790,35 +855,40 @@ app.post("/api/verify-file-pin", authenticateToken, (req, res) => {
   });
 });
 
-// SHARE
+// SHARE PROTOCOL (Universal Manifest: In-Vault vs External Link)
 app.post("/api/share", authenticateToken, (req, res) => {
-  const { fileId, recipientEmail, encryptedFileKeyForLink, encryptedMetadataForLink, metadataIv, linkKey } = req.body;
+  const { fileId, recipientEmail, encryptedKey, encryptedMetadata, metadataIv, linkKey } = req.body;
   const targetEmail = recipientEmail.trim();
+  const isExternal = (targetEmail === "protocol-link");
 
-  db.query("SELECT user_id FROM users WHERE email = ?", [targetEmail], (err, results) => {
-    if (err) return res.status(500).json({ error: err });
-    if (results.length === 0) return res.status(404).json({ message: "Recipient user not found." });
-
+  const executeShare = () => {
     const token = crypto.randomBytes(32).toString("hex");
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const expiry = new Date(); expiry.setHours(expiry.getHours() + 24);
 
     db.query(
       "INSERT INTO shared_links (file_id, recipient_email, token_hash, encrypted_file_key, encrypted_metadata, iv, downloadable, expires_at) VALUES (?, ?, ?, ?, decode(?, 'base64'), ?, ?, ?)",
-      [fileId, targetEmail, tokenHash, encryptedFileKeyForLink, encryptedMetadataForLink || "", metadataIv, req.body.downloadable ? 1 : 0, expiry],
+      [fileId, targetEmail, tokenHash, encryptedKey, encryptedMetadata || "", metadataIv, req.body.downloadable ? 1 : 0, expiry],
       (err) => {
         if (err) return res.status(500).json({ error: err });
-
-        // FIX: use req.protocol instead of hardcoded http
-        const shareLink = `${req.protocol}://${req.get("host")}/?token=${token}&key=${linkKey}`;
-
+        
         db.query("INSERT INTO audit_logs (user_id, file_id, action, details) VALUES (?, ?, ?, ?)",
-          [req.user.user_id, fileId, "SHARED", `With ${recipientEmail}`], () => {});
+          [req.user.user_id, fileId, isExternal ? "LINK_CREATED" : "SHARED_IN_APP", `Target: ${recipientEmail}`], () => {});
 
-        res.json({ message: "Secure link generated." });
+        res.json({ message: "Secure protocol initialized.", token: token, linkKey: linkKey });
       }
     );
-  });
+  };
+
+  if (isExternal) {
+    executeShare();
+  } else {
+    db.query("SELECT user_id FROM users WHERE email = ?", [targetEmail], (err, results) => {
+      if (err) return res.status(500).json({ error: err });
+      if (results.length === 0) return res.status(404).json({ message: "Recipient user identity not found." });
+      executeShare();
+    });
+  }
 });
 
 // DELETE SHARED LINK
@@ -840,7 +910,7 @@ app.post("/api/access-share", (req, res) => {
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
   db.query(
-    `SELECT sl.link_id, sl.encrypted_file_key, sl.encrypted_metadata, sl.iv, sl.expires_at, sl.is_used, f.file_uuid
+    `SELECT sl.link_id, sl.encrypted_file_key, sl.encrypted_metadata, sl.iv, sl.expires_at, sl.is_used, sl.downloadable, f.file_uuid
      FROM shared_links sl JOIN files f ON sl.file_id = f.file_id WHERE sl.token_hash = ?`,
     [tokenHash],
     (err, results) => {
@@ -858,6 +928,7 @@ app.post("/api/access-share", (req, res) => {
         encryptedMetadata: link.encrypted_metadata ? link.encrypted_metadata.toString("base64") : null,
         metadataIv: link.iv,
         downloadUrl,
+        downloadable: !!link.downloadable
       });
     }
   );

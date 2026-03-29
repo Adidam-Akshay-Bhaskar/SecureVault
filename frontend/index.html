@@ -17,6 +17,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/github-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/highlight.min.js"></script>
 </head>
 <body class="notranslate">
   <!-- MAIN APPLICATION UI -->
@@ -36,6 +38,110 @@
     </div>
   </div>
 
+  </div>
+
+  <!-- MARKETING LANDING PAGE (SaaS Grade) -->
+  <div id="landing-page" class="hidden landing-page-wrapper">
+    <!-- Navbar -->
+    <nav class="landing-nav">
+      <h1 class="landing-brand">SecureVault</h1>
+      <div class="landing-nav-btns">
+        <button class="landing-nav-btn" onclick="showAuth('login')">Log In</button>
+        <button class="landing-nav-btn accent" onclick="showAuth('register')">Get Started</button>
+      </div>
+    </nav>
+    
+    <!-- Hero -->
+    <header class="landing-hero">
+      <div class="landing-hero-title">
+        <h1>Secure<span>V</span>ault</h1>
+      </div>
+      <div class="landing-hero-desc">
+        <p>A secure file vault with encrypted storage, access control, and real-time monitoring. Store, encrypt and control your digital assets with binary-level precision.</p>
+      </div>
+    </header>
+
+    <!-- Features -->
+    <section class="landing-section features">
+      <h2 class="landing-section-title">Key Features</h2>
+      <div class="landing-grid-container">
+        <div class="feature-card">
+          <h3>🔒 End-to-End Encryption</h3>
+          <p>Your data is encrypted before storage.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📁 Secure File Management</h3>
+          <p>Upload, store, and organize files safely.</p>
+        </div>
+        <div class="feature-card">
+          <h3>🧑‍💻 Access Control</h3>
+          <p>Only authorized users can access data.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📊 Activity Monitoring</h3>
+          <p>Track logins, file actions, and sessions.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- How It Works -->
+    <section class="landing-section steps">
+      <h2 class="landing-section-title">How It Works</h2>
+      <div class="landing-grid-container steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-txt">Create Account</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-txt">Upload Files Securely</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-txt">Access with Auth</div>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <div class="step-txt">Monitor Activity</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="landing-section cta">
+      <h2 class="landing-section-title">Start securing your data today.</h2>
+      <button class="cta-btn" onclick="showAuth('register')">Get Started</button>
+    </section>
+
+    <footer class="landing-footer">
+      &copy; 2026 SecureVault Inc. All rights reserved.
+    </footer>
+  </div>
+  </div>
+
+  <script>
+    function showAuth(mode = 'login') {
+      const lp = document.getElementById('landing-page');
+      if(lp) lp.classList.add('hidden');
+      const auth = document.getElementById('auth-section');
+      if(auth) {
+        auth.classList.remove('hidden');
+        auth.classList.add('visible');
+      }
+      if(typeof toggleAuthMode === 'function') toggleAuthMode(mode);
+    }
+
+    function hideAuth() {
+      const lp = document.getElementById('landing-page');
+      if(lp) lp.classList.remove('hidden');
+      const auth = document.getElementById('auth-section');
+      if(auth) {
+        auth.classList.add('hidden');
+        auth.classList.remove('visible');
+      }
+    }
+  </script>
+
   <!-- AUTH SECTION (Ultra Premium Centered UI) -->
   <div id="auth-section" class="hidden">
     <div class="auth-container centered-mode">
@@ -44,14 +150,17 @@
         <div class="card-glow"></div>
         
         <div class="card-content">
-          <div class="card-header">
-            <h1>Sign In</h1>
-            <p>Enter your credentials to access the vault.</p>
-          </div>
-
           <div class="form-wrapper">
             <!-- Login Form -->
             <div id="login-form-container">
+              <div class="card-header" style="position: relative; padding-bottom: 25px;">
+                <button onclick="hideAuth()" style="position: absolute; left: 0; top: 0; background: transparent; border: none; color: #64748B; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: 0.9rem; padding: 0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                  Back
+                </button>
+                <h1>Sign In</h1>
+                <p>Enter your credentials to access the vault.</p>
+              </div>
               <form id="login-form" name="login" action="javascript:void(0);" method="POST">
                 <div class="input-field">
                   <label>Email Address</label>
@@ -60,10 +169,10 @@
                 <div class="input-field" style="position: relative;">
                   <label>Password</label>
                   <input type="password" id="login-password" name="password" autocomplete="current-password" placeholder="••••••••" required />
-                  <svg onclick="togglePassword('login-password', this)" style="position: absolute; right: 15px; top: 41px; cursor: pointer; width: 22px; color: #fff; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg onclick="togglePassword('login-password', this)" style="position: absolute; right: 15px; top: 41px; cursor: pointer; width: 22px; color: #64748B; opacity: 1;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </div>
                 <button type="submit" class="primary-btn">Sign In</button>
-                <button type="button" class="text-btn" style="margin-top: 10px; font-size: 0.8rem;" onclick="toggleAuthMode('recover')">Forgot Password/PIN?</button>
+                <button type="button" class="text-btn" style="margin-top: 15px; font-size: 0.8rem;" onclick="toggleAuthMode('recover')">Forgot Password/PIN?</button>
               </form>
               <div class="card-footer">
                 Don't have an account? <a href="#" onclick="toggleAuthMode('register')">Sign Up</a>
@@ -72,6 +181,14 @@
 
             <!-- Register Form -->
             <div id="register-form-container" class="hidden">
+              <div class="card-header" style="position: relative; padding-bottom: 25px;">
+                <button onclick="hideAuth()" style="position: absolute; left: 0; top: 0; background: transparent; border: none; color: #64748B; cursor: pointer; display: flex; align-items: center; gap: 5px; font-weight: 600; font-size: 0.9rem; padding: 0;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                  Back
+                </button>
+                <h1>Sign Up</h1>
+                <p>Provision a new secure identity.</p>
+              </div>
               <form id="register-form" action="#" method="POST">
                 <div class="input-field">
                   <label>Full Name</label>
@@ -84,12 +201,12 @@
                 <div class="input-field" style="position: relative;">
                   <label>Master Password</label>
                   <input type="password" id="reg-password" name="password" autocomplete="new-password" placeholder="Minimum 8 characters" required />
-                  <svg onclick="togglePassword('reg-password', this)" style="position: absolute; right: 15px; top: 41px; cursor: pointer; width: 22px; color: #fff; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg onclick="togglePassword('reg-password', this)" style="position: absolute; right: 15px; top: 41px; cursor: pointer; width: 22px; color: #64748B; opacity: 1;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </div>
                 <div class="input-field" style="position: relative;">
                   <label>Security PIN (for recovery)</label>
                   <input type="password" id="reg-pin" name="pin" placeholder="1234" maxlength="6" required />
-                  <svg onclick="togglePassword('reg-pin', this)" style="position: absolute; right: 15px; top: 41px; cursor: pointer; width: 22px; color: #fff; opacity: 0.5;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <svg onclick="togglePassword('reg-pin', this)" style="position: absolute; right: 15px; top: 41px; cursor: pointer; width: 22px; color: #64748B; opacity: 1;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </div>
                 <button type="submit" class="primary-btn">Sign Up</button>
               </form>
@@ -187,14 +304,31 @@
         </button>
       </div>
       <nav>
-        <div class="nav-item active" onclick="showView('my-vault')">
-          <span>📦</span> <span class="nav-text">Vault Base</span>
+        <div class="nav-item active" onclick="showView('my-vault')" style="margin-bottom: 28px;">
+          <svg class="nav-icon" viewBox="0 0 48 48" fill="none">
+            <rect x="4" y="8" width="40" height="32" rx="4" fill="#6366f1" />
+            <circle cx="24" cy="24" r="10" fill="#facc15" stroke="#fff" stroke-width="2"/>
+            <rect x="34" y="14" width="6" height="6" fill="#f43f5e" rx="1" />
+            <rect x="34" y="28" width="6" height="6" fill="#fb7185" rx="1" />
+          </svg> <span class="nav-text" style="font-weight: 800;">Vault Base</span>
         </div>
-        <div class="nav-item" onclick="showView('incoming')">
-          <span>📥</span> <span class="nav-text">Incoming Data</span>
+        <div class="nav-item" onclick="showView('incoming')" style="margin-bottom: 28px;">
+          <svg class="nav-icon" viewBox="0 0 48 48" fill="none">
+            <rect x="6" y="6" width="36" height="36" rx="4" fill="#cbd5e1" />
+            <rect x="10" y="14" width="28" height="20" rx="2" fill="#fff" />
+            <path d="M18 18l-4 4 4 4" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
+            <path d="M30 26l4-4-4-4" stroke="#f43f5e" stroke-width="3" stroke-linecap="round"/>
+          </svg> <span class="nav-text" style="font-weight: 800;">Incoming Data</span>
         </div>
-        <div class="nav-item" onclick="showView('profile')">
-          <span>👤</span> <span class="nav-text">Profile Settings</span>
+        <div class="nav-item" onclick="showView('recycle-bin')" style="margin-bottom: 28px;">
+          <svg class="nav-icon" viewBox="0 0 48 48" fill="none">
+            <path d="M10 12h28l-2 30H12L10 12z" fill="#3b82f6" />
+            <path d="M8 8h32v4H8z" fill="#1e293b" />
+            <rect x="20" y="4" width="8" height="4" fill="#0ea5e9" rx="1" />
+            <line x1="18" y1="18" x2="18" y2="34" stroke="#1e293b" stroke-width="2" />
+            <line x1="24" y1="18" x2="24" y2="34" stroke="#1e293b" stroke-width="2" />
+            <line x1="30" y1="18" x2="30" y2="34" stroke="#1e293b" stroke-width="2" />
+          </svg> <span class="nav-text" style="font-weight: 800;">Recycle Bin</span>
         </div>
       </nav>
       <div style="margin-top:auto;">
@@ -212,7 +346,7 @@
         </div>
         <div style="position: relative;">
           <div class="user-profile-box" onclick="toggleHeaderMenu()">
-            <span id="profile-username-header" style="color:#fff; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Agent</span>
+            <span id="profile-username-header" style="color:#000; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Agent</span>
             <div class="auth-logo-box" style="width:36px; height:36px; font-size:0.95rem; position: relative;">
               <span id="header-avatar">?</span>
               <img id="header-avatar-img" class="hidden" src="" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />
@@ -233,7 +367,7 @@
 
       <!-- VAULT VIEW -->
       <div id="section-my-vault">
-        <div class="stat-grid">
+        <div class="stat-grid hidden">
           <div class="stat-card">
             <p>Volume Records</p>
             <p class="stat-value" id="stat-file-count">0</p>
@@ -254,29 +388,28 @@
             <button class="tab-btn" id="tab-my-folders" onclick="toggleVaultSubView('folders')">Folders</button>
           </div>
           <div style="display: flex; gap: 12px;">
-            <button id="btn-upload-record" class="action-btn" onclick="showUploadModal()" style="background: var(--accent-cyan); color: #000; border: none; font-weight: 800; padding: 10px 20px;">Upload Record +</button>
-            <button id="btn-new-folder" class="action-btn hidden" onclick="showCreateFolderModal()" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); font-weight: 600; padding: 10px 20px;">New Folder +</button>
+            <button id="btn-upload-record" class="action-btn" onclick="showUploadModal()" style="background: var(--accent-cyan); color: #000; border: 1.5px solid #000; font-weight: 800; padding: 10px 20px; border-radius: 12px;">Upload Record +</button>
+            <button id="btn-new-folder" class="action-btn hidden" onclick="showCreateFolderModal()" style="background: #FFFFFF; color: #000; border: 1.5px solid #000; font-weight: 800; padding: 10px 20px; border-radius: 12px;">New Folder +</button>
           </div>
         </div>
 
         <div id="my-folders-view" class="hidden">
           <div class="folder-grid-container">
-            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="folder-list"></div>
+            <div id="folder-list" class="vault-grid"></div>
           </div>
         </div>
 
         <div id="my-files-view">
           <div class="folder-grid-container">
-            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap:24px;" id="file-list-body"></div>
+            <div id="file-list-body" class="vault-grid"></div>
           </div>
         </div>
-      </div>
+      </div> <!-- END SECTION MY VAULT -->
 
       <!-- INCOMING -->
       <div id="section-incoming" class="hidden">
         <div class="file-list">
           <div class="file-row incoming-row header">
-            <span>File Name</span>
             <span>Origin</span>
             <span>Date</span>
             <span>Operations</span>
@@ -285,90 +418,235 @@
         </div>
       </div>
 
-      <!-- PROFILE: REDESIGNED PROFILE SETTINGS -->
+      <div id="section-recycle-bin" class="hidden">
+        <div style="margin-bottom: 2rem;">
+          <h2 style="font-size: 1.1rem; color: #fff; margin-bottom: 6px; letter-spacing: 0.5px;">Recently Deleted Records</h2>
+          <p style="color: var(--text-dim); font-size: 0.8rem; opacity: 0.7;">Retention threshold: 7 days. Remaining records will be automatically purged.</p>
+        </div>
+        <div class="file-list">
+          <div class="file-row recycle-row header" style="border-bottom: 2px solid var(--border-color) !important;">
+            <span>Record Name</span>
+            <span>Deleted Date</span>
+            <span>Operations</span>
+          </div>
+          <div id="recycle-list-body"></div>
+        </div>
+      </div>
+
+      <!-- PROFILE: PREMIUM DASHBOARD OVERHAUL -->
       <div id="section-profile" class="hidden">
-        <div class="profile-architecture">
-          
-          <!-- LEFT: AVATAR MANIFEST -->
-          <div class="avatar-manifest">
-            <div class="avatar-ring">
+        
+        <!-- SMART PROFILE HEADER -->
+        <div class="profile-header-premium">
+            <div class="avatar-ring premium-avatar-ring">
               <div id="profile-avatar-container" class="avatar-main">
                 <span id="profile-initials">?</span>
                 <img id="profile-avatar-img" class="hidden" src="" alt="Profile Photo" />
+                <div class="avatar-verified-badge" id="badge-verified" title="Verified Identity" style="display:none;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
               </div>
-              <label for="profile-photo-input" class="avatar-upload-trigger" title="Update Profile Image">
+              <label for="profile-photo-input" class="avatar-upload-trigger pulse-hover" title="Update Profile Image">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
               </label>
               <input type="file" id="profile-photo-input" class="hidden" accept="image/*" onchange="handleProfilePhotoUpload(this)" />
             </div>
-            <h2 id="profile-username-display" style="font-size: 1.8rem; font-weight: 800; margin-bottom: 5px;">Operator</h2>
-            <p id="profile-email-full" style="color: var(--text-dim); font-size: 0.9rem; margin-bottom: 25px;">secure_id@vault.com</p>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-              <button class="action-btn" onclick="document.getElementById('profile-photo-input').click()" style="width: 100%; justify-content: center; background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.1);">Change Profile Image</button>
-              <button id="btn-remove-photo" class="action-btn hidden" onclick="removeProfilePhoto()" style="width: 100%; justify-content: center; background: rgba(255,71,87,0.05); color: var(--danger); border-color: rgba(255,71,87,0.1);">Remove Image</button>
+            <div class="profile-header-info">
+               <h2 id="profile-username-display" style="margin-bottom: 5px; font-size: 2.2rem; font-weight: 900;">Operator</h2>
+               <div class="profile-badges">
+                  <span class="status-badge online"><span class="dot"></span> Secure Identity</span>
+                  <span class="status-badge text">Last synced just now</span>
+               </div>
+               <p id="profile-email-full" style="color: var(--text-dim); margin-bottom: 20px; font-size: 1.1rem;">secure_id@vault.com</p>
+               <div class="profile-actions-row">
+                  <button class="action-btn" onclick="document.getElementById('profile-photo-input').click()">Update Image</button>
+                  <button id="btn-remove-photo" class="action-btn danger hidden" style="color:var(--danger); border-color:rgba(255,71,87,0.2); background:rgba(255,71,87,0.05);" onclick="removeProfilePhoto()">Remove Image</button>
+                  <button class="action-btn share" onclick="showToast('Protocol active: Scanning QR code engine...', 'success')">Share Public QR</button>
+                  <button class="action-btn view" onclick="showToast('Exporting JSON manifest...', 'success')">Export Data</button>
+               </div>
             </div>
+        </div>
+
+        <div class="profile-grid-architecture">
+          
+          <!-- LEFT COLUMN: Strength & Meta -->
+          <div class="profile-column">
+             
+             <!-- Strength Meter (Gamification) -->
+             <div class="premium-card">
+               <div class="card-heading">Profile Strength <span id="strength-percent" style="float:right; color:var(--accent-cyan);">75%</span></div>
+               <div class="progress-bar-bg"><div class="progress-bar-fill" id="strength-bar" style="width: 75%;"></div></div>
+               <ul class="strength-checklist">
+                 <li class="done">
+                   <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Primary Email Verified
+                 </li>
+                 <li class="pending" id="checklist-img">
+                   <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Identity Image Extracted
+                 </li>
+                 <li class="done">
+                   <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Master Key Encrypted
+                 </li>
+                 <li class="pending">
+                   <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> 2FA Defences Disabled
+                 </li>
+               </ul>
+             </div>
+
+             <!-- Metadata Card (Premium) -->
+             <div class="premium-card">
+               <div class="card-heading">Account Metadata</div>
+               <div class="identity-grid">
+                 <div class="identity-field">
+                    <p class="field-label">Username</p>
+                    <p class="field-value" id="display-alias">---</p>
+                 </div>
+                 <div class="identity-field">
+                    <p class="field-label">Primary Email</p>
+                    <p class="field-value" id="display-email">---</p>
+                 </div>
+                 <div class="identity-field" style="grid-column: span 2;">
+                    <p class="field-label">System Hash</p>
+                    <p class="field-value token-hash" id="display-hash">sv_req_sync_hash</p>
+                 </div>
+                 <div class="identity-field">
+                    <p class="field-label">Role</p>
+                    <p class="field-value">Administrator</p>
+                 </div>
+                 <div class="identity-field">
+                    <p class="field-label">Data Allocated</p>
+                    <p class="field-value" id="disp-storage-used">Syncing...</p>
+                 </div>
+               </div>
+             </div>
+
+             <!-- Personalization Settings -->
+             <div class="premium-card">
+               <div class="card-heading">Environment Config</div>
+               <div class="toggle-row">
+                 <span>Dark Matter Theme</span>
+                 <label class="switch"><input type="checkbox" checked onclick="document.body.classList.toggle('theme-light')"><span class="slider"></span></label>
+               </div>
+               <div class="toggle-row">
+                 <span>Login Signal Alerts</span>
+                 <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+               </div>
+             </div>
+
           </div>
 
-          <!-- RIGHT: PROTOCOL LAYERS -->
-          <div class="manifest-content">
-            
-            <!-- LAYER 1: PUBLIC PROTOCOL -->
-            <div class="protocol-card">
-              <div class="protocol-header">
-                <div class="protocol-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                </div>
-                <span class="protocol-title">Public Profile Protocol</span>
-              </div>
-              <div class="identity-grid">
-                <div class="identity-field">
-                  <p class="field-label">Operator Alias</p>
-                  <p id="display-alias" class="field-value">---</p>
-                </div>
-                <div class="identity-field">
-                  <p class="field-label">Transmission Endpoint</p>
-                  <p id="display-email" class="field-value">---</p>
-                </div>
-              </div>
-            </div>
+          <!-- RIGHT COLUMN: Security & Activity -->
+          <div class="profile-column">
+             
+             <!-- Security Dashboard -->
+             <div class="premium-card">
+               <div class="card-heading">Security Dashboard</div>
+               
+               <h4 style="color:#aaa; font-size: 0.8rem; margin-bottom: 15px; text-transform: uppercase;">Change Master Passcode</h4>
+               <form id="update-password-form" class="identity-grid">
+                 <div class="input-box" style="margin: 0;"><input type="password" id="current-password" placeholder="Current Passcode" required style="border-radius: 12px; background: rgba(255,255,255,0.02);" /></div>
+                 <div class="input-box" style="margin: 0;"><input type="password" id="new-password" placeholder="New Passcode" required style="border-radius: 12px; background: rgba(255,255,255,0.02);" /></div>
+                 <button type="submit" class="primary-btn pulse-hover" style="grid-column: span 2; margin-top: 10px; border-radius: 12px;">Approve Override</button>
+               </form>
 
+               <div style="border-top: 1px solid rgba(255,255,255,0.05); margin: 25px 0;"></div>
 
-            <!-- LAYER 3: SECURITY CREDENTIALS -->
-            <div class="protocol-card">
-              <div class="protocol-header">
-                <div class="protocol-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                </div>
-                <span class="protocol-title">Security Credentials</span>
-              </div>
-              <form id="update-password-form" class="identity-grid">
-                <div class="input-box" style="margin: 0;"><input type="password" id="current-password" placeholder="Current Passcode" required style="border-radius: 20px; background: rgba(255,255,255,0.02);" /></div>
-                <div class="input-box" style="margin: 0;"><input type="password" id="new-password" placeholder="New Passcode" required style="border-radius: 20px; background: rgba(255,255,255,0.02);" /></div>
-                <button type="submit" class="primary-btn" style="grid-column: span 2; margin-top: 10px;">Synchronize New Credentials</button>
-              </form>
-            </div>
+               <h4 style="color:#aaa; font-size: 0.8rem; margin-bottom: 15px; text-transform: uppercase;">Active Sessions Matrix</h4>
+               <ul class="session-list">
+                 <li>
+                   <div class="session-icon">💻</div>
+                   <div class="session-info">
+                     <p>Web Terminal • Windows <span class="tag-current">Current Session</span></p>
+                     <p class="session-meta">Local Enclave • Active Now</p>
+                   </div>
+                 </li>
+                 <li>
+                   <div class="session-icon" style="color: var(--text-dim);">📱</div>
+                   <div class="session-info">
+                     <p style="color: var(--text-dim);">Foreign Mobile Link</p>
+                     <p class="session-meta">Last Synced: 2 hours ago</p>
+                   </div>
+                 </li>
+               </ul>
 
-            <!-- LAYER 4: DANGER ZONE -->
-            <div class="protocol-card danger-zone">
-              <div class="protocol-header">
-                <div class="protocol-icon" style="background: rgba(255,71,87,0.1); color: var(--danger);">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </div>
-                <span class="protocol-title" style="color: var(--danger);">Terminal Access Destruction</span>
-              </div>
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                  <p style="font-weight: 700; color: var(--danger); margin-bottom: 5px;">Terminate Identity</p>
-                  <p style="font-size: 0.8rem; color: var(--text-dim);">Permanently remove this identity and all vault data from the terminal.</p>
-                </div>
-                <button class="danger-btn" onclick="terminateIdentity()">Destroy Access</button>
-              </div>
-            </div>
+               <button class="action-btn pulse-hover" style="width:100%; justify-content:center; margin-top:20px; background:rgba(255,255,255,0.05);" onclick="showToast('Connection to foreign terminals severed.', 'success')">Disconnect Other Terminals</button>
+             </div>
+
+             <!-- Activity Heartbeat / Heatmap -->
+             <div class="premium-card">
+               <div class="card-heading">Signal Intelligence (Activity)</div>
+               <div class="activity-timeline">
+                 <div class="timeline-item">
+                   <div class="timeline-dot success"></div>
+                   <div class="timeline-content">
+                     <p><strong>Terminal Access Approved</strong></p>
+                     <p class="time">Just now • Primary Node</p>
+                   </div>
+                 </div>
+                 <div class="timeline-item">
+                   <div class="timeline-dot upload"></div>
+                   <div class="timeline-content">
+                     <p><strong>Keys Initialized</strong></p>
+                     <p class="time">Session Launch</p>
+                   </div>
+                 </div>
+                 <div class="timeline-item">
+                   <div class="timeline-dot info"></div>
+                   <div class="timeline-content">
+                     <p><strong>Identity Configurations Pulled</strong></p>
+                     <p class="time">Previous Session</p>
+                   </div>
+                 </div>
+               </div>
+
+               <!-- Heatmap Generation Container -->
+               <div class="heatmap-container" style="margin-top: 30px;">
+                 <p style="font-size: 0.7rem; color:var(--text-dim); text-transform:uppercase; margin-bottom: 12px; font-weight: 700;">Activity Heatmap (Last 30 Days)</p>
+                 <div class="heatmap-grid" id="activity-heatmap"></div>
+               </div>
+             </div>
+
+             <!-- Danger Zone -->
+             <div class="premium-card danger-card">
+               <div class="card-heading" style="color:var(--danger)">Terminal Destruction Protocol</div>
+               <p style="font-size: 0.85rem; color: var(--text-dim); margin-bottom: 20px;">Permanent deletion of all records. To authorize disintegration, type <strong>DELETE</strong> below.</p>
+               <div style="display: flex; gap: 10px;">
+                 <input type="text" id="delete-confirm-input" placeholder="Type DELETE" style="border-color: rgba(255,71,87,0.2); background: rgba(255,71,87,0.05); text-align: center; font-weight: 900; letter-spacing: 2px; color: var(--danger);" onkeyup="document.getElementById('btn-destroy').disabled = this.value !== 'DELETE';" />
+                 <button id="btn-destroy" class="pulse-danger" style="flex-shrink: 0;" onclick="terminateIdentity()" disabled>Destroy Base</button>
+               </div>
+             </div>
 
           </div>
         </div>
-      </div>
+      </div> <!-- END SECTION PROFILE -->
     </main>
+
+    <!-- COMPANION PANEL: STORAGE & DRAG-AND-DROP HUD (Persistent Peripheral) -->
+    <div class="companion-panel">
+        <div class="companion-header">
+            <h3>Storage Protocol</h3>
+            <p>2.5 GB Secure Limit</p>
+        </div>
+        <div class="storage-hub">
+            <div class="usage-stats">
+                <span id="storage-usage-text">0.00 MB used</span>
+                <span id="storage-percent">0%</span>
+            </div>
+            <div class="progress-track">
+                <div id="storage-bar" class="progress-fill" style="width: 0%"></div>
+            </div>
+        </div>
+        <div class="drop-zone-container" id="vault-drop-zone">
+            <div class="drop-zone-content">
+                <div class="drop-icon">📂</div>
+                <h4>Ingest New Record</h4>
+                <p>Drag and drop your files here to encrypt and secure them instantly in your vault.</p>
+                <div class="drop-hint">Drop zone active: Scanning...</div>
+            </div>
+        </div>
+        <div class="companion-footer">
+            <p>Enterprise Quota Active • All transmissions are client-side encrypted.</p>
+        </div>
+    </div>
   </div>
 
   <!-- REDESIGNED MODALS -->
@@ -381,12 +659,12 @@
         </select>
         <div style="background:rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); padding: 50px 20px; border-radius: 24px; text-align: center; cursor: pointer; margin-bottom: 2rem; transition: 0.3s; overflow: hidden;" 
              onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'"
-             onclick="document.getElementById('file-input').click()">
-          <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name; document.getElementById('file-label').style.color='#fff'" />
-          <p id="file-label" style="color:#555; font-size: 0.9rem; font-weight: 500; word-break: break-all; margin: 0; line-height: 1.4;">Drop record or click to browse</p>
+             onclick="triggerSecureFileInput()">
+          <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name; document.getElementById('file-label').style.color='#000'; document.getElementById('file-label').style.fontWeight='900'" onclick="event.stopPropagation()" />
+          <p id="file-label" style="color:#000; font-size: 1rem; font-weight: 900; word-break: break-all; margin: 0; line-height: 1.4; text-transform: uppercase;">Drop record or click to browse</p>
         </div>
         <div class="btn-row">
-          <button type="button" class="modal-secondary-btn" onclick="closeModal('upload-modal')">Abort</button>
+          <button type="button" class="modal-secondary-btn" onclick="closeModal('upload-modal')">Close</button>
           <button type="submit" class="primary-btn" id="upload-submit-btn">Transmit</button>
         </div>
       </form>
@@ -394,24 +672,78 @@
   </div>
 
   <div id="share-modal" class="modal hidden">
-    <div class="modal-content">
-      <h3 style="margin-bottom: 2rem;">Secure Transmission</h3>
-      <div id="share-step-input">
-        <div class="input-box"><input type="email" id="share-email" placeholder="Recipient address" class="modal-input" required /></div>
-        <div style="margin-bottom: 2rem; display:flex; align-items:center; gap:10px;">
-          <input type="checkbox" id="share-downloadable" checked style="width:20px; height:20px;" />
-          <label for="share-downloadable" style="color:var(--text-dim); font-size:0.8rem;">Enable Receipt Download</label>
+    <div class="modal-content security-portal">
+      <h3 class="portal-title" style="margin-bottom: 8px;">Secure Transmission</h3>
+      <p class="portal-desc" style="margin-bottom: 24px;">Initialize a cryptographic share protocol for this record.</p>
+
+      <!-- Step: Selection -->
+      <div id="share-step-select" class="share-step">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 20px;">
+          <div class="share-option-card" onclick="initShareMethod('link')">
+            <div class="option-icon">🔗</div>
+            <h4>Secure Link</h4>
+          </div>
+          <div class="share-option-card" onclick="initShareMethod('app')">
+            <div class="option-icon">🧬</div>
+            <h4>In-Vault</h4>
+          </div>
         </div>
-        <div class="btn-row">
-          <button class="modal-secondary-btn" onclick="closeModal('share-modal')">Cancel</button>
-          <button class="primary-btn" onclick="generateShareLink(this)">Generate Key</button>
+        <div class="btn-group-portal" style="margin-top: 32px;">
+          <button class="portal-btn secondary" style="width: 100%;" onclick="closeModal('share-modal')">CLOSE</button>
         </div>
       </div>
-      <div id="share-step-result" class="hidden">
-        <p style="color:#666; font-size:0.8rem; margin-bottom: 1rem;">Link Key generated successfully:</p>
-        <div id="generated-share-link" style="background:#000; padding:20px; border-radius:12px; font-family:monospace; margin-bottom: 2rem; word-break: break-all;"></div>
-        <button class="primary-btn" onclick="copyShareLink()">Copy Key & Terminate</button>
+
+      <!-- Step: Internal Share -->
+      <div id="share-step-app" class="share-step hidden">
+        <div class="input-field" style="margin-bottom: 20px;">
+          <label style="color: #64748b; font-weight: 850; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; display: block; text-align: left;">Recipient Identity</label>
+          <input type="email" id="share-app-email" class="modal-input" style="width: 100%; border-radius: 14px;" placeholder="agent@vault.com" />
+        </div>
+        <p style="color: #64748b; font-weight: 850; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; text-align: left;">Identity Role Registry</p>
+        <div class="permission-checkbox-group">
+            <div class="perm-checkbox-item">
+                <input type="checkbox" id="app-role-viewer" checked onclick="togglePermissionRole('viewer', 'app')">
+                <label for="app-role-viewer">Vault Viewer (Read-Only)</label>
+            </div>
+            <div class="perm-checkbox-item">
+                <input type="checkbox" id="app-role-editor" onclick="togglePermissionRole('editor', 'app')">
+                <label for="app-role-editor">Vault Editor (Download)</label>
+            </div>
+        </div>
+        <div class="btn-group-portal" style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+          <button class="portal-btn secondary" onclick="showShareStep('select')">BACK</button>
+          <button class="portal-btn primary" onclick="executeInternalShare()">TRANSMIT RECORD</button>
+        </div>
       </div>
+
+      <!-- Step: Link Share -->
+      <div id="share-step-link" class="share-step hidden">
+        <p style="color: #64748b; font-weight: 850; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 12px; text-align: left;">Identity Role Registry</p>
+        <div class="permission-checkbox-group">
+            <div class="perm-checkbox-item">
+                <input type="checkbox" id="role-viewer" checked onclick="togglePermissionRole('viewer')">
+                <label for="role-viewer">Vault Viewer (Read-Only)</label>
+            </div>
+            <div class="perm-checkbox-item">
+                <input type="checkbox" id="role-editor" onclick="togglePermissionRole('editor')">
+                <label for="role-editor">Vault Editor (Download)</label>
+            </div>
+        </div>
+        <div class="btn-group-portal" style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
+          <button class="portal-btn secondary" onclick="showShareStep('select')">BACK</button>
+          <button class="portal-btn primary" onclick="executeLinkShare()">GENERATE PROTOCOL</button>
+        </div>
+      </div>
+
+      <!-- Step: Result -->
+      <div id="share-step-result" class="share-step hidden">
+        <div style="text-align: center;">
+            <p id="share-result-msg" style="color:var(--text-dim); font-size:0.7rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 850;">Protocol Manifested:</p>
+            <div id="generated-share-link" style="margin-bottom: 24px; text-align: left;"></div>
+            <button class="portal-btn primary" style="width: 100%; border-radius: 12px; font-size: 0.9rem;" onclick="copyShareLink()">COPY KEY & TERMINATE</button>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -419,7 +751,7 @@
     <div class="modal-content" style="text-align:center;">
       <h3 id="confirm-msg" style="margin-bottom: 2rem; word-wrap: break-word;">Confirm Operation?</h3>
       <div class="btn-row">
-        <button id="confirm-cancel-btn" class="modal-secondary-btn">Abort</button>
+        <button id="confirm-cancel-btn" class="modal-secondary-btn">Close</button>
         <button id="confirm-ok-btn" class="primary-btn danger">Confirm</button>
       </div>
     </div>
@@ -454,72 +786,75 @@
   </div>
 
   <div id="pin-modal" class="modal hidden">
-    <div class="modal-content" style="background: rgba(12,12,18,0.7); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05); max-width: 380px; padding: 40px; text-align: center; position: relative;">
-      
-      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(0,240,255,0.15), rgba(0,240,255,0.05)); border: 1px solid rgba(0,240,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 0 30px rgba(0,240,255,0.15);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-cyan)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    <div class="modal-content dark-security-portal">
+      <div class="dark-portal-icon" style="width: 54px; height: 54px; margin-bottom: 15px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
       </div>
 
-      <h3 style="margin-bottom: 8px; font-size: 1.4rem; color: #fff; font-weight: 600; font-family: var(--font-heading);">Security Verification</h3>
-      <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 25px; line-height: 1.5;">Enter your secure PIN to authenticate and decrypt this stream.</p>
+      <h3 class="dark-portal-title" style="font-size: 1.2rem !important; margin-bottom: 4px !important;">Security PIN</h3>
+      <p class="dark-portal-desc" style="font-size: 0.75rem !important; margin-bottom: 20px !important;">Authorize access by entering your secure PIN.</p>
       
-      <div style="margin-bottom: 25px;">
-        <input type="password" style="-webkit-text-security: disc; width: 100%; padding: 15px 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 1.4rem; font-family: monospace; text-align: center; letter-spacing: 10px; transition: 0.3s;" id="modal-pin-input" placeholder="••••••" maxlength="6" autocomplete="new-password" onfocus="this.style.borderColor='var(--accent-cyan)'; this.style.boxShadow='0 0 0 3px rgba(0,240,255,0.15)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.boxShadow='none';"/>
+      <div class="pin-entry-zone">
+        <input type="password" id="modal-pin-input" class="dark-portal-input dark-portal-pin" placeholder="••••••" maxlength="6" autocomplete="off" />
       </div>
       
       <div style="display: flex; gap: 12px;">
-        <button style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: none; border-radius: 10px; color: #bbb; cursor: pointer; transition: 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'" onclick="if(window.abortPIN) window.abortPIN()">Abort</button>
-        <button id="pin-verify-btn" style="flex: 1; padding: 12px; background: var(--accent-cyan); border: none; border-radius: 10px; color: #000; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(0,240,255,0.2);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">Verify</button>
+        <button class="dark-portal-btn secondary" onclick="if(window.abortPIN) window.abortPIN()">CLOSE</button>
+        <button id="pin-verify-btn" class="dark-portal-btn primary">VERIFY</button>
       </div>
     </div>
   </div>
 
   <div id="unlock-modal" class="modal hidden">
-    <div class="modal-content" style="background: rgba(12,12,18,0.7); backdrop-filter: blur(40px); border: 1px solid rgba(255,255,255,0.08); border-radius: 28px; box-shadow: 0 30px 80px rgba(0,0,0,0.8), inset 0 1px 0 rgba(255,255,255,0.05); max-width: 420px; padding: 40px; text-align: center; position: relative;">
-      
-      <div style="width: 64px; height: 64px; background: linear-gradient(135deg, rgba(230,50,255,0.15), rgba(230,50,255,0.05)); border: 1px solid rgba(230,50,255,0.3); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px auto; box-shadow: 0 0 30px rgba(230,50,255,0.15);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--accent-purple)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 10c-.83 0-1.5-.67-1.5-1.5v-5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5v5c0 .83-.67 1.5-1.5 1.5z"></path><path d="M20.5 10H19V8.5c0-2.48-2.02-4.5-4.5-4.5S10 6.02 10 8.5V10H8.5C7.12 10 6 11.12 6 12.5v7C6 20.88 7.12 22 8.5 22h12c1.38 0 2.5-1.12 2.5-2.5v-7c0-1.38-1.12-2.5-2.5-2.5z"></path></svg>
-      </div>
+    <div class="modal-content dark-security-portal compact-portal">
 
-      <h3 style="margin-bottom: 8px; font-size: 1.4rem; color: #fff; font-weight: 600; font-family: var(--font-heading);">Protocol: Secure Unlock</h3>
+
+      <h3 class="dark-portal-title">Secure Unlock</h3>
       
       <!-- Step 1: Transmission Key -->
       <div id="unlock-step-1">
-        <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 25px; line-height: 1.5;">Provide the unique <b>Transmission Key</b> from the sender to manifest the data stream.</p>
+        <p class="dark-portal-desc">Enter the unique <b>Transmission Key</b>.</p>
         <div style="margin-bottom: 25px;">
-          <input type="password" id="unlock-key-input" placeholder="Transmission Key" style="width: 100%; padding: 15px 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 1.1rem; text-align: center; transition: 0.3s;" onfocus="this.style.borderColor='var(--accent-purple)'; this.style.boxShadow='0 0 0 3px rgba(230,50,255,0.15)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.boxShadow='none';" />
+          <input type="password" id="unlock-key-input" placeholder="Transmission Key" class="dark-portal-input" style="height: 58px;" />
         </div>
-        <div style="display: flex; gap: 12px;">
-          <button style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: none; border-radius: 10px; color: #bbb; cursor: pointer; transition: 0.2s;" onclick="closeModal('unlock-modal')" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Cancel</button>
-          <button style="flex: 1; padding: 12px; background: var(--accent-purple); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(230,50,255,0.2);" onclick="processUnlockStep1()" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">Decrypt Metadata</button>
+        <div style="display: flex; gap: 15px;">
+          <button class="dark-portal-btn secondary" onclick="closeModal('unlock-modal')">Cancel</button>
+          <button class="dark-portal-btn primary" onclick="processUnlockStep1()">Unlock</button>
         </div>
       </div>
 
       <!-- Step 2: User Security PIN -->
       <div id="unlock-step-2" class="hidden">
-        <p style="color: rgba(255,255,255,0.5); font-size: 0.85rem; margin-bottom: 25px; line-height: 1.5;">Authenticate with your <b>Security PIN</b> to decrypt the secure stream.</p>
+        <p class="dark-portal-desc">Authenticate with your <b>Security PIN</b>.</p>
         <div style="margin-bottom: 25px;">
-          <input type="password" style="-webkit-text-security: disc; width: 100%; padding: 15px 20px; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; color: #fff; font-size: 1.4rem; font-family: monospace; text-align: center; letter-spacing: 10px; transition: 0.3s;" id="unlock-pin-input" placeholder="••••••" maxlength="6" autocomplete="new-password" onfocus="this.style.borderColor='var(--accent-purple)'; this.style.boxShadow='0 0 0 3px rgba(230,50,255,0.15)';" onblur="this.style.borderColor='rgba(255,255,255,0.1)'; this.style.boxShadow='none';" />
+          <input type="password" class="dark-portal-input dark-portal-pin" id="unlock-pin-input" placeholder="••••••" maxlength="6" autocomplete="new-password" style="letter-spacing: 12px; font-size: 1.5rem; height: 64px;" />
         </div>
-        <div style="display: flex; gap: 12px;">
-          <button style="flex: 1; padding: 12px; background: rgba(255,255,255,0.05); border: none; border-radius: 10px; color: #bbb; cursor: pointer; transition: 0.2s;" onclick="closeModal('unlock-modal')" onmouseover="this.style.background='rgba(255,255,255,0.08)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Abort</button>
-          <button style="flex: 1; padding: 12px; background: var(--accent-purple); border: none; border-radius: 10px; color: #fff; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 5px 15px rgba(230,50,255,0.2);" onclick="processUnlockStep2()" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='none'">Finalize Access</button>
+        <div style="display: flex; gap: 15px;">
+          <button class="dark-portal-btn secondary" onclick="closeModal('unlock-modal')">Close</button>
+          <button class="dark-portal-btn primary" onclick="processUnlockStep2()">Finalize</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="file-view-modal" class="modal hidden" style="background: rgba(5,5,8,0.7); backdrop-filter: blur(25px); align-items: flex-start; justify-content: center; padding: 0;">
-    <div style="width: 100%; height: 100vh; display: flex; flex-direction: column;">
-      <div style="display:flex; justify-content:space-between; align-items:center; padding: 15px 30px; background: transparent; border: none; gap: 20px; z-index: 10;">
-        <h3 id="view-filename" style="margin:0; font-size: 1.1rem; color: #fff; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; line-height: 1.2; font-family: var(--font-main);">File Display</h3>
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <button id="view-download-btn" class="action-btn hidden" style="background: var(--accent-cyan); color: #000; border: none; padding: 10px 20px; font-weight: 700;">Download Receipt</button>
-          <button id="view-close-btn" class="action-btn" onclick="closeModal('file-view-modal')" style="background: rgba(255,255,255,0.08); padding: 10px 20px; white-space: nowrap;">Close Access</button>
+  <!-- REDESIGNED FILE VIEWER: CRYSTAL DOCUMENT HUB -->
+  <div id="file-view-modal" class="modal hidden" style="z-index: 1500;">
+    <div class="modal-content modern-viewer">
+      <div class="viewer-header">
+        <div class="viewer-meta">
+          <h3 id="view-filename" class="viewer-title">Establishing Secure Stream...</h3>
+          <p class="viewer-subtitle">Verified Identity Encryption Active</p>
+        </div>
+        <div class="viewer-controls">
+          <button id="view-download-btn" class="viewer-ctrl-btn primary hidden">DOWNLOAD</button>
+          <button id="view-close-btn" class="viewer-ctrl-btn secondary" onclick="closeModal('file-view-modal')">CLOSE</button>
         </div>
       </div>
-      <div id="view-content" style="flex: 1; overflow: auto; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; padding: 40px; position: relative;">
-        <p style="color:#aaa;">Establishing Secure Feed...</p>
+      <div id="view-content" class="viewer-body">
+        <div class="viewer-loader">
+          <div class="loader-pulse"></div>
+          <p>Decrypting secure record stream...</p>
+        </div>
       </div>
     </div>
   </div>
