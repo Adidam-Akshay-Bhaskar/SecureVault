@@ -1159,6 +1159,13 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
   header h1 { font-size: 1.6rem !important; margin-bottom: 0 !important; line-height: 1.2 !important; }
   header p { font-size: 0.75rem !important; opacity: 0.6 !important; }
   
+  /* Profile Enclave Mobile Optimization */
+  .profile-header-premium { flex-direction: column !important; align-items: flex-start !important; padding: 25px 20px !important; gap: 24px !important; }
+  .profile-header-info { text-align: left !important; }
+  .profile-grid-architecture { grid-template-columns: 1fr !important; gap: 20px !important; }
+  .profile-actions-row { gap: 10px !important; }
+  .status-badge { font-size: 0.7rem !important; padding: 4px 10px !important; }
+  
   /* Grids & Cards */
   .vault-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
   .folder-card { width: 100% !important; min-height: 110px !important; padding: 15px !important; }

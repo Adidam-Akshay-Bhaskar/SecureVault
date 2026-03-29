@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=45" />
+  <link rel="stylesheet" href="style.css?v=46" />
   <link rel="icon" type="image/x-icon" href="vaultlogo.png?v=3" />
   <link rel="shortcut icon" type="image/x-icon" href="vaultlogo.png?v=3" />
   <!-- UNIVERSAL RENDERING CONDUITS -->
@@ -319,6 +319,11 @@
             <path d="M18 18l-4 4 4 4" stroke="#10b981" stroke-width="3" stroke-linecap="round"/>
             <path d="M30 26l4-4-4-4" stroke="#f43f5e" stroke-width="3" stroke-linecap="round"/>
           </svg> <span class="nav-text" style="font-weight: 800;">Incoming Data</span>
+        </div>
+        <div class="nav-item" onclick="showView('profile')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+          </svg> <span class="nav-text" style="font-weight: 800;">Identity Profile</span>
         </div>
         <div class="nav-item" onclick="showView('recycle-bin')">
           <svg class="nav-icon" viewBox="0 0 48 48" fill="none">
@@ -866,7 +871,7 @@
   </div>
 
   <div id="toast-container"></div>
-  <script src="app.js?v=46"></script>
+  <script src="app.js?v=47"></script>
   <div id="folder-explorer-modal" class="modal hidden">
     <div class="modal-content" style="max-width: 98vw; width: 96vw; height: 92vh; display: flex; flex-direction: column;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
