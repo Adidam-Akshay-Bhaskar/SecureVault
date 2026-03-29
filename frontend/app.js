@@ -118,9 +118,9 @@ function showToast(message, type = "success") {
   if (!container) return;
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<span style="font-size: 1rem;">${type === "error" ? "⚠️" : "✨"}</span><span>${message}</span>`;
+  toast.innerHTML = `<span>${message}</span>`;
   container.appendChild(toast);
-  setTimeout(() => toast.remove(), 3500);
+  setTimeout(() => toast.remove(), 2500);
 }
 
 function truncateName(name, limit = 42) {
@@ -437,7 +437,7 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
       }
       
       // Rapid Identity Transition: Transition to vault within milliseconds
-      showToast("Access Granted - Synchronizing Credentials");
+      showToast("Access Granted");
       
       // Execute UI swap and profile sync immediately
       loadProfile(); 
@@ -447,9 +447,9 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
       if (document.activeElement) document.activeElement.blur();
       e.target.reset();
     } else {
-      showToast(data.message || "Failed to authenticate", "error");
+      showToast(data.message || "Error", "error");
     }
-  } catch (err) { showToast("Connection Failed", "error"); }
+  } catch (err) { showToast("Error", "error"); }
   finally { btn.textContent = orig; btn.disabled = false; }
 });
 
@@ -472,14 +472,14 @@ document.getElementById("verify-pin-form").addEventListener("submit", async (e) 
            "jwk", JSON.parse(data.user.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
          );
       }
-      showToast("Identity Verified"); 
+      showToast("Verified"); 
       loadProfile(); 
       showView("my-vault");
       if (document.activeElement) document.activeElement.blur();
       e.target.reset();
 
-    } else showToast(data.message || "Verification failed", "error");
-  } catch (err) { showToast("Security link broken", "error"); }
+    } else showToast(data.message || "Error", "error");
+  } catch (err) { showToast("Error", "error"); }
   finally { btn.disabled = false; btn.textContent = orig; }
 });
 
@@ -502,11 +502,11 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
     });
     const data = await res.json();
     if (res.ok) {
-      showToast("Account Initialized");
+      showToast("Created");
       e.target.reset();
       toggleAuthMode("login");
     } else showToast(data.message, "error");
-  } catch { showToast("Registration failure", "error"); }
+  } catch { showToast("Error", "error"); }
   finally { btn.disabled = false; btn.textContent = orig; }
 });
 
@@ -525,7 +525,7 @@ document.getElementById("recover-form").addEventListener("submit", async (e) => 
     const data = await res.json();
     showToast(data.message);
     if (res.ok) toggleAuthMode("login");
-  } catch (err) { showToast("Transmission failure", "error"); }
+  } catch (err) { showToast("Error", "error"); }
   finally { btn.disabled = false; btn.textContent = orig; }
 });
 
@@ -537,7 +537,7 @@ document.getElementById("reset-form").addEventListener("submit", async (e) => {
   const confirmValue = document.getElementById("reset-confirm-value").value;
 
   if (newValue !== confirmValue) {
-    return showToast("Protocol Discrepancy: Values do not match", "error");
+    return showToast("Mismatch", "error");
   }
 
   const btn = e.target.querySelector("button");
@@ -997,7 +997,7 @@ async function restoreFile(fileId) {
       });
       showToast("Record successfully restored.");
       loadRecycleBin();
-    } catch (err) { showToast("Restore failed.", "error"); }
+    } catch (err) { showToast("Error", "error"); }
   }
 }
 
@@ -1012,9 +1012,9 @@ async function permanentDeleteFile(fileId) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         body: JSON.stringify({ fileId }),
       });
-      showToast("Record permanently erased from terminal storage.");
+      showToast("Deleted");
       loadRecycleBin();
-    } catch (err) { showToast("Purge failed.", "error"); }
+    } catch (err) { showToast("Error", "error"); }
   }
 }
 
@@ -1026,7 +1026,7 @@ async function confirmAction(msg, type = "primary") {
 
 async function deleteFile(id, keyStr, filename, confirmedAlready = false) {
   if (!confirmedAlready) {
-    const conf = await showConfirm(`Are you sure you want to PERMANENTLY delete this file?`, "danger");
+    const conf = await showConfirm(`Delete this file?`, "danger");
     if (!conf) return;
   }
   
@@ -1035,7 +1035,7 @@ async function deleteFile(id, keyStr, filename, confirmedAlready = false) {
     body: JSON.stringify({ fileId: id })
   });
   silentSync();
-  showToast("Record Terminalized", "success");
+  showToast("Deleted");
 }
 
 // PIN-Gated wrappers for main vault file actions
@@ -1054,7 +1054,7 @@ async function gatedShare(fileId, filename, encKey) {
   openShareModal(fileId, filename, encKey);
 }
 async function gatedDelete(fileId, encKey, filename) {
-  const conf = await showConfirm(`Move this file to Recycle Bin? It will be permanently purged in 7 days.`, "danger");
+  const conf = await showConfirm(`Delete this file?`, "danger");
   if (!conf) return;
   if (!(await verifyPIN())) return;
   
@@ -1065,11 +1065,11 @@ async function gatedDelete(fileId, encKey, filename) {
       body: JSON.stringify({ fileId }),
     });
     if (res.ok) {
-      showToast("Record moved to Recycle Bin.", "success");
+      showToast("Deleted");
       loadFiles(); 
       silentSync();
     } else {
-      showToast("Deletion protocol failed.", "error");
+      showToast("Error", "error");
     }
   } catch (err) { console.error(err); }
 }
@@ -1101,7 +1101,7 @@ function verifyPIN() {
           verifyBtn.onclick = null;
           resolve(true);
         } else {
-          showToast(data.message || "Invalid PIN", "error");
+          showToast("Invalid", "error");
         }
       } catch (err) { resolve(false); }
     };
@@ -1124,10 +1124,10 @@ async function deleteSharedLink(id) {
   const verified = await verifyPIN();
   if (!verified) return;
   
-  showToast("Suspending shared access...");
+  showToast("Deleting...");
   await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
   loadFiles();
-  showToast("Record removed from feed", "success");
+  showToast("Deleted");
 }
 
 // ==========================================
@@ -1154,7 +1154,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
   if (!file) return;
 
   if (currentTotalUsage + file.size > MAX_STORAGE_BYTES) {
-    return showToast("Storage protocol violation: 2.5GB limit reached.", "error");
+    return showToast("Limit reached", "error");
   }
 
   const btn = e.target.querySelector(".primary-btn");
@@ -1182,7 +1182,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
         folderId: folderId || null
       }),
     });
-    showToast("Transmission Successful"); 
+    showToast("Uploaded"); 
     closeModal("upload-modal"); 
     silentSync();
   } catch (err) { showToast("Error: " + err.message, "error"); }
@@ -1209,7 +1209,7 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
     const dec = await decryptFile(new Uint8Array(encryptedBlob), fk);
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([dec])); a.download = filename; a.click();
     showToast("Download Initialized");
-  } catch (err) { showToast("Download failed", "error"); }
+  } catch (err) { showToast("Error", "error"); }
 }
 
 async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null, canDownload = true, linkId = null) {
@@ -1244,7 +1244,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         await fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
         closeModal('file-view-modal');
         loadFiles();
-        showToast("Shared access terminated and record cleared", "info");
+        showToast("Access closed", "info");
       } catch (err) { closeModal('file-view-modal'); }
     };
   } else {

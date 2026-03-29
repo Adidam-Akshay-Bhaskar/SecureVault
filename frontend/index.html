@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=49" />
+  <link rel="stylesheet" href="style.css?v=50" />
   <link rel="icon" type="image/x-icon" href="vaultlogo.png?v=3" />
   <link rel="shortcut icon" type="image/x-icon" href="vaultlogo.png?v=3" />
   <!-- UNIVERSAL RENDERING CONDUITS -->
@@ -159,7 +159,7 @@
                   Back
                 </button>
                 <h1>Sign In</h1>
-                <p>Enter your credentials to access the vault.</p>
+                <p>Welcome back.</p>
               </div>
               <form id="login-form" name="login" action="javascript:void(0);" method="POST">
                 <div class="input-field">
@@ -187,7 +187,7 @@
                   Back
                 </button>
                 <h1>Sign Up</h1>
-                <p>Provision a new secure identity.</p>
+                <p>Create an account.</p>
               </div>
               <form id="register-form" action="#" method="POST">
                 <div class="input-field">
@@ -218,8 +218,8 @@
             <!-- PIN Verification Form -->
             <div id="verify-form-container" class="hidden">
               <div class="verify-header">
-                <h2>Security Challenge</h2>
-                <p>Sequence required to decrypt the vault key.</p>
+                <h2>Enter PIN</h2>
+                <p>Access required.</p>
               </div>
               <form id="verify-pin-form" class="premium-form" autocomplete="off">
                 <div class="pin-input-field">
@@ -258,8 +258,8 @@
             <!-- Reset Execution Form -->
             <div id="reset-form-container" class="hidden">
               <div class="verify-header" style="margin-bottom: 30px;">
-                <h2 id="reset-title" style="margin-bottom: 10px;">Reset Credential</h2>
-                <p>Establish a new secure protocol.</p>
+                <h2 id="reset-title" style="margin-bottom: 10px;">Update Password</h2>
+                <p>Set new values.</p>
               </div>
               <form id="reset-form">
                 <div class="input-field" style="margin-bottom: 20px; position: relative;">
@@ -749,7 +749,7 @@
       <!-- Step: Result -->
       <div id="share-step-result" class="share-step hidden">
         <div style="text-align: center;">
-            <p id="share-result-msg" style="color:var(--text-dim); font-size:0.7rem; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 850;">Protocol Manifested:</p>
+            <p id="share-result-msg" style="color:var(--text-dim); font-size:0.7rem; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800;">Link Created:</p>
             <div id="generated-share-link" style="margin-bottom: 24px; text-align: left;"></div>
             <button class="portal-btn primary" style="width: 100%; border-radius: 12px; font-size: 0.9rem;" onclick="copyShareLink()">COPY KEY & TERMINATE</button>
         </div>
@@ -853,8 +853,8 @@
     <div class="modal-content modern-viewer">
       <div class="viewer-header">
         <div class="viewer-meta">
-          <h3 id="view-filename" class="viewer-title">Establishing Secure Stream...</h3>
-          <p class="viewer-subtitle">Verified Identity Encryption Active</p>
+          <h3 id="view-filename" class="viewer-title">Loading...</h3>
+          <p class="viewer-subtitle">Secure</p>
         </div>
         <div class="viewer-controls">
           <button id="view-download-btn" class="viewer-ctrl-btn primary hidden">DOWNLOAD</button>
@@ -864,14 +864,14 @@
       <div id="view-content" class="viewer-body">
         <div class="viewer-loader">
           <div class="loader-pulse"></div>
-          <p>Decrypting secure record stream...</p>
+          <p>Loading...</p>
         </div>
       </div>
     </div>
   </div>
 
   <div id="toast-container"></div>
-  <script src="app.js?v=50"></script>
+  <script src="app.js?v=51"></script>
   <div id="folder-explorer-modal" class="modal hidden">
     <div class="modal-content" style="max-width: 98vw; width: 96vw; height: 92vh; display: flex; flex-direction: column;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
