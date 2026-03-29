@@ -436,15 +436,16 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
          );
       }
       
-      // Browser Heuristic: Wait for toast and identity capture before view swap
+      // Rapid Identity Transition: Transition to vault within milliseconds
       showToast("Access Granted - Synchronizing Credentials");
       
-      setTimeout(async () => {
-        await loadProfile();
-        showView("my-vault");
-        // Reset only after transition to let manager capture data
-        setTimeout(() => e.target.reset(), 200);
-      }, 500);
+      // Execute UI swap and profile sync immediately
+      loadProfile(); 
+      showView("my-vault");
+      
+      // Neutralize distractions: Clear credentials and blur to discourage browser manager prompts
+      if (document.activeElement) document.activeElement.blur();
+      e.target.reset();
     } else {
       showToast(data.message || "Failed to authenticate", "error");
     }
@@ -471,7 +472,12 @@ document.getElementById("verify-pin-form").addEventListener("submit", async (e) 
            "jwk", JSON.parse(data.user.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
          );
       }
-      showToast("Identity Verified"); await loadProfile(); showView("my-vault");
+      showToast("Identity Verified"); 
+      loadProfile(); 
+      showView("my-vault");
+      if (document.activeElement) document.activeElement.blur();
+      e.target.reset();
+
     } else showToast(data.message || "Verification failed", "error");
   } catch (err) { showToast("Security link broken", "error"); }
   finally { btn.disabled = false; btn.textContent = orig; }
@@ -579,7 +585,7 @@ function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }
 
 function showView(viewId) {
   currentView = viewId;
-  const sections = ["landing-page", "view-dashboard", "section-my-vault", "section-incoming", "section-profile", "section-recycle-bin"];
+  const sections = ["landing-page", "auth-section", "view-dashboard", "section-my-vault", "section-incoming", "section-profile", "section-recycle-bin"];
   sections.forEach(s => {
     const el = document.getElementById(s);
     if (el) el.classList.add("hidden");
@@ -1337,10 +1343,12 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 pdf.getPage(pageNum).then(page => {
-                    const viewport = page.getViewport({ scale: 2.5 });
+                    const isMobile = window.innerWidth < 768;
+                    const viewport = page.getViewport({ scale: isMobile ? 3.0 : 2.5 });
                     const canvas = document.createElement("canvas");
                     canvas.className = "pdf-page-canvas";
-                    canvas.style.width = "75%"; canvas.style.marginBottom = "30px";
+                    canvas.style.width = isMobile ? "100%" : "85%"; 
+                    canvas.style.marginBottom = isMobile ? "15px" : "30px";
                     canvas.style.borderRadius = "0"; canvas.style.boxShadow = "0 30px 60px rgba(0,0,0,0.1)";
                     const context = canvas.getContext('2d');
                     canvas.height = viewport.height; canvas.width = viewport.width;
