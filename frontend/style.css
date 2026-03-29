@@ -445,8 +445,8 @@ input[type="checkbox"]:checked::after {
   box-shadow: 0 15px 40px rgba(0,0,0,0.12); z-index: 4001; pointer-events: auto;
   border-left-width: 6px !important;
 }
-.toast.success { border-left-color: #10B981 !important; color: #1E3A8A !important; }
-.toast.error { border-left-color: #EF4444 !important; color: #7F1D1D !important; }
+.toast.success { border-left-color: #0F172A !important; color: #1E3A8A !important; }
+.toast.error { border-left-color: #0F172A !important; color: #7F1D1D !important; }
 @keyframes slideInTop { from { transform: translateX(100%) translateY(-20px); opacity: 0; } to { transform: translateX(0) translateY(0); opacity: 1; } }
 
 .folder-card {
@@ -1144,10 +1144,13 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
     border-radius: 18px !important;
   }
   
-  /* Scrollbar Optimization: Neat & Clean */
   .sidebar nav::-webkit-scrollbar { height: 3px !important; }
   .sidebar nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2) !important; border-radius: 10px !important; }
   .sidebar nav { scrollbar-width: thin !important; scrollbar-color: rgba(255,255,255,0.2) transparent !important; }
+  
+  /* Elevating System Exit Manifest */
+  .mobile-only-exit { margin-top: -4px !important; }
+  .nav-item { padding: 8px 15px !important; align-items: center !important; }
   
   /* Security Portal: Small Square Hub */
   .dark-security-portal { padding: 35px 25px !important; border-radius: 20px !important; }
