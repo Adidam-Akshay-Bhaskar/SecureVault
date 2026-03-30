@@ -1791,14 +1791,17 @@ async function handleExternalLinkAccess() {
   const token = urlParams.get('token');
   if (!token) return;
 
-  window.history.replaceState({}, document.title, window.location.pathname);
-  const pinVerified = await verifyPIN();
-  if (!pinVerified) return;
-
+  // window.history.replaceState({}, document.title, window.location.pathname);
+  // Removed verifyPIN() as external link access should only require the Transmission Key.
+  
   const modal = document.getElementById("unlock-modal");
   modal.classList.remove("hidden");
+  
+  // Ensure we show step 1
+  document.getElementById("unlock-step-1").classList.remove("hidden");
+  document.getElementById("unlock-step-2").classList.add("hidden");
   const keyInput = document.getElementById("unlock-key-input");
-  const decryptBtn = document.getElementById("unlock-process-btn");
+  const decryptBtn = document.getElementById("unlock-process-btn") || document.querySelector("#unlock-step-1 .primary");
 
   decryptBtn.onclick = async () => {
     const linkKeyHex = keyInput.value.trim();

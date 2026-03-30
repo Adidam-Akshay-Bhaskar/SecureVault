@@ -1150,7 +1150,7 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
   .sidebar nav { scrollbar-width: thin !important; scrollbar-color: rgba(255,255,255,0.2) transparent !important; }
   
   /* Elevating System Exit Manifest */
-  .mobile-only-exit { margin-top: -4px !important; }
+  .mobile-only-exit { margin-top: -12px !important; }
   .nav-item { padding: 8px 15px !important; align-items: center !important; }
   
   /* Security Portal: Small Square Hub */
