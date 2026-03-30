@@ -818,6 +818,7 @@ app.get("/api/recycle-bin", authenticateToken, (req, res) => {
       if (err) return res.status(500).json({ error: err });
       const processed = results.map(f => ({
         ...f,
+        deleted_at: f.deleted_at ? new Date(f.deleted_at).toISOString() : null,
         encrypted_metadata: f.encrypted_metadata ? f.encrypted_metadata.toString("base64") : null
       }));
       res.json(processed);
