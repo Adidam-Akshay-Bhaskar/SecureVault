@@ -1560,6 +1560,9 @@ function openUnlockModal(fileId, linkId, encKey, encMeta, iv, downloadable = fal
   document.getElementById("unlock-step-1").classList.remove("hidden");
   document.getElementById("unlock-step-2").classList.add("hidden");
   document.getElementById("unlock-key-input").value = "";
+  // Reset onclick handler to standard inter-vault protocol
+  const procBtn = document.getElementById("unlock-process-btn");
+  if (procBtn) procBtn.onclick = processUnlockStep1;
 }
 
 async function processUnlockStep1() {
@@ -1791,7 +1794,7 @@ async function handleExternalLinkAccess() {
   const token = urlParams.get('token');
   if (!token) return;
 
-  // window.history.replaceState({}, document.title, window.location.pathname);
+  window.history.replaceState({}, document.title, window.location.pathname);
   // Removed verifyPIN() as external link access should only require the Transmission Key.
   
   const modal = document.getElementById("unlock-modal");
