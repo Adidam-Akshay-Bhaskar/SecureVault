@@ -959,7 +959,7 @@ async function loadRecycleBin() {
     const masterKey = await getClientMasterKey();
     
     recycleBody.innerHTML = "";
-    if (!results || results.length === 0) {
+    if (!results || !Array.isArray(results) || results.length === 0) {
       recycleBody.innerHTML = '<div style="padding: 60px; text-align: center; color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">No administrative records found in safe retention hubs.</div>';
       return;
     }

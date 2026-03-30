@@ -190,17 +190,20 @@ async function ensureAllTables() {
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS theme_preference TEXT DEFAULT 'theme-light'`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS security_pin_hash TEXT`,
     `ALTER TABLE files ADD COLUMN IF NOT EXISTS folder_id INTEGER REFERENCES folders(folder_id) ON DELETE SET NULL`,
+    `ALTER TABLE files ADD COLUMN IF NOT EXISTS is_deleted BOOLEAN DEFAULT FALSE`,
+    `ALTER TABLE files ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP`,
     `ALTER TABLE shared_links ADD COLUMN IF NOT EXISTS downloadable BOOLEAN DEFAULT FALSE`,
   ];
 
   for (const q of createQueries) {
     try { await pool.query(q); } catch (err) { console.error("Schema create error:", err.message); }
   }
+
+  for (const q of migrations) {
+    try { await pool.query(q); } catch (err) { /* column already exists - ignore */ }
+  }
   
-  // MIGRATION: Ensure deleted_at exists
-  pool.query("ALTER TABLE files ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP", (err) => {
-    if (err) console.error("Migration Error:", err.message);
-  });
+
 
   // BACKGROUND TASK: PRUNE RECYCLE BIN (Every 6 Hours)
   const cleanupRecycleBin = () => {
@@ -228,10 +231,6 @@ async function ensureAllTables() {
   };
   setInterval(cleanupRecycleBin, 6 * 60 * 60 * 1000);
   cleanupRecycleBin(); // Initial run
-
-  for (const q of migrations) {
-    try { await pool.query(q); } catch (err) { /* column already exists - ignore */ }
-  }
   console.log("All database tables verified/migrated.");
 }
 
@@ -817,7 +816,11 @@ app.get("/api/recycle-bin", authenticateToken, (req, res) => {
     [req.user.user_id],
     (err, results) => {
       if (err) return res.status(500).json({ error: err });
-      res.json(results);
+      const processed = results.map(f => ({
+        ...f,
+        encrypted_metadata: f.encrypted_metadata ? f.encrypted_metadata.toString("base64") : null
+      }));
+      res.json(processed);
     }
   );
 });
