@@ -1003,7 +1003,7 @@ async function restoreFile(fileId) {
 }
 
 async function permanentDeleteFile(fileId) {
-  if (await confirmAction("DANGER: Permanently purge this record? This cannot be undone.", "danger")) {
+  if (await confirmAction("DANGER: Permanently delete this record? This cannot be undone.", "danger")) {
     const verified = await verifyPIN();
     if (!verified) return;
 
@@ -1020,9 +1020,7 @@ async function permanentDeleteFile(fileId) {
 }
 
 async function confirmAction(msg, type = "primary") {
-  return new Promise((resolve) => {
-    showConfirm(msg, (v) => resolve(v), type);
-  });
+  return await showConfirm(msg, type);
 }
 
 async function deleteFile(id, keyStr, filename, confirmedAlready = false) {
