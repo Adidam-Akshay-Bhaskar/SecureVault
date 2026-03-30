@@ -12,6 +12,7 @@ let currentExplorerFolderId = null;
 // STORAGE LIMIT: 2.5 GB
 const MAX_STORAGE_BYTES = 2.5 * 1024 * 1024 * 1024;
 let currentTotalUsage = 0;
+let currentBlobUrl = null;
 
 // ==========================================
 // CRYPTO UTILS (Preserved)
@@ -286,6 +287,7 @@ function showConfirm(message, state = "primary") {
 
 // Silent Recovery System
 async function silentSync() {
+  if (!sessionStorage.getItem("token")) return;
   try {
     const p = loadProfile();
     const f = loadFolders();
@@ -1635,8 +1637,6 @@ async function processUnlockStep2() {
     showToast("Identity Verification Failed", "error");
   }
 }
-
-let currentBlobUrl = null;
 
 function getMimeType(ext) {
   const Map = { 
