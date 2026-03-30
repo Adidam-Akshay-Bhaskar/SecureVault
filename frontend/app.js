@@ -1830,7 +1830,8 @@ async function handleExternalLinkAccess() {
       const encryptedBlob = await blobRes.arrayBuffer();
       
       const [fIvHex, fKeyB64] = data.encryptedFileKey.split(":");
-      const fk = await crypto.subtle.decrypt({ name: "AES-GCM", iv: hexToBytes(fIvHex) }, linkKey, base64ToArrayBuffer(fKeyB64));
+      const fkRaw = await crypto.subtle.decrypt({ name: "AES-GCM", iv: hexToBytes(fIvHex) }, linkKey, base64ToArrayBuffer(fKeyB64));
+      const fk = await crypto.subtle.importKey("raw", fkRaw, "AES-GCM", true, ["decrypt"]);
       
       const dec = await decryptFile(new Uint8Array(encryptedBlob), fk);
       closeModal("unlock-modal");
