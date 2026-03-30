@@ -968,15 +968,12 @@ async function loadRecycleBin() {
       try {
         const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
         const displayName = meta.filename.length > 45 ? meta.filename.substring(0, 42) + "..." : meta.filename;
-        const dateObj = f.deleted_at || f.created_at;
-        const dateStr = dateObj ? new Date(dateObj).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : "---";
         recycleBody.innerHTML += `
           <div class="file-row recycle-row">
             <div style="display:flex; align-items:center; gap:16px; min-width:0; flex:1;">
               ${getFileTypeLogo(meta.filename.split(".").pop().toUpperCase())}
               <span style="font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${displayName}</span>
             </div>
-            <span style="color: var(--text-dim); font-size: 0.85rem; font-weight: 500; min-width: 140px;">${dateStr}</span>
             <div style="display: flex; gap: 10px;">
               <button class="action-btn" onclick="restoreFile(${f.file_id})" style="border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.03); padding: 8px 16px; font-size: 0.75rem;">Restore</button>
               <button class="action-btn" onclick="permanentDeleteFile(${f.file_id})" style="border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.03); padding: 8px 16px; font-size: 0.75rem;">Delete</button>
