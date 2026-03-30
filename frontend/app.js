@@ -854,7 +854,7 @@ function getFileTypeLogo(ext) {
   else if (["exe", "apk", "dll", "bat"].includes(e)) { bg = "#F8FAFC"; color = "#0F172A"; }
   
   const displayText = ext.toUpperCase() === "GITIGNORE" ? ".GN" : ext.toUpperCase();
-  return `<div style="width:40px; height:40px; border-radius:10px; background:${bg}; color:${color}; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:0.65rem; flex-shrink:0;">${displayText}</div>`;
+  return `<div style="width:40px; height:40px; border-radius:12px; background:${bg}; color:${color}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem; flex-shrink:0; pointer-events:none;">${displayText}</div>`;
 }
 
 async function loadFiles() {
@@ -970,9 +970,11 @@ async function loadRecycleBin() {
         const displayName = meta.filename.length > 45 ? meta.filename.substring(0, 42) + "..." : meta.filename;
         recycleBody.innerHTML += `
           <div class="file-row recycle-row">
-            <div style="display:flex; align-items:center; gap:16px; min-width:0; flex:1;">
+            <div style="display:flex; align-items:center; gap:16px; min-width:0; overflow:hidden;">
               ${getFileTypeLogo(meta.filename.split(".").pop().toUpperCase())}
-              <span style="font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1;">${displayName}</span>
+              <div style="display:flex; flex-direction:column; min-width:0;">
+                <span style="font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">${displayName}</span>
+              </div>
             </div>
             <div style="display: flex; gap: 10px;">
               <button class="action-btn" onclick="restoreFile(${f.file_id})" style="border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.03); padding: 8px 16px; font-size: 0.75rem;">Restore</button>
