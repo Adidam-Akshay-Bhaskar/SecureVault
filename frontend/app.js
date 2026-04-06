@@ -14,6 +14,12 @@ const MAX_STORAGE_BYTES = 2.5 * 1024 * 1024 * 1024;
 let currentTotalUsage = 0;
 let currentBlobUrl = null;
 
+// VAULT OPERATION ICONS (GLOBAL PROTOCOL)
+const svgView = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+const svgDownload = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
+const svgShare = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
+const svgDelete = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+
 // ==========================================
 // CRYPTO UTILS (Preserved)
 // ==========================================
@@ -132,38 +138,22 @@ function truncateName(name, limit = 42) {
 function updateStorageTracker() {
   const usageText = document.getElementById("storage-usage-text");
   const usageBar = document.getElementById("storage-bar");
-  const usagePercentText = document.getElementById("storage-percent");
+  const usagePct = document.getElementById("storage-percent");
   if (!usageText || !usageBar) return;
 
-  const totalBytes = (allFiles.myFiles || []).reduce((acc, f) => {
-    try {
-      // We need to parse the meta from the encrypted metadata if we don't have it cached
-      // But since we already have it in renderFiles, we'll sum it there or use a simplified approach.
-      // For now, let's assume we store the decrypted size in allFiles for easy tracking.
-      return acc + (f.size || 0); 
-    } catch { return acc; }
-  }, 0);
+  const totalBytes = (allFiles.myFiles || []).reduce((acc, f) => acc + (parseInt(f.size) || 0), 0);
+  const maxStorage = 2.5 * 1024 * 1024 * 1024;
+  const percent = (totalBytes / maxStorage) * 100;
 
-  currentTotalUsage = totalBytes;
-  const usedMB = (totalBytes / (1024 * 1024)).toFixed(2);
-  const usedGB = (totalBytes / (1024 * 1024 * 1024)).toFixed(2);
+  usageText.textContent = `${formatBytes(totalBytes)} used`;
+  usageBar.style.width = `${Math.min(100, percent)}%`;
+  if (usagePct) usagePct.textContent = `${percent.toFixed(1)}%`;
   
-  const displaySize = totalBytes > 1024 * 1024 * 100 ? `${usedGB} GB` : `${usedMB} MB`;
-  usageText.textContent = `${displaySize} used`;
-  
-  const percent = Math.min((totalBytes / MAX_STORAGE_BYTES) * 100, 100).toFixed(1);
-  usageBar.style.width = `${percent}%`;
-  usagePercentText.textContent = `${percent}%`;
-  
-  if (percent > 90) usageBar.style.background = "var(--danger)";
-  else if (percent > 70) usageBar.style.background = "#FACC15";
-  else usageBar.style.background = "linear-gradient(90deg, var(--accent-blue), #3B82F6)";
+  // Return for profile sync
+  return totalBytes;
 }
 
-const svgView = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-const svgDownload = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
-const svgShare = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
-const svgDelete = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+
 
 function toggleActions(card, event) {
   // Prevent default behavior
@@ -341,29 +331,41 @@ function toggleAuthMode(mode) {
     if (el) el.classList.add("hidden");
   });
   const active = document.getElementById(`${mode}-form-container`);
-  if (active) active.classList.remove("hidden");
+  if (active) {
+    active.classList.remove("hidden");
+    active.classList.add("auth-form-switching");
+    setTimeout(() => active.classList.remove("auth-form-switching"), 400);
+  }
 
-  const h1 = document.querySelector(".card-header h1");
-  const p = document.querySelector(".card-header p");
-  const card = document.querySelector(".auth-card-premium");
+  // Handle Tab Highlighting for Landing Page
+  const tabLogin = document.getElementById("tab-login");
+  const tabRegister = document.getElementById("tab-register");
+  if (tabLogin && tabRegister) {
+    tabLogin.classList.remove("active");
+    tabRegister.classList.remove("active");
+    if (mode === "login") tabLogin.classList.add("active");
+    if (mode === "register") tabRegister.classList.add("active");
+  }
+
+  const h1 = active ? active.querySelector(".card-header h1") : null;
+  const p = active ? active.querySelector(".card-header p") : null;
+  const card = document.querySelector(".auth-card-premium") || document.querySelector(".auth-card-landing");
   
   if (mode === "login") {
-    h1.textContent = "Sign In";
-    p.textContent = "Enter your credentials to access the vault.";
+    if (h1) h1.textContent = "Welcome Back";
+    if (p) p.textContent = "Secure your digital assets today.";
     if (card) card.classList.remove("compact-mode");
   } else if (mode === "register") {
-    h1.textContent = "Sign Up";
-    p.textContent = "Provision a new secure identity.";
+    if (h1) h1.textContent = "Create Account";
+    if (p) p.textContent = "Provision a new secure identity.";
     if (card) card.classList.add("compact-mode");
   } else if (mode === "recover") {
-    h1.textContent = "Vault Recovery";
-    p.textContent = "Initiate secure restoration protocol.";
+    if (h1) h1.textContent = "Vault Recovery";
+    if (p) p.textContent = "Initiate secure restoration protocol.";
     if (card) card.classList.remove("compact-mode");
   } else if (mode === "reset") {
-    h1.textContent = "Credential Update";
-    p.textContent = "Establish your new security parameters.";
-    if (card) card.classList.remove("compact-mode");
-  } else {
+    if (h1) h1.textContent = "Credential Update";
+    if (p) p.textContent = "Establish your new security parameters.";
     if (card) card.classList.remove("compact-mode");
   }
 }
@@ -497,10 +499,10 @@ document.getElementById("register-form").addEventListener("submit", async (e) =>
   try {
     const mk = await window.crypto.subtle.generateKey({ name: ALGO_NAME, length: 256 }, true, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]);
     const jwk = await window.crypto.subtle.exportKey("jwk", mk);
-    const clientMasterKey = JSON.stringify(jwk);
+    const masterKey = JSON.stringify(jwk);
     const res = await fetch(`${API_URL}/register`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password, securityPin, clientMasterKey }),
+      body: JSON.stringify({ username, email, password, securityPin, masterKey }),
     });
     const data = await res.json();
     if (res.ok) {
@@ -992,6 +994,9 @@ async function loadRecycleBin() {
 
 async function restoreFile(fileId) {
   if (await confirmAction("Restore this record to Vault Base?")) {
+    const verified = await verifyPIN();
+    if (!verified) return;
+
     try {
       await fetch(`${API_URL}/restore-file`, {
         method: "POST",
@@ -1171,7 +1176,37 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     const urlRes = await fetch(`${API_URL}/upload-url`, { method: "POST", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     const { uploadUrl, fileUuid } = await urlRes.json();
     
-    await fetch(uploadUrl, { method: "PUT", body: encryptedFileBuffer, headers: { "Content-Type": "application/octet-stream" } });
+    // TRANSMISSION PROTOCOL: XHR with Progress Monitor
+    const progressContainer = document.getElementById("upload-progress-container");
+    const progressBar = document.getElementById("upload-progress-bar");
+    const statusText = document.getElementById("upload-status-text");
+    const percentageText = document.getElementById("upload-percentage");
+    
+    progressContainer.style.display = "block";
+    statusText.style.display = "block";
+    btn.textContent = "Transmitting...";
+
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("PUT", uploadUrl);
+      xhr.setRequestHeader("Content-Type", "application/octet-stream");
+      
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          progressBar.style.width = percent + "%";
+          percentageText.textContent = percent + "%";
+          if (percent === 100) statusText.textContent = "Verifying Integrity...";
+        }
+      };
+      
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve();
+        else reject(new Error("Transmission failed"));
+      };
+      xhr.onerror = () => reject(new Error("Network interruption"));
+      xhr.send(encryptedFileBuffer);
+    });
     
     await fetch(`${API_URL}/complete-upload`, {
       method: "POST",
@@ -1186,7 +1221,19 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
     showToast("Uploaded"); 
     closeModal("upload-modal"); 
     silentSync();
-  } catch (err) { showToast("Error: " + err.message, "error"); }
+    
+    // Reset Monitor
+    setTimeout(() => {
+      progressContainer.style.display = "none";
+      progressBar.style.width = "0%";
+      statusText.style.display = "none";
+      statusText.textContent = "Synchronizing Secure Stream...";
+    }, 1000);
+  } catch (err) { 
+    showToast("Error: " + err.message, "error"); 
+    document.getElementById("upload-progress-container").style.display = "none";
+    document.getElementById("upload-status-text").style.display = "none";
+  }
   finally { btn.textContent = orig; btn.disabled = false; }
 });
 
@@ -1293,7 +1340,10 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     // 2. VIDEO PROTOCOL
     else if (["mp4", "mkv", "webm", "mov", "avi"].includes(ext)) {
       const video = document.createElement("video"); video.src = currentBlobUrl;
-      video.controls = true; video.style.maxWidth = "100%"; video.style.maxHeight = "100%";
+      video.controls = true; 
+      video.controlsList = "nodownload noplaybackrate";
+      video.disablePictureInPicture = true;
+      video.style.maxWidth = "100%"; video.style.maxHeight = "100%";
       video.style.background = "#000"; video.style.boxShadow = "0 20px 40px rgba(0,0,0,0.5)";
       viewer.appendChild(video);
     } 
@@ -1858,11 +1908,8 @@ async function loadProfile() {
     // Hacker-style User Hash visually derived from their email
     const hash = Array.from(await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.email))).map(b => b.toString(16).padStart(2,'0')).join('').substring(0,10);
     
-    // Faux storage calculation based on gamification
-    let totalBytesSum = 0;
-    if (typeof allFiles !== 'undefined' && allFiles.myFiles) {
-        totalBytesSum = allFiles.myFiles.length * 1024 * 512; // Approximation
-    }
+    // Accurate storage calculation based on Vault records
+    const totalBytesSum = updateStorageTracker();
     const storageDisp = document.getElementById("disp-storage-used");
     if (storageDisp) {
         storageDisp.textContent = totalBytesSum > 0 ? formatBytes(totalBytesSum) + " (Encrypted)" : "0 Bytes Allocated";
@@ -2136,3 +2183,17 @@ window.addEventListener("click", (e) => {
     }, 800); 
   }, 400); 
 })();
+
+// --- SIGNAL INTELLIGENCE: SEARCH PROTOCOL ---
+function filterFiles(query) {
+    const q = query.toLowerCase().trim();
+    const rows = document.querySelectorAll('.file-row:not(.header)');
+    rows.forEach(row => {
+        const nameText = row.querySelector('span:first-child').textContent.toLowerCase();
+        if (nameText.includes(q)) {
+            row.style.display = "grid";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}

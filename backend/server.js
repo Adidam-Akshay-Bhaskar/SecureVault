@@ -480,7 +480,8 @@ app.post("/api/auth/reset-execute", async (req, res) => {
 
 // REGISTER
 app.post("/api/register", async (req, res) => {
-  const { username, email, password, securityPin, masterKey } = req.body;
+  const { username, email, password, securityPin, masterKey, clientMasterKey } = req.body;
+  const encryptionKey = masterKey || clientMasterKey;
 
   if (!username || !email || !password || !securityPin)
     return res.status(400).json({ message: "Missing fields (PIN required)" });
@@ -495,7 +496,7 @@ app.post("/api/register", async (req, res) => {
 
     db.query(
       "INSERT INTO users (username, email, password_hash, security_pin_hash, client_master_key) VALUES (?, ?, ?, ?, ?)",
-      [username.trim(), normalizedEmail, hashedPassword, hashedPin, masterKey || null],
+      [username.trim(), normalizedEmail, hashedPassword, hashedPin, encryptionKey || null],
       (err, result) => {
         if (err) {
           console.error("Registration Error:", err);
@@ -505,10 +506,10 @@ app.post("/api/register", async (req, res) => {
         }
         // FIX: Also write to user_keys immediately on registration
         // result.insertId now works correctly due to db wrapper fix
-        if (masterKey && result.insertId) {
+        if (encryptionKey && result.insertId) {
           db.query(
             "INSERT INTO user_keys (user_id, encryption_key) VALUES (?, ?) ON CONFLICT (user_id) DO NOTHING",
-            [result.insertId, masterKey],
+            [result.insertId, encryptionKey],
             () => {}
           );
         }
