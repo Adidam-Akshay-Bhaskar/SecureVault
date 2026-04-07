@@ -463,9 +463,6 @@
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
                 </div>
               </div>
-              <label for="profile-photo-input" class="avatar-upload-trigger pulse-hover" title="Update Profile Image">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-              </label>
               <input type="file" id="profile-photo-input" class="hidden" accept="image/*" onchange="handleProfilePhotoUpload(this)" />
             </div>
             <div class="profile-header-info">
@@ -478,7 +475,6 @@
                <div class="profile-actions-row">
                   <button class="action-btn" onclick="document.getElementById('profile-photo-input').click()">Update Image</button>
                   <button id="btn-remove-photo" class="action-btn danger hidden" style="color:var(--danger); border-color:rgba(255,71,87,0.2); background:rgba(255,71,87,0.05);" onclick="removeProfilePhoto()">Remove Image</button>
-                  <button class="action-btn share" onclick="showToast('Protocol active: Scanning QR code engine...', 'success')">Share Public QR</button>
                   <button class="action-btn view" onclick="showToast('Exporting JSON manifest...', 'success')">Export Data</button>
                </div>
             </div>
@@ -489,25 +485,6 @@
           <!-- LEFT COLUMN: Strength & Meta -->
           <div class="profile-column">
              
-             <!-- Strength Meter (Gamification) -->
-             <div class="premium-card">
-               <div class="card-heading">Profile Strength <span id="strength-percent" style="float:right; color:var(--accent-cyan);">75%</span></div>
-               <div class="progress-bar-bg"><div class="progress-bar-fill" id="strength-bar" style="width: 75%;"></div></div>
-               <ul class="strength-checklist">
-                 <li class="done">
-                   <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Primary Email Verified
-                 </li>
-                 <li class="pending" id="checklist-img">
-                   <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Identity Image Extracted
-                 </li>
-                 <li class="done">
-                   <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Master Key Encrypted
-                 </li>
-                 <li class="pending">
-                   <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> 2FA Defences Disabled
-                 </li>
-               </ul>
-             </div>
 
              <!-- Metadata Card (Premium) -->
              <div class="premium-card">
@@ -536,18 +513,6 @@
                </div>
              </div>
 
-             <!-- Personalization Settings -->
-             <div class="premium-card">
-               <div class="card-heading">Environment Config</div>
-               <div class="toggle-row">
-                 <span>Dark Matter Theme</span>
-                 <label class="switch"><input type="checkbox" checked onclick="document.body.classList.toggle('theme-light')"><span class="slider"></span></label>
-               </div>
-               <div class="toggle-row">
-                 <span>Login Signal Alerts</span>
-                 <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
-               </div>
-             </div>
 
           </div>
 
@@ -818,7 +783,7 @@
       <p class="dark-portal-desc" style="font-size: 0.75rem !important; margin-bottom: 20px !important;">Authorize access by entering your secure PIN.</p>
       
       <div class="pin-entry-zone">
-        <input type="password" id="modal-pin-input" class="dark-portal-input dark-portal-pin" placeholder="••••••" maxlength="6" autocomplete="off" />
+        <div id="pin-boxes-container" class="pin-boxes-row"></div>
       </div>
       
       <div style="display: flex; gap: 12px;">
@@ -903,5 +868,16 @@
     </div>
   </div>
 
+
+<div id="selection-toolbar" class="hidden">
+  <div class="selection-count"><span id="sel-count">0</span> Selected</div>
+  <div class="selection-actions">
+    <button onclick="selectAllItems()">Select All</button>
+    <button onclick="clearSelection()">Clear</button>
+    <button id="sel-btn-download" onclick="massDownload()">Download</button>
+    <button id="sel-btn-restore" onclick="massRestore()">Restore</button>
+    <button id="sel-btn-delete" onclick="massDelete()" class="danger-font">Delete</button>
+  </div>
+</div>
 </body>
 </html>

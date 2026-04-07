@@ -4,10 +4,14 @@ const ALGO_NAME = "AES-GCM";
 let sessionMasterKey = null;
 let tempLoginCredentials = null;
 let currentView = "my-vault";
-let allFiles = [];
+let allFiles = { myFiles: [], sharedFiles: [] };
 let allFolders = [];
 let currentFolderId = null;
 let currentExplorerFolderId = null;
+
+// BATCH OPERATION REGISTRY
+window.selectedItems = [];
+window.fileItemsMap = {};
 
 // STORAGE LIMIT: 2.5 GB
 const MAX_STORAGE_BYTES = 2.5 * 1024 * 1024 * 1024;
@@ -220,7 +224,17 @@ async function processDirectUpload(file) {
     return showToast("Storage Limit Exhausted (2.5GB). Clear records to continue.", "error");
   }
 
-  showToast(`Encrypting: ${truncateName(file.name, 20)}...`);
+  showUploadModal(null, true); // Use modal to show progress
+  const label = document.getElementById("file-label");
+  const progressContainer = document.getElementById("upload-progress-container");
+  const progressBar = document.getElementById("upload-progress-bar");
+  const percentageText = document.getElementById("upload-percentage");
+  const statusText = document.getElementById("upload-status-text");
+
+  if (label) label.innerHTML = `<strong>SECURING RECORD:</strong><br>${file.name}`;
+  if (progressContainer) progressContainer.style.display = "block";
+  if (statusText) statusText.style.display = "block";
+
   try {
     const fileKey = await generateFileKey();
     const encryptedFileBuffer = await encryptFile(file, fileKey);
@@ -231,7 +245,21 @@ async function processDirectUpload(file) {
     const urlRes = await fetch(`${API_URL}/upload-url`, { method: "POST", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     const { uploadUrl, fileUuid } = await urlRes.json();
     
-    await fetch(uploadUrl, { method: "PUT", body: encryptedFileBuffer, headers: { "Content-Type": "application/octet-stream" } });
+    await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("PUT", uploadUrl);
+        xhr.setRequestHeader("Content-Type", "application/octet-stream");
+        xhr.upload.onprogress = (e) => {
+            if (e.lengthComputable) {
+                const percent = Math.round((e.loaded / e.total) * 100);
+                if (progressBar) progressBar.style.width = percent + "%";
+                if (percentageText) percentageText.textContent = percent + "%";
+            }
+        };
+        xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error("Upload failure"));
+        xhr.onerror = () => reject(new Error("Network Error"));
+        xhr.send(encryptedFileBuffer);
+    });
     
     await fetch(`${API_URL}/complete-upload`, {
       method: "POST",
@@ -245,9 +273,11 @@ async function processDirectUpload(file) {
     });
     
     showToast(`Secured: ${file.name}`, "success");
+    closeModal("upload-modal");
     silentSync();
   } catch (err) {
     showToast("Transmission Failed: " + err.message, "error");
+    if (progressContainer) progressContainer.style.display = "none";
   }
 }
 
@@ -282,7 +312,8 @@ async function silentSync() {
     const p = loadProfile();
     const f = loadFolders();
     const fi = loadFiles();
-    await Promise.all([p, f, fi]);
+    const rb = typeof loadRecycleBin === 'function' ? loadRecycleBin() : Promise.resolve();
+    await Promise.all([p, f, fi, rb]);
   } catch {}
 }
 
@@ -587,7 +618,7 @@ function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }
 // NAVIGATION
 // ==========================================
 
-function showView(viewId) {
+async function showView(viewId) {
   currentView = viewId;
   const sections = ["landing-page", "auth-section", "view-dashboard", "section-my-vault", "section-incoming", "section-profile", "section-recycle-bin"];
   sections.forEach(s => {
@@ -661,14 +692,12 @@ async function loadFolders() {
   try {
     const res = await fetch(`${API_URL}/folders`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     const data = await res.json();
-    // Sort latest displayed first
     allFolders = data.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
     
     const grid = document.getElementById("folder-list");
     const select = document.getElementById("upload-folder-select");
     grid.innerHTML = "";
     select.innerHTML = '<option value="">Root Vault</option>';
-    
     document.getElementById("stat-folder-count").textContent = allFolders.length;
 
     allFolders.forEach(f => {
@@ -676,15 +705,22 @@ async function loadFolders() {
       const dateStr = new Date(f.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
       const fCount = allFiles.myFiles ? allFiles.myFiles.filter(file => file.folder_id === f.folder_id).length : 0;
       
+      const itemId = `folder-${f.folder_id}`;
+      window.fileItemsMap[itemId] = { type: 'folder', id: f.folder_id, name: f.name };
+      const isSelected = window.selectedItems.includes(itemId);
+
       grid.innerHTML += `
-        <div class="folder-row-item" style="margin-bottom:0;">
-          <div class="folder-card" tabindex="0" onclick="openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}')" style="flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 125px; padding: 18px;">
+        <div class="folder-row-item ${isSelected ? 'selected' : ''}" data-id="${itemId}">
+          <div class="folder-card" tabindex="0" onclick="handleItemClick('${itemId}', event, () => openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}'))" style="flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 125px; padding: 18px;">
             <div style="display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 12px;">
               <button tabindex="-1" class="action-btn" style="padding:5px 10px; font-size:0.65rem; border-radius:8px; background:rgba(250,204,21,0.1); border-color:rgba(250,204,21,0.2); color:#d97706; font-weight:700;" onclick="event.stopPropagation(); renameFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\\\'")}')">Rename</button>
               <button tabindex="-1" class="action-btn" style="padding:5px 10px; font-size:0.65rem; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#dc2626; font-weight:700;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
             </div>
             <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-              <span class="folder-icon" style="margin-bottom:0; font-size: 2.2rem;">📂</span>
+              <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+                <span class="folder-icon" style="margin-bottom:0; font-size: 2.2rem;">📂</span>
+                <div class="selection-indicator"></div>
+              </div>
               <div style="flex: 1; min-width: 0;">
                 <p class="folder-name" style="margin: 0; font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${disp}</p>
                 <p class="folder-count" style="margin: 4px 0 0 0; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">${fCount} Files • ${dateStr}</p>
@@ -788,8 +824,7 @@ async function renderFolderExplorer(folderId) {
   const container = document.getElementById("explorer-file-list");
   container.innerHTML = '<p style="padding:40px; text-align:center; color:var(--text-dim);">Scanning directory...</p>';
   
-  // Wait for allFiles if empty
-  if (allFiles.myFiles.length === 0) await loadFiles();
+  if (!allFiles.myFiles || allFiles.myFiles.length === 0) await loadFiles();
   
   const files = allFiles.myFiles.filter(f => f.folder_id === parseInt(folderId));
   container.innerHTML = "";
@@ -807,15 +842,22 @@ async function renderFolderExplorer(folderId) {
       const ext = meta.filename.split(".").pop().toUpperCase();
       const displayTitle = truncateName(meta.filename);
 
+      const itemId = `file-${f.file_id}`;
+      window.fileItemsMap[itemId] = { type: 'file', id: f.file_id, name: meta.filename, encKey: f.encrypted_key };
+      const isSelected = window.selectedItems.includes(itemId);
+
       container.innerHTML += `
-        <div class="folder-card" onclick="toggleActions(this, event)" style="cursor: pointer;" title="${meta.filename}">
-          ${getFileTypeLogo(ext)}
+        <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="${meta.filename}">
+          <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+            ${getFileTypeLogo(ext)}
+            <div class="selection-indicator"></div>
+          </div>
           <div style="flex: 1; min-width: 0;">
             <p class="folder-name" style="font-size: 0.9rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</p>
             <p class="folder-count" style="font-size: 0.7rem;">${ext} • ${formatBytes(meta.size)} • ${new Date(f.created_at).toLocaleDateString()}</p>
           </div>
           <div class="card-overlay" onclick="toggleActions(this.parentElement, event)">
-            <button class="action-pill view" onclick="event.stopPropagation(); viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}', ${meta.size}, false, null, false)" title="View">${svgView}</button>
+            <button class="action-pill view" onclick="event.stopPropagation(); viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}', ${meta.size})" title="View">${svgView}</button>
             <button class="action-pill save" onclick="event.stopPropagation(); downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}')" title="Download">${svgDownload}</button>
             <button class="action-pill share" onclick="event.stopPropagation(); openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\\\'")}', '${f.encrypted_key}')" title="Share">${svgShare}</button>
             <button class="action-pill delete" onclick="event.stopPropagation(); deleteFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}')" title="Delete">${svgDelete}</button>
@@ -834,51 +876,63 @@ async function renderFolderExplorer(folderId) {
 
 function getFileTypeLogo(ext) {
   const e = ext.toLowerCase();
-  let bg = "#F1F5F9", color = "#64748B";
+  let bg = "#F1F5F9", color = "#64748B", grad = "linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)";
   
-  // 1. Documents (Red Spectrum)
-  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(e)) { bg = "#FEF2F2"; color = "#EF4444"; }
-  // 2. Spreadsheets (Green Spectrum)
-  else if (["xls", "xlsx", "csv", "ods"].includes(e)) { bg = "#ECFDF5"; color = "#10B981"; }
-  // 3. Presentations (Orange Spectrum)
-  else if (["ppt", "pptx", "odp"].includes(e)) { bg = "#FFF7ED"; color = "#F97316"; }
-  // 4. Images (Blue Spectrum)
-  else if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(e)) { bg = "#EFF6FF"; color = "#3B82F6"; }
-  // 5. Videos (Purple Spectrum)
-  else if (["mp4", "mkv", "avi", "mov"].includes(e)) { bg = "#F5F3FF"; color = "#8B5CF6"; }
-  // 6. Audio (Pink Spectrum)
-  else if (["mp3", "wav", "aac", "flac"].includes(e)) { bg = "#FDF2F8"; color = "#DB2777"; }
-  // 7. Archives (Amber Spectrum)
-  else if (["zip", "rar", "7z", "tar", "gz"].includes(e)) { bg = "#FFFBEB"; color = "#D97706"; }
-  // 8. Code Files (Cyan Spectrum)
-  else if (["html", "css", "js", "ts", "py", "java", "cpp", "c", "json", "xml"].includes(e)) { bg = "#ECFEFF"; color = "#0891B2"; }
-  // 9. System Files (Slate/Black)
-  else if (["exe", "apk", "dll", "bat"].includes(e)) { bg = "#F8FAFC"; color = "#0F172A"; }
+  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(e)) { 
+    bg = "#FEF2F2"; color = "#EF4444"; grad = "linear-gradient(135deg, #FFF1F2 0%, #FECDD3 100%)"; 
+  }
+  else if (["xls", "xlsx", "csv", "ods"].includes(e)) { 
+    bg = "#ECFDF5"; color = "#10B981"; grad = "linear-gradient(135deg, #F0FDF4 0%, #BBF7D0 100%)"; 
+  }
+  else if (["ppt", "pptx", "odp"].includes(e)) { 
+    bg = "#FFF7ED"; color = "#F97316"; grad = "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)"; 
+  }
+  else if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(e)) { 
+    bg = "#EFF6FF"; color = "#3B82F6"; grad = "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)"; 
+  }
+  else if (["mp4", "mkv", "avi", "mov"].includes(e)) { 
+    bg = "#F5F3FF"; color = "#8B5CF6"; grad = "linear-gradient(135deg, #F5F3FF 0%, #DDD6FE 100%)"; 
+  }
+  else if (["mp3", "wav", "aac", "flac"].includes(e)) { 
+    bg = "#FDF2F8"; color = "#DB2777"; grad = "linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)"; 
+  }
+  else if (["zip", "rar", "7z", "tar", "gz"].includes(e)) { 
+    bg = "#FFFBEB"; color = "#D97706"; grad = "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)"; 
+  }
+  else if (["html", "css", "js", "ts", "py", "java", "cpp", "c", "json", "xml"].includes(e)) { 
+    bg = "#ECFEFF"; color = "#0891B2"; grad = "linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 100%)"; 
+  }
+  else if (["exe", "apk", "dll", "bat"].includes(e)) { 
+    bg = "#F8FAFC"; color = "#0F172A"; grad = "linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)"; 
+  }
   
-  const displayText = ext.toUpperCase() === "GITIGNORE" ? ".GN" : ext.toUpperCase();
-  return `<div style="width:40px; height:40px; border-radius:12px; background:${bg}; color:${color}; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:0.75rem; flex-shrink:0; pointer-events:none;">${displayText}</div>`;
+  const displayText = ext.toUpperCase() === "GITIGNORE" ? ".GN" : (ext.length > 4 ? ext.substring(0,3) : ext).toUpperCase();
+  return `<div class="file-icon-premium" style="background:${grad}; color:${color};">
+            <span class="file-ext-label">${displayText}</span>
+          </div>`;
 }
 
 async function loadFiles() {
   const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
   allFiles = await res.json();
   
-  // Storage Audit: Calculate usage for tracker
+  // Reset Selection Registry on full reload
+  window.fileItemsMap = {};
+  
+  // Storage Audit
   let totalUsage = 0;
+  const mk = await getClientMasterKey();
   for (const f of allFiles.myFiles) {
     try {
-      const mk = await getClientMasterKey();
       const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), mk, hexToBytes(f.iv));
-      f.size = meta.size; // Cache for tracker
+      f.size = meta.size;
       totalUsage += meta.size;
     } catch {}
   }
   updateStorageTracker();
 
   renderFiles();
-  if (currentExplorerFolderId) {
-    renderFolderExplorer(currentExplorerFolderId);
-  }
+  if (currentExplorerFolderId) renderFolderExplorer(currentExplorerFolderId);
   loadFolders();
 }
 
@@ -888,11 +942,8 @@ async function renderFiles() {
   myBody.innerHTML = ""; shBody.innerHTML = "";
   
   const masterKey = await getClientMasterKey();
-  
-  // Sort by latest first (Stack function)
   const sortedFiles = [...allFiles.myFiles].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
   
-  // Logic: Show ONLY root files (no folder) in main view, or ONLY folder files if viewing a folder
   const filteredMy = currentFolderId 
     ? sortedFiles.filter(f => f.folder_id === parseInt(currentFolderId))
     : sortedFiles.filter(f => !f.folder_id);
@@ -906,9 +957,16 @@ async function renderFiles() {
       const ext = meta.filename.split(".").pop().toUpperCase();
       const displayTitle = truncateName(meta.filename);
 
+      const itemId = `file-${f.file_id}`;
+      window.fileItemsMap[itemId] = { type: 'file', id: f.file_id, name: meta.filename, encKey: f.encrypted_key };
+      const isSelected = window.selectedItems.includes(itemId);
+
       myBody.innerHTML += `
-        <div class="folder-card" onclick="toggleActions(this, event)" style="cursor: pointer;" title="${meta.filename}">
-          ${getFileTypeLogo(ext)}
+        <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="${meta.filename}">
+          <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+            ${getFileTypeLogo(ext)}
+            <div class="selection-indicator"></div>
+          </div>
           <div style="flex: 1; min-width: 0;">
             <p class="folder-name" style="font-size: 0.9rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</p>
             <p class="folder-count" style="font-size: 0.7rem;">${ext} • ${formatBytes(meta.size)} • ${new Date(f.created_at).toLocaleDateString()}</p>
@@ -928,19 +986,23 @@ async function renderFiles() {
 
   const sortedShared = [...allFiles.sharedFiles].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
   for (const f of sortedShared) {
+    const itemId = `shared-${f.link_id}`;
+    window.fileItemsMap[itemId] = { type: 'shared', id: f.link_id, fileId: f.file_id, name: f.sender_email, encKey: f.encrypted_key, encMeta: f.encrypted_metadata, iv: f.iv, downloadable: f.downloadable };
+    const isSelected = window.selectedItems.includes(itemId);
+
     shBody.innerHTML += `
-  <div class="file-row incoming-row">
-    <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${f.sender_email}</p>
-        <p style="color:var(--text-dim); font-size:0.85rem; font-weight: 500;">${new Date(f.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
+      <div class="file-row incoming-row ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable}))">
+        <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+          <div class="file-icon-premium" style="background:var(--accent-light); color:var(--accent-blue);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          </div>
+          <div class="selection-indicator"></div>
+        </div>
+        <p class="file-name" style="font-weight: 500; font-size: 0.9rem; color: #000;">${f.sender_email}</p>
+        <p class="file-date" style="font-size:0.85rem; color: #64748b;">${new Date(f.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
         <div class="btn-group">
-          <button class="action-btn" style="border-color:var(--accent-cyan); color:var(--accent-cyan); background: rgba(0,242,255,0.03);" onclick="openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable})">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1s3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>
-            <span>Unlock</span>
-          </button>
-          <button class="action-btn delete" onclick="deleteSharedLink(${f.link_id})" style="background: rgba(255,50,50,0.03);">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-35l-1-1h-5l-1 1H5v2h14V4z"/></svg>
-            <span>Delete</span>
-          </button>
+          <button class="action-btn" style="border-color:var(--accent-blue); color:var(--accent-blue); background: rgba(30,58,138,0.03);" onclick="event.stopPropagation(); window.openUnlockModal(${f.file_id || 'null'}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable})">Unlock</button>
+          <button class="action-btn delete" onclick="event.stopPropagation(); deleteSharedLink(${f.link_id})" style="border-color:#ef4444; color:#ef4444; background: rgba(239,68,68,0.03);">Delete</button>
         </div>
       </div>
     `;
@@ -954,33 +1016,38 @@ async function loadRecycleBin() {
   
   try {
     const res = await fetch(`${API_URL}/recycle-bin`, {
-      method: "GET",
-      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+      method: "GET", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` },
     });
     const results = await res.json();
     const masterKey = await getClientMasterKey();
     
     recycleBody.innerHTML = "";
     if (!results || !Array.isArray(results) || results.length === 0) {
-      recycleBody.innerHTML = '<div style="padding: 60px; text-align: center; color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">No administrative records found in safe retention hubs.</div>';
+      recycleBody.innerHTML = '<div style="padding: 60px; text-align: center; color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">No records found in retention.</div>';
       return;
     }
 
     for (const f of results) {
       try {
         const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
-        const displayName = meta.filename.length > 45 ? meta.filename.substring(0, 42) + "..." : meta.filename;
+        const ext = meta.filename.split(".").pop().toUpperCase();
+        const disp = meta.filename.length > 45 ? meta.filename.substring(0, 42) + "..." : meta.filename;
+
+        const itemId = `recycle-${f.file_id}`;
+        window.fileItemsMap[itemId] = { type: 'recycle', id: f.file_id, name: meta.filename };
+        const isSelected = window.selectedItems.includes(itemId);
+
         recycleBody.innerHTML += `
-          <div class="file-row recycle-row">
-            <div style="display:flex; align-items:center; gap:16px; min-width:0; overflow:hidden;">
-              ${getFileTypeLogo(meta.filename.split(".").pop().toUpperCase())}
-              <div style="display:flex; flex-direction:column; min-width:0;">
-                <span style="font-weight: 700; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.95rem;">${displayName}</span>
-              </div>
+          <div class="file-row recycle-row ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event)">
+            <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+              ${getFileTypeLogo(ext)}
+              <div class="selection-indicator"></div>
             </div>
-            <div style="display: flex; gap: 10px;">
-              <button class="action-btn" onclick="restoreFile(${f.file_id})" style="border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.03); padding: 8px 16px; font-size: 0.75rem;">Restore</button>
-              <button class="action-btn" onclick="permanentDeleteFile(${f.file_id})" style="border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.03); padding: 8px 16px; font-size: 0.75rem;">Delete</button>
+            <p class="file-name" style="font-weight: 700; color: #000;">${disp}</p>
+            <p class="file-date" style="font-size: 0.85rem; color: #64748b;">${new Date(f.deleted_at || Date.now()).toLocaleDateString()}</p>
+            <div class="btn-group">
+              <button class="action-btn" onclick="event.stopPropagation(); restoreFile(${f.file_id})" style="border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.03);">Restore</button>
+              <button class="action-btn delete" onclick="event.stopPropagation(); permanentDeleteFile(${f.file_id})" style="border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.03);">Delete</button>
             </div>
           </div>
         `;
@@ -1003,7 +1070,7 @@ async function restoreFile(fileId) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
         body: JSON.stringify({ fileId }),
       });
-      showToast("Record successfully restored.");
+      showToast("Restored");
       loadRecycleBin();
     } catch (err) { showToast("Error", "error"); }
   }
@@ -1080,57 +1147,13 @@ async function gatedDelete(fileId, encKey, filename) {
   } catch (err) { console.error(err); }
 }
 
-let pinVerifiedThisSession = false;
-
-function verifyPIN() {
-  // Always ask - no session bypass
-  return new Promise((resolve) => {
-    const pinModalEl = document.getElementById("pin-modal");
-    pinModalEl.classList.remove("hidden");
-    const pinInput = document.getElementById("modal-pin-input");
-    const verifyBtn = document.getElementById("pin-verify-btn");
-    pinInput.value = ""; pinInput.focus();
-
-    const onVerify = async () => {
-      const pin = pinInput.value;
-      if (!pin) return showToast("PIN Required", "error");
-      try {
-        const res = await fetch(`${API_URL}/verify-file-pin`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-          body: JSON.stringify({ securityPin: pin })
-        });
-        const data = await res.json();
-        if (data.success) {
-          // Only hide the PIN modal, don't call closeModal (which would silentSync)
-          pinModalEl.classList.add("hidden");
-          verifyBtn.onclick = null;
-          resolve(true);
-        } else {
-          showToast("Invalid", "error");
-        }
-      } catch (err) { resolve(false); }
-    };
-
-    const onAbort = () => {
-      // Only hide PIN modal — do not disturb underlying modal
-      pinModalEl.classList.add("hidden");
-      verifyBtn.onclick = null;
-      resolve(false);
-    };
-
-    verifyBtn.onclick = onVerify;
-    window.abortPIN = onAbort;
-  });
-}
-
 async function deleteSharedLink(id) {
   const conf = await showConfirm(`Remove this shared record from your incoming feed?`, "danger");
   if (!conf) return;
   const verified = await verifyPIN();
   if (!verified) return;
   
-  showToast("Deleting...");
+
   await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
   loadFiles();
   showToast("Deleted");
@@ -1147,14 +1170,33 @@ async function showUploadModal(preselectFolderId = null, skipVerify = false) {
   }
 
   document.getElementById("upload-modal").classList.remove("hidden");
+  const label = document.getElementById("file-label");
+  if (label) {
+    label.innerHTML = "Drop record or click to browse";
+    label.style.color = "#000";
+  }
   const select = document.getElementById("upload-folder-select");
   if (select) {
     select.value = preselectFolderId || currentFolderId || "";
   }
 }
 
+function handleUploadFileChange(input) {
+  const label = document.getElementById("file-label");
+  if (!label) return;
+  if (input.files && input.files[0]) {
+    const f = input.files[0];
+    label.innerHTML = `<strong>SELECTED RECORD:</strong><br>${truncateName(f.name, 50)}<br><span style="font-size:0.75rem; opacity:0.7; letter-spacing:1px;">${formatBytes(f.size)}</span>`;
+    label.style.color = "var(--accent-blue)";
+  } else {
+    label.innerHTML = "Drop record or click to browse";
+    label.style.color = "#000";
+  }
+}
+
 document.getElementById("upload-form").addEventListener("submit", async (e) => {
   e.preventDefault();
+  
   const file = document.getElementById("file-input").files[0];
   const folderId = document.getElementById("upload-folder-select").value;
   if (!file) return;
@@ -1248,7 +1290,7 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
       if (!conf) return;
     }
 
-    showToast("Decrypting secure stream...");
+    showToast("Downloading...");
     const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
     const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
     const [ivHex, keyBase64] = encryptedKeyStr.split(":");
@@ -1256,15 +1298,28 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
     const fk = await decryptKey(base64ToArrayBuffer(keyBase64), mk, hexToBytes(ivHex));
     const dec = await decryptFile(new Uint8Array(encryptedBlob), fk);
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([dec])); a.download = filename; a.click();
-    showToast("Download Initialized");
+    showToast("Downloaded");
   } catch (err) { showToast("Error", "error"); }
 }
 
 async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decBuffer = null, canDownload = true, linkId = null) {
   let dec = decBuffer;
-
-  if (!alreadyDecrypted) {
-    // PIN gating handled externally
+  
+  // SECURE MANIFESTATION PROTOCOL: Open viewer portal INSTANTLY
+  const fileNameObj = document.getElementById("view-filename");
+  const modal = document.getElementById("file-view-modal");
+  const viewer = document.getElementById("view-content");
+  
+  if (fileNameObj) fileNameObj.textContent = truncateName(name);
+  if (modal) modal.classList.remove("hidden");
+  
+  if (viewer) {
+    viewer.innerHTML = `
+      <div style="text-align:center; padding:100px 20px; color:var(--accent-cyan); width: 100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+        <div class="loader-pulse" style="width:60px; height:60px; border-width: 4px; margin-bottom: 30px;"></div>
+        <h3 style="margin-bottom:10px; color:#fff; font-family:var(--font-heading); font-size:1.5rem; font-weight:800;">Manifesting Security Protocol...</h3>
+        <p style="opacity:0.6; font-size:0.9rem;">Bridging to secure data enclaves...</p>
+      </div>`;
   }
 
   const downloadBtn = document.getElementById("view-download-btn");
@@ -1278,7 +1333,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         const b = new Blob([dec], { type: getMimeType(ext) });
         const u = URL.createObjectURL(b);
         const a = document.createElement("a"); a.href = u; a.download = name; a.click();
-        showToast("Record Decrypted & Exported");
+        showToast("Downloaded");
       };
     } else {
       downloadBtn.classList.add("hidden");
@@ -1292,24 +1347,14 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         await fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
         closeModal('file-view-modal');
         loadFiles();
-        showToast("Access closed", "info");
+        showToast("Closed");
       } catch (err) { closeModal('file-view-modal'); }
     };
   } else {
     closeBtn.onclick = () => closeModal('file-view-modal');
   }
 
-  document.getElementById("view-filename").textContent = truncateName(name);
-  document.getElementById("file-view-modal").classList.remove("hidden");
-  const viewer = document.getElementById("view-content");
-
   if (!alreadyDecrypted) {
-    viewer.innerHTML = `
-      <div class="viewer-loader">
-        <div class="loader-pulse"></div>
-        <p>Establishing Secure Stream...</p>
-      </div>`;
-
     try {
       const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
       const blob = await (await fetch(downloadUrl)).arrayBuffer();
@@ -1317,7 +1362,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
       const mk = await getClientMasterKey();
       const fk = await decryptKey(base64ToArrayBuffer(keyB64), mk, hexToBytes(ivHex));
       dec = await decryptFile(new Uint8Array(blob), fk);
-    } catch (err) { return showToast("Decryption Error", "error"); }
+    } catch (err) { return showToast("Failed to open file", "error"); }
   }
 
   try {
@@ -1588,15 +1633,15 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
       viewer.innerHTML = `
         <div style="text-align:center; padding:100px 20px; color:var(--text-secondary); width: 100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
           <div style="font-size:6rem; margin-bottom:30px; opacity:0.15; filter: grayscale(1);">📄</div>
-          <h3 style="margin-bottom:15px; color:var(--text-primary); font-family:var(--font-heading); font-size:1.8rem; font-weight:900;">Preview Not Available</h3>
-          <p style="font-size:1rem; margin-bottom:32px; max-width:400px; line-height:1.6; opacity:0.7;">This secure record type (${ext.toUpperCase()}) cannot be manifested directly within the hub. Download to view locally.</p>
+          <h3 style="margin-bottom:15px; color:#fff; font-family:var(--font-heading); font-size:1.8rem; font-weight:900;">Preview Not Available ❌</h3>
+          <p style="font-size:1rem; margin-bottom:32px; max-width:400px; line-height:1.6; opacity:0.7;">This secure record type (${ext.toUpperCase()}) cannot be manifested directly inside the vault. Download it to view locally.</p>
           <button onclick="downloadFile('${id}', '${key}', '${name}')" class="viewer-ctrl-btn primary" style="padding:16px 36px; border-radius:12px; font-size:1rem; font-weight:800; box-shadow:0 20px 50px rgba(59,130,246,0.3);">Download Record</button>
         </div>
       `;
     }
    
-    showToast("File Decrypted Successfully");
-  } catch (err) { showToast("Display Error", "error"); }
+    showToast("File opened");
+  } catch (err) { showToast("Failed to display file", "error"); }
 }
 
 // ==========================================
@@ -1605,20 +1650,35 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
 
 let tempUnlockData = null;
 
-function openUnlockModal(fileId, linkId, encKey, encMeta, iv, downloadable = false) {
+window.openUnlockModal = async function(fileId, linkId, encKey, encMeta, iv, downloadable = false, verifiedAlready = false) {
+  // REQUIREMENT: FIRST KEY THEN PIN
   tempUnlockData = { fileId, linkId, encKey, encMeta, iv, downloadable };
-  document.getElementById("unlock-modal").classList.remove("hidden");
-  document.getElementById("unlock-step-1").classList.remove("hidden");
-  document.getElementById("unlock-step-2").classList.add("hidden");
-  document.getElementById("unlock-key-input").value = "";
+  
+  const modal = document.getElementById("unlock-modal");
+  const step1 = document.getElementById("unlock-step-1");
+  if (modal) {
+    modal.classList.remove("hidden");
+    if (step1) step1.classList.remove("hidden");
+  }
+
+  const keyInput = document.getElementById("unlock-key-input");
+  if (keyInput) keyInput.value = "";
+  
   // Reset onclick handler to standard inter-vault protocol
   const procBtn = document.getElementById("unlock-process-btn");
-  if (procBtn) procBtn.onclick = processUnlockStep1;
+  if (procBtn) {
+    procBtn.onclick = () => {
+      processUnlockStep1().catch(e => {
+        console.error("Unlock Protocol Failure:", e);
+        showToast("Unlock failed", "error");
+      });
+    };
+  }
 }
 
 async function processUnlockStep1() {
   const keyHex = document.getElementById("unlock-key-input").value.trim();
-  if (!keyHex) return showToast("Transmission key required", "error");
+  if (!keyHex) return showToast("Enter the key", "error");
   
   try {
     const linkKey = await window.crypto.subtle.importKey("raw", hexToBytes(keyHex), { name: ALGO_NAME }, false, ["unwrapKey", "decrypt"]);
@@ -1630,29 +1690,19 @@ async function processUnlockStep1() {
     tempUnlockData.fileKey = fileKey;
     tempUnlockData.meta = meta;
     
-    tempUnlockData.meta = meta;
-    
-    document.getElementById("unlock-step-1").classList.add("hidden");
-    document.getElementById("unlock-step-2").classList.remove("hidden");
-    document.getElementById("unlock-pin-input").value = "";
-    document.getElementById("unlock-pin-input").focus();
+    closeModal("unlock-modal");
+    processUnlockStep2();
   } catch (err) {
-    showToast("Invalid Transmission Key", "error");
+    showToast("Wrong key", "error");
   }
 }
 
 async function processUnlockStep2() {
-  const securityPin = document.getElementById("unlock-pin-input").value;
-  if (!securityPin) return showToast("Security PIN required", "error");
+  // REQUIREMENT: PIN VERIFICATION AFTER KEY SUCCESS
+  if (!(await verifyPIN())) return;
   
+  showToast("Opening file...");
   try {
-    const res = await fetch(`${API_URL}/verify-file-pin`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      body: JSON.stringify({ securityPin }),
-    });
-    if (!res.ok) throw new Error("Verification Failed");
-    
-    showToast("Identity Confirmed. Decrypting record...");
     const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
     const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
     const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
@@ -1660,30 +1710,7 @@ async function processUnlockStep2() {
     closeModal("unlock-modal");
     viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable, tempUnlockData.linkId);
   } catch (err) {
-    showToast("Identity Verification Failed", "error");
-  }
-}
-
-async function processUnlockStep2() {
-  const securityPin = document.getElementById("unlock-pin-input").value;
-  if (!securityPin) return showToast("Security PIN required", "error");
-  
-  try {
-    const res = await fetch(`${API_URL}/verify-file-pin`, {
-      method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
-      body: JSON.stringify({ securityPin }),
-    });
-    if (!res.ok) throw new Error("Verification Failed");
-    
-    showToast("Identity Confirmed. Decrypting record...");
-    const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
-    const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
-    const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
-    
-    closeModal("unlock-modal");
-    viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable, tempUnlockData.linkId);
-  } catch (err) {
-    showToast("Identity Verification Failed", "error");
+    showToast("Failed to open file", "error");
   }
 }
 
@@ -1895,6 +1922,106 @@ async function handleExternalLinkAccess() {
 // ==========================================
 // PIN & PROFILE
 // ==========================================
+
+let pinVerifiedThisSession = false;
+window.abortPIN = null;
+
+async function verifyPIN() {
+  return new Promise((resolve) => {
+    const modal = document.getElementById("pin-modal");
+    const container = document.getElementById("pin-boxes-container");
+    const verifyBtn = document.getElementById("pin-verify-btn");
+
+    if (!modal || !container || !verifyBtn) {
+        console.error("PIN Modal elements not found");
+        return resolve(false);
+    }
+
+    modal.classList.remove("hidden");
+    container.innerHTML = "";
+    const boxes = [];
+
+    for (let i = 0; i < 6; i++) {
+      const box = document.createElement("input");
+      box.type = "tel";
+      box.maxLength = 1;
+      box.className = "pin-box";
+      box.autocomplete = "off";
+      box.setAttribute("data-form-type", "other");
+      box.setAttribute("data-lpignore", "true");
+      box.setAttribute("inputmode", "numeric");
+
+      box.oninput = (e) => {
+        const val = e.target.value.replace(/\D/g, "");
+        box.value = val;
+        if (val && i < 5) boxes[i + 1].focus();
+      };
+
+      box.onkeydown = (e) => {
+        if (e.key === "Backspace" && !box.value && i > 0) boxes[i - 1].focus();
+        if (e.key === "Enter") doVerify();
+      };
+
+      box.onpaste = (e) => {
+        e.preventDefault();
+        const paste = (e.clipboardData.getData("text") || "").replace(/\D/g, "").slice(0, 6);
+        for (let j = 0; j < paste.length && (i + j) < 6; j++) {
+          boxes[i + j].value = paste[j];
+        }
+        const nextIdx = Math.min(i + paste.length, 5);
+        boxes[nextIdx].focus();
+      };
+
+      container.appendChild(box);
+      boxes.push(box);
+    }
+
+    setTimeout(() => boxes[0].focus(), 100);
+
+    const cleanup = () => {
+      modal.classList.add("hidden");
+      verifyBtn.onclick = null;
+      window.abortPIN = null;
+    };
+
+    window.abortPIN = () => {
+      cleanup();
+      resolve(false);
+    };
+
+    const doVerify = async () => {
+      const pin = boxes.map(b => b.value).join("");
+      if (pin.length < 4) return showToast("Enter your PIN", "error");
+
+      verifyBtn.disabled = true;
+      const orig = verifyBtn.textContent;
+      verifyBtn.textContent = "VALIDATING...";
+
+      try {
+        const res = await fetch(`${API_URL}/verify-file-pin`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` },
+          body: JSON.stringify({ securityPin: pin }),
+        });
+        if (res.ok) {
+          cleanup();
+          resolve(true);
+        } else {
+          showToast("Wrong PIN", "error");
+          boxes.forEach(b => b.value = "");
+          boxes[0].focus();
+        }
+      } catch {
+        showToast("Failed", "error");
+      } finally {
+        verifyBtn.disabled = false;
+        verifyBtn.textContent = orig;
+      }
+    };
+
+    verifyBtn.onclick = doVerify;
+  });
+}
 
 async function loadProfile() {
   try {
@@ -2187,13 +2314,142 @@ window.addEventListener("click", (e) => {
 // --- SIGNAL INTELLIGENCE: SEARCH PROTOCOL ---
 function filterFiles(query) {
     const q = query.toLowerCase().trim();
-    const rows = document.querySelectorAll('.file-row:not(.header)');
+    const rows = document.querySelectorAll('.folder-card, .file-row:not(.header)');
     rows.forEach(row => {
-        const nameText = row.querySelector('span:first-child').textContent.toLowerCase();
+        const nameText = row.querySelector('.folder-name, span:first-child')?.textContent.toLowerCase() || "";
         if (nameText.includes(q)) {
-            row.style.display = "grid";
+            row.style.display = "";
         } else {
             row.style.display = "none";
         }
     });
+}
+
+// BATCH OPERATION SUITE
+function toggleSelection(itemId) {
+    const idx = window.selectedItems.indexOf(itemId);
+    if (idx === -1) window.selectedItems.push(itemId);
+    else window.selectedItems.splice(idx, 1);
+    
+    // Update UI state
+    document.querySelectorAll(`[data-id="${itemId}"]`).forEach(el => el.classList.toggle('selected'));
+    updateSelectionToolbar();
+}
+
+function handleItemClick(itemId, event, action) {
+    if (event.ctrlKey || event.metaKey) {
+        toggleSelection(itemId);
+    } else if (action) {
+        action();
+    }
+}
+
+function updateSelectionToolbar() {
+    const bar = document.getElementById("selection-toolbar");
+    const count = document.getElementById("sel-count");
+    if (!bar) return;
+
+    if (window.selectedItems.length > 0) {
+        bar.classList.remove("hidden");
+        count.textContent = window.selectedItems.length;
+        
+        // Contextual buttons
+        const types = window.selectedItems.map(id => window.fileItemsMap[id]?.type);
+        const hasRecycle = types.includes('recycle');
+        const hasShared = types.includes('shared');
+        const hasRegular = types.includes('file') || types.includes('folder');
+        
+        document.getElementById("sel-btn-restore").style.display = hasRecycle ? "block" : "none";
+        document.getElementById("sel-btn-download").style.display = (hasRegular && currentView !== 'incoming') ? "block" : "none";
+        document.getElementById("sel-btn-delete").style.display = "block"; // Always allow delete
+    } else {
+        bar.classList.add("hidden");
+    }
+}
+
+function selectAllItems() {
+    let ids = [];
+    if (currentView === 'my-vault') {
+        const isFiles = !document.getElementById("my-files-view").classList.contains("hidden");
+        ids = Array.from(document.querySelectorAll(`#my-${isFiles ? 'files' : 'folders'}-view [data-id]`)).map(el => el.getAttribute('data-id'));
+    } else if (currentView === 'incoming') {
+        ids = Array.from(document.querySelectorAll('#shared-list-body [data-id]')).map(el => el.getAttribute('data-id'));
+    } else if (currentView === 'recycle-bin') {
+        ids = Array.from(document.querySelectorAll('#recycle-list-body [data-id]')).map(el => el.getAttribute('data-id'));
+    }
+    
+    ids.forEach(id => { if (!window.selectedItems.includes(id)) window.selectedItems.push(id); });
+    ids.forEach(id => { document.querySelectorAll(`[data-id="${id}"]`).forEach(el => el.classList.add('selected')); });
+    updateSelectionToolbar();
+}
+
+function clearSelection() {
+    let idsToClear = [];
+    if (currentView === 'my-vault') {
+        const isFiles = !document.getElementById("my-files-view").classList.contains("hidden");
+        idsToClear = Array.from(document.querySelectorAll(`#my-${isFiles ? 'files' : 'folders'}-view [data-id]`)).map(el => el.getAttribute('data-id'));
+    } else if (currentView === 'incoming') {
+        idsToClear = Array.from(document.querySelectorAll('#shared-list-body [data-id]')).map(el => el.getAttribute('data-id'));
+    } else if (currentView === 'recycle-bin') {
+        idsToClear = Array.from(document.querySelectorAll('#recycle-list-body [data-id]')).map(el => el.getAttribute('data-id'));
+    }
+
+    if (idsToClear.length === 0) window.selectedItems = []; // Global fallback
+    else window.selectedItems = window.selectedItems.filter(id => !idsToClear.includes(id));
+    
+    idsToClear.forEach(id => { document.querySelectorAll(`[data-id="${id}"]`).forEach(el => el.classList.remove('selected')); });
+    if (idsToClear.length === 0) document.querySelectorAll('.selected').forEach(el => el.classList.remove('selected'));
+    
+    updateSelectionToolbar();
+}
+
+async function massDelete() {
+    if (window.selectedItems.length === 0) return;
+    if (!await confirmAction(`Permanently purge ${window.selectedItems.length} records?`)) return;
+    if (!await verifyPIN()) return;
+
+    for (const itemId of window.selectedItems) {
+        const item = window.fileItemsMap[itemId];
+        if (!item) continue;
+        try {
+            const token = sessionStorage.getItem("token");
+            if (item.type === 'file') await fetch(`${API_URL}/delete-file`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ fileId: item.id }) });
+            else if (item.type === 'folder') await fetch(`${API_URL}/folders/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+            else if (item.type === 'recycle') await fetch(`${API_URL}/permanent-delete`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ fileId: item.id }) });
+            else if (item.type === 'shared') await fetch(`${API_URL}/share/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+        } catch (e) { console.error("Batch Delete failure:", itemId); }
+    }
+    clearSelection();
+    silentSync();
+    showToast("Deletion completed");
+}
+
+async function massDownload() {
+    if (window.selectedItems.length === 0) return;
+    if (!await confirmAction(`Are you sure you want to download ${window.selectedItems.length} records?`, "success")) return;
+    if (!await verifyPIN()) return;
+    
+    for (const itemId of window.selectedItems) {
+        const item = window.fileItemsMap[itemId];
+        if (item.type === 'file') downloadFile(item.id, item.encKey, item.name, true);
+        else if (item.type === 'shared') openUnlockModal(item.fileId, item.id, item.encKey, item.encMeta, item.iv, item.downloadable, true);
+    }
+    clearSelection();
+    showToast("Download complete");
+}
+
+async function massRestore() {
+    if (window.selectedItems.length === 0) return;
+    if (!await verifyPIN()) return;
+
+    for (const itemId of window.selectedItems) {
+        const item = window.fileItemsMap[itemId];
+        if (item.type === 'recycle') {
+            try { await fetch(`${API_URL}/restore-file`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${sessionStorage.getItem("token")}` }, body: JSON.stringify({ fileId: item.id }) }); }
+            catch(e) {}
+        }
+    }
+    clearSelection();
+    silentSync();
+    showToast("Restore complete");
 }
