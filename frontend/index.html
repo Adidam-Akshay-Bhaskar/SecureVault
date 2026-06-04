@@ -9,7 +9,17 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=58" />
+  <link rel="stylesheet" href="style.css?v=60" />
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      if (savedTheme === 'dark') {
+        document.documentElement.classList.add('dark-theme');
+      } else {
+        document.documentElement.classList.remove('dark-theme');
+      }
+    })();
+  </script>
   <link rel="icon" type="image/x-icon" href="vaultlogo.png?v=3" />
   <link rel="shortcut icon" type="image/x-icon" href="vaultlogo.png?v=3" />
   <!-- UNIVERSAL RENDERING CONDUITS -->
@@ -467,9 +477,15 @@
           <h1 id="view-title">Vault Base</h1>
           <p id="view-subtitle">Operator: <span id="welcome-message" style="text-transform: none; color: var(--accent-cyan); letter-spacing: 0.5px;">Agent</span></p>
         </div>
-        <div style="position: relative;">
+        <div style="position: relative; display: flex; align-items: center; gap: 12px;">
+          <!-- Theme Toggle Button -->
+          <button id="theme-toggle-btn" class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle Theme" title="Toggle Light/Dark Theme">
+            <svg id="theme-toggle-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </svg>
+          </button>
           <div class="user-profile-box" onclick="toggleHeaderMenu()">
-            <span id="profile-username-header" style="color:#000; font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Agent</span>
+            <span id="profile-username-header" style="color: var(--text-primary); font-size: 0.95rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Agent</span>
             <div class="auth-logo-box" style="width:36px; height:36px; font-size:0.95rem; position: relative;">
               <span id="header-avatar">?</span>
               <img id="header-avatar-img" class="hidden" src="" style="width: 100%; height: 100%; border-radius: 12px; object-fit: cover;" />
@@ -512,14 +528,14 @@
           </div>
 
           <div style="display: flex; gap: 12px;">
-            <button id="btn-upload-record" class="action-btn" onclick="showUploadModal()" style="background: var(--accent-cyan); color: #000; border: 1.5px solid #000; font-weight: 800; padding: 10px 20px; border-radius: 12px;">Upload Record +</button>
-            <button id="btn-new-folder" class="action-btn hidden" onclick="showCreateFolderModal()" style="background: #FFFFFF; color: #000; border: 1.5px solid #000; font-weight: 800; padding: 10px 20px; border-radius: 12px;">New Folder +</button>
+            <button id="btn-upload-record" class="action-btn" onclick="showUploadModal()" style="background: var(--accent-cyan); color: #000; border: 1.5px solid var(--border-color); font-weight: 800; padding: 10px 20px; border-radius: 12px;">Upload Record +</button>
+            <button id="btn-new-folder" class="action-btn hidden" onclick="showCreateFolderModal()" style="background: var(--card-bg); color: var(--text-primary); border: 1.5px solid var(--border-color); font-weight: 800; padding: 10px 20px; border-radius: 12px;">New Folder +</button>
           </div>
         </div>
 
         <div id="my-folders-view" class="hidden">
           <div class="search-container" style="max-width: 400px; margin: 0 auto 1.5rem auto; position: relative;">
-            <input type="text" id="folders-search" placeholder="Search folders..." onkeyup="filterFiles(this.value, 'folders')" style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 12px; border: 1px solid #E2E8F0; background: #F8FAFC; color: #0F172A; outline: none; font-size: 0.9rem;" />
+            <input type="text" id="folders-search" placeholder="Search folders..." onkeyup="filterFiles(this.value, 'folders')" style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); outline: none; font-size: 0.9rem;" />
             <svg style="position: absolute; left: 12px; top: 10px; color: #64748B; width: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
           <div class="folder-grid-container">
@@ -529,7 +545,7 @@
 
         <div id="my-files-view">
           <div class="search-container" style="max-width: 400px; margin: 0 auto 1.5rem auto; position: relative;">
-            <input type="text" id="files-search" placeholder="Search files..." onkeyup="filterFiles(this.value, 'files')" style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 12px; border: 1px solid #E2E8F0; background: #F8FAFC; color: #0F172A; outline: none; font-size: 0.9rem;" />
+            <input type="text" id="files-search" placeholder="Search files..." onkeyup="filterFiles(this.value, 'files')" style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); outline: none; font-size: 0.9rem;" />
             <svg style="position: absolute; left: 12px; top: 10px; color: #64748B; width: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
           <div class="folder-grid-container">
@@ -552,7 +568,7 @@
             <p style="color: var(--text-dim); font-size: 0.8rem; opacity: 0.7;">Retention threshold: 7 days. Remaining records will be automatically purged.</p>
           </div>
           <div class="search-container" style="flex: 1; max-width: 350px; margin-left: 20px; position: relative;">
-            <input type="text" id="recycle-search" placeholder="Search deleted records..." onkeyup="filterFiles(this.value, 'recycle')" style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 12px; border: 1px solid #E2E8F0; background: #F8FAFC; color: #0F172A; outline: none; font-size: 0.9rem;" />
+            <input type="text" id="recycle-search" placeholder="Search deleted records..." onkeyup="filterFiles(this.value, 'recycle')" style="width: 100%; padding: 10px 15px 10px 40px; border-radius: 12px; border: 1px solid var(--border-color); background: var(--input-bg); color: var(--text-primary); outline: none; font-size: 0.9rem;" />
             <svg style="position: absolute; left: 12px; top: 10px; color: #64748B; width: 18px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
         </div>
@@ -740,8 +756,8 @@
         <div style="background:rgba(255,255,255,0.02); border: 1px dashed rgba(255,255,255,0.1); padding: 50px 20px; border-radius: 24px; text-align: center; cursor: pointer; margin-bottom: 2rem; transition: 0.3s; overflow: hidden;" 
              onmouseover="this.style.borderColor='var(--accent-cyan)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.1)'"
              onclick="triggerSecureFileInput()">
-          <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name; document.getElementById('file-label').style.color='#000'; document.getElementById('file-label').style.fontWeight='900'" onclick="event.stopPropagation()" />
-          <p id="file-label" style="color:#000; font-size: 1rem; font-weight: 900; word-break: break-all; margin: 0; line-height: 1.4; text-transform: uppercase;">Drop record or click to browse</p>
+          <input type="file" id="file-input" hidden onchange="document.getElementById('file-label').textContent = this.files[0].name; document.getElementById('file-label').style.color='var(--text-primary)'; document.getElementById('file-label').style.fontWeight='900'" onclick="event.stopPropagation()" />
+          <p id="file-label" style="color:var(--text-primary); font-size: 1rem; font-weight: 900; word-break: break-all; margin: 0; line-height: 1.4; text-transform: uppercase;">Drop record or click to browse</p>
         </div>
         
         <!-- TRANSMISSION MONITOR -->
@@ -947,7 +963,7 @@
   </div>
 
   <div id="toast-container"></div>
-  <script src="app.js?v=57"></script>
+  <script src="app.js?v=60"></script>
   <div id="folder-explorer-modal" class="modal hidden">
     <div class="modal-content" style="max-width: 98vw; width: 96vw; height: 92vh; display: flex; flex-direction: column;">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem;">
