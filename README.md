@@ -1,154 +1,287 @@
-# SecureVault: Hyper-Secured, Frictionless Encrypted Data Sanctuary
+# SecureVault
+### Hyper-Secured, Zero-Knowledge Encrypted File Vault
 
-SecureVault is an ultra-premium, Zero-Knowledge file storage and sharing web application designed for absolute privacy and seamless operations. It integrates local-first browser cryptography with cloud-backed metadata coordination, offering safe record management, secure time-decaying shared links, and high-fidelity, in-browser document previews.
+SecureVault is an ultra-premium, end-to-end encrypted file storage and secure sharing web application. Files are encrypted and decrypted **entirely in the browser** using the Web Crypto API — the server and database never see your plaintext data or master passcode. Built with pure HTML5, Vanilla CSS3, and ES6 JavaScript on the frontend, and Node.js + Express + PostgreSQL + AWS S3 on the backend.
 
 ---
 
-## 🌟 Key Architecture & Pillars
-
-SecureVault is engineered around three core paradigms:
-1. **Zero-Knowledge Design**: Unencrypted files and master passcodes never leave the client's device. Cryptographic keys are derived, and files are encrypted/decrypted entirely in the browser using the browser's native Web Crypto API.
-2. **Frictionless Enclave Preview**: Rather than forcing downloads, SecureVault parses and renders binary formats (`.pdf`, `.docx`, `.xlsx`, code files, media, and zip structures) directly inside a responsive document viewer in the browser.
-3. **Dynamic Interactive UI**: Built with pure HTML5, vanilla CSS, and ES6 JavaScript, the desktop layout provides detailed navigation panels, while the mobile view automatically adapts into a modern, floating bottom capsule bar (Telegram-style) with inline profile navigation.
+## Architecture Overview
 
 ```mermaid
 graph TD
-    Client[Browser Frontend / Web Crypto API] -->|AES-GCM Encrypted Payload| S3[AWS S3 Binary Storage]
-    Client -->|JWT & Metadata Updates| Express[Node.js Express Backend]
-    Express -->|SQL Queries| DB[(PostgreSQL Database)]
-    Client -.->|Local Decryption| Viewer[Frictionless Enclave Viewer]
+    Client[Browser / Web Crypto API]
+    S3[AWS S3 — Encrypted Binary Storage]
+    Express[Node.js Express Backend]
+    DB[(PostgreSQL Database)]
+    Viewer[Frictionless Enclave Viewer]
+
+    Client -->|AES-GCM Encrypted Payload| S3
+    Client -->|JWT Auth + Encrypted Metadata| Express
+    Express -->|SQL Queries| DB
+    Client -.->|Local Decryption Only| Viewer
 ```
 
----
-
-## 🛠 Tech Stack
-
-### Frontend (Client Enclave)
-* **Core**: Semantic HTML5, Vanilla CSS3 (Custom gradients, glassmorphism, responsive media queries), and Vanilla JavaScript (ES6+).
-* **Cryptographic Core**: Web Crypto API (`AES-GCM` 256-bit encryption, `PBKDF2` key derivation, `SHA-256` hashing).
-* **Document Rendering Engines**:
-  * **Mammoth.js**: For client-side compilation and rendering of Word Documents (`.docx`) into clean HTML.
-  * **SheetJS (XLSX)**: For parsing Excel workbooks (`.xlsx`) and injecting them into interactive spreadsheet grids.
-  * **PDF.js**: For rendering document pages onto HTML5 canvas nodes.
-  * **JSZip**: For dynamically packing folder directories into zip files client-side.
-  * **Highlight.js**: For rendering syntax-highlighted code containers for programming sources (`.html`, `.css`, `.js`, `.py`, `.json`, etc.).
-
-### Backend (Metadata Coordinator)
-* **Server Runtime**: Node.js & Express.
-* **Database Driver**: `pg` (PostgreSQL client pool).
-* **File Stream Bridge**: `aws-sdk` (AWS S3 Integration).
-* **Encryption Helpers**: `bcryptjs` (password hashing) and `jsonwebtoken` (stateless JWT session tokens).
-* **Mailer Protocol**: `nodemailer` (Gmail SMTP integration for identity verification and password recovery).
+The server **never** receives raw file content, filenames, or the master passcode. All cryptographic operations happen client-side.
 
 ---
 
-## 🗄 Database Schema Design
+## Visual Showcase
 
-SecureVault relies on a relational PostgreSQL database to synchronize account configurations and encrypted file indices.
-
-### Entity Relationship & Tables
-
-| Table Name | Description | Key Attributes |
-| :--- | :--- | :--- |
-| `users` | Stores accounts, bcrypt passwords, and reference master key envelopes. | `user_id` (PK), `username`, `email` (Unique), `password_hash`, `security_pin_hash`, `profile_photo`, `client_master_key` |
-| `files` | Indexes vault uploads, soft-deletion status, and ownership references. | `file_id` (PK), `file_uuid` (UUID), `owner_id` (FK), `file_type`, `is_deleted`, `deleted_at`, `folder_id` (FK) |
-| `file_metadata` | Stores client-side encrypted filename/size payload under AES-GCM IV bounds. | `file_id` (FK), `encrypted_metadata` (Bytea), `iv` (Text) |
-| `file_keys` | Stores individual file symmetric keys, encrypted under the owner's derived key. | `file_id` (FK), `encrypted_key` (Text) |
-| `user_keys` | Escrows intermediate encrypted vault keys to manage profile key swaps. | `user_id` (PK, FK), `encryption_key` (Text) |
-| `folders` | Coordinates user-defined virtual directories. | `folder_id` (PK), `owner_id` (FK), `name` |
-| `shared_links` | Manages time-decaying shared files, download limitations, and expiration dates. | `link_id` (PK), `file_id` (FK), `recipient_email`, `token_hash`, `encrypted_file_key`, `encrypted_metadata`, `iv`, `is_used`, `downloadable`, `expires_at` |
-| `audit_logs` | Logs user operations in real-time (e.g. Upload, Download, Delete, Key Swaps). | `log_id` (PK), `user_id` (FK), `file_id` (FK), `action`, `details` |
-| `otp_store` | Holds dynamic temporal verification hashes for SMTP-based validation. | `email` (PK), `otp_hash`, `expires_at` |
-| `recovery_tokens` | Tracks secondary validation states for resetting master passcodes. | `token_id` (PK), `user_id` (FK), `token_hash`, `type`, `expires_at` |
+| DataVault Dashboard | Incoming Data | Recycle Bin |
+|:---:|:---:|:---:|
+| ![DataVault](frontend/images/vault_base.png) | ![Incoming Data](frontend/images/incoming_data.png) | ![Recycle Bin](frontend/images/recycle_bin.png) |
 
 ---
 
-## 🔒 Security & Cryptographic Handshake
+## Feature Set
 
-SecureVault enforces local-first encryption. The step-by-step cryptographic sequence is as follows:
+### 🔒 Zero-Knowledge Encryption
+- Files and metadata are encrypted with **AES-GCM 256-bit** before leaving the browser
+- Master passcode is put through **PBKDF2** (100,000 iterations, SHA-256) to derive:
+  - An **Auth Hash** (sent to server, re-hashed with bcrypt)
+  - A **Vault Key** (kept in memory only, never transmitted)
+- Individual **File Keys** are generated per-file and encrypted under the Vault Key
+- **The server cannot decrypt any stored file — ever**
 
-### 1. Key Derivation (Registration & Login)
-1. The user inputs their **Email** and **Master Passcode**.
-2. The frontend inputs the passcode through a slow hash derivation cycle (`PBKDF2`, `100,000 iterations`, `SHA-256`, using email as salt) to generate:
-   - **Auth Hash**: Sent to the server for authentication (hashed on the server with `bcrypt`).
-   - **Vault Key**: Kept in-memory in the browser. It is never sent to the server.
+### 📁 DataVault — Encrypted File Manager
+- Upload any file type directly from the browser
+- Files are streamed to **AWS S3** in encrypted form via pre-signed S3 URLs
+- **Folder organization** — create virtual directories, move files between them
+- Real-time file list with skeleton loaders during async operations
+- Batch operations: select multiple files, download, share, or delete at once
 
-### 2. Vault File Encryption (Upload)
-1. A cryptographically secure random **File Key** (256-bit AES symmetric key) is generated in the browser.
-2. The file payload is encrypted locally with the **File Key** using `AES-GCM`.
-3. The **File Key** is encrypted with the user's **Vault Key** using `AES-GCM` to produce `encrypted_key`.
-4. The file metadata (name, size, type) is encrypted with the user's **Vault Key**.
-5. The frontend transmits:
-   - The encrypted file payload (sent to the backend, which streams it to **AWS S3**).
-   - The `encrypted_key`, encrypted metadata, and cryptographically random initialization vectors (`iv`) to be saved in the database.
+### 📥 Incoming Data — Shared File Inbox
+- Receive files shared to your registered email address
+- Instant load from **sessionStorage cache** — zero network wait on revisit
+- Silent background refresh to pick up new shares
+- Unlock shared files in-browser with the Frictionless Enclave Viewer
 
-### 3. Vault File Decryption (Viewing)
-1. The frontend fetches the encrypted file binary stream from S3, alongside the database record containing `encrypted_key`, encrypted metadata, and `iv`.
-2. The browser decrypts `encrypted_key` using the user's in-memory **Vault Key**.
-3. Using the decrypted **File Key**, the browser decrypts the file payload in real-time and streams it into the document viewer.
+### 🗑️ Recycle Bin — 7-Day Retention
+- Deleted files enter a 7-day retention buffer before permanent purge
+- Restore or permanently delete from Recycle Bin at any time
+- Server-side hourly cleanup task prunes expired records from both S3 and PostgreSQL
+- Skeleton loaders display immediately on tab switch
+
+### 👁️ Frictionless Enclave Viewer
+Files are decrypted and rendered **in-browser** with zero downloads required:
+
+| File Type | Renderer |
+|---|---|
+| PDF | PDF.js — page-by-page canvas rendering |
+| Word Documents (.docx) | Mammoth.js — clean HTML conversion |
+| Excel Workbooks (.xlsx) | SheetJS — interactive grid view |
+| Code Files (.js, .py, .html, .css, .json, etc.) | Highlight.js — syntax highlighting |
+| Images (PNG, JPG, SVG, WebP, GIF) | Native browser preview |
+| Video (MP4, MKV, MOV) | HTML5 `<video>` player |
+| Audio (MP3, WAV, AAC, FLAC) | HTML5 `<audio>` player |
+| ZIP Archives | JSZip — file tree listing |
+
+### 🔗 Secure Sharing
+- Share files with any registered SecureVault user via their email
+- Each share generates an **encrypted file key** unique to the recipient — the sender's Vault Key is never shared
+- Optional **download permission** toggle per share
+- Time-decaying share links: marked `is_used` after first unlock for burn-after-reading flows
+- Bulk share / delete from the selection toolbar
+
+### 🌓 Dual Theme System
+- **Light Theme** (default): clean white + dark navy sidebar
+- **Dark Theme**: pure `#000000` background with high-contrast elements
+- Theme preference synced to the database — persists across sessions and devices
+- Theme toggle available in the Settings (Profile) section
+
+### 📱 Mobile-Optimized UI
+- On screens ≤ 768px, the desktop sidebar transforms into a **floating bottom capsule bar**
+  - Pill-shaped (`border-radius: 26px`), dark-navy translucent (`backdrop-filter: blur(20px)`)
+  - 4 navigation tabs (DataVault, Incoming Data, Recycle Bin, Settings) evenly distributed with `space-evenly`
+  - No exit/logout button in the mobile capsule
+- Recycle Bin search bar stacks vertically below the title on mobile for full-width usability
+- Profile section metadata cards adapt to single-column on mobile
+- Header scrolls naturally on all views including the Help overlay
+
+### 🛡️ Screenshot & Content Protection
+SecureVault implements 5 layers of capture prevention:
+
+| Layer | Blocks |
+|---|---|
+| `@media print` CSS | Print to PDF, browser print dialog |
+| Keyboard interceptor (capture phase) | `PrtSc`, `Ctrl+P`, `Ctrl+U`, `Ctrl+Shift+I/J/S`, macOS `⌘+Shift+3/4/5` |
+| Right-click block | Context menu disabled inside the secure dashboard |
+| Drag block | Content cannot be dragged out of the page |
+| Visibility/blur overlay | Full-screen black lock screen appears when the window loses focus or tab goes to background — covers Snipping Tool, alt-tab captures, and mobile app-switch screenshots |
+
+> **Note:** OS-level hardware screenshot buttons (e.g. Android/iOS volume+power) cannot be blocked by browser technology. This is a sandbox limitation.
+
+### 🔐 Identity & Security
+- **OTP Email Verification** for new account registration
+- **Security PIN** (4 or 6 digits) as a second credential layer
+- **Email-based Recovery** — 15-minute expiring recovery tokens sent via Gmail SMTP
+- **Password Change** — requires current password confirmation
+- **Profile Photo** — base64-encoded, stored in the database
+- **Audit Log** — every upload, download, delete, and share is logged server-side
+
+### ⚡ Performance
+- **Zero-lag cached rendering**: DataVault, Incoming Data, and Recycle Bin all render from `sessionStorage` cache immediately, then silently refresh in the background
+- **Preserved crypto cache**: Already-decrypted file metadata is cached in memory to avoid redundant crypto cycles on re-renders
+- **Skeleton loaders**: Displayed immediately on every view switch before data arrives
+- **Pre-signed S3 URLs**: File uploads go directly from browser → S3, bypassing the backend entirely for binary payloads
 
 ---
 
-## 📱 Mobile Optimizations
+## Database Schema
 
-SecureVault features an adaptive design, ensuring high performance on desktop, tablet, and mobile screens:
-
-* **Telegram-Style Bottom Capsule**: On screens narrower than `768px`, the sidebar transforms into a floating bottom pill-shaped capsule (`border-radius: 36px`, `backdrop-filter: blur(20px)`). All 5 main navigation links are laid out vertically as compact tabs inside this capsule.
-* **Header Optimization**: The user profile badge and avatar align dynamically next to the active view title inside the main header layout, replacing the fixed top-right corner desktop layout.
-* **Clearance Padding**: Content elements include `padding-bottom: 110px` on mobile viewports, ensuring scrollable records are never hidden behind the floating bottom bar.
-* **Layout Shifts**: Table structures automatically adapt into interactive card grids, optimizing tap interactions.
+| Table | Description |
+|---|---|
+| `users` | Accounts, bcrypt password hashes, security PIN hashes, profile photos |
+| `files` | File index with soft-delete, recycle bin, and folder assignment |
+| `file_metadata` | AES-GCM encrypted filenames/sizes (stored as BYTEA) |
+| `file_keys` | Per-file symmetric keys, encrypted under the owner's Vault Key |
+| `user_keys` | Encrypted Vault Keys (one per user) |
+| `folders` | User-defined virtual directories |
+| `shared_links` | Encrypted file shares with recipient email, burn-after-read flag, download permission |
+| `audit_logs` | Append-only log of all file operations |
+| `otp_store` | Temporary OTP hashes for email verification (10-minute TTL) |
+| `recovery_tokens` | Short-lived password/PIN reset tokens (15-minute TTL) |
 
 ---
 
-## ⚙️ Installation & Configuration
+## Tech Stack
+
+### Frontend
+- **Core**: Semantic HTML5, Vanilla CSS3, ES6+ JavaScript (no frameworks)
+- **Crypto**: Web Crypto API — `AES-GCM` 256-bit, `PBKDF2`, `SHA-256`
+- **Libraries** (CDN-loaded):
+  - `PDF.js` — PDF rendering
+  - `Mammoth.js` — DOCX → HTML
+  - `SheetJS (XLSX)` — Excel rendering
+  - `JSZip` — ZIP inspection
+  - `Highlight.js` — Code syntax highlighting
+
+### Backend
+- **Runtime**: Node.js 18+, Express 5
+- **Database**: PostgreSQL via `pg` connection pool
+- **File Storage**: AWS S3 via `aws-sdk` (pre-signed URL pattern)
+- **Auth**: `jsonwebtoken` (7-day JWT), `bcryptjs` (password/PIN hashing)
+- **Email**: `nodemailer` with Gmail SMTP
+- **Security**: CORS, `trust proxy` for Vercel deployment
+
+---
+
+## Installation & Setup
 
 ### Prerequisites
-* **Node.js** (v18.x or higher)
-* **PostgreSQL Database**
-* **AWS S3 Bucket** (for file payloads)
-* **Gmail Account** (or SMTP account for notifications)
+- Node.js v18+
+- PostgreSQL database (local or cloud — Supabase, Neon, Railway)
+- AWS S3 bucket
+- Gmail account with App Password enabled
 
-### 1. Configuration Setup
-Navigate to the `/backend` directory, duplicate the `.env.example` file, and name it `.env`:
+### 1. Clone & Configure
+
+```bash
+git clone https://github.com/Adidam-Akshay-Bhaskar/SecureVault.git
+cd SecureVault
+```
+
+Copy the environment template:
 ```bash
 cp backend/.env.example backend/.env
 ```
-Open `.env` and configure your credentials:
-* **PostgreSQL Connection**: Host, user, port, and password.
-* **AWS S3 Bucket Integration**: AWS Access Keys, S3 region, and bucket name.
-* **Stateless JWT Secret**: Unique hash for signing cookies/session parameters.
-* **Gmail App Password**: Notification sender account credentials.
+
+Edit `backend/.env` and fill in all values:
+```
+DB_HOST=...
+DB_USER=...
+DB_PASSWORD=...
+DB_NAME=...
+DB_PORT=5432
+
+AWS_ACCESS_KEY_ID=...
+AWS_SECRET_ACCESS_KEY=...
+AWS_REGION=...
+S3_BUCKET_NAME=...
+
+JWT_SECRET=your_very_long_random_secret
+
+SYSTEM_EMAIL=your@gmail.com
+SYSTEM_EMAIL_PASS=your_gmail_app_password
+
+FRONTEND_URL=http://localhost:3000
+```
 
 > [!WARNING]
-> Ensure `.env` is listed in your `.gitignore` file. Never commit credentials to version control.
+> **Never commit `.env` to version control.** The `.gitignore` already excludes it.
 
-### 2. Backend Installation & Run
-Install npm packages and spin up the backend:
+### 2. Install & Start Backend
+
 ```bash
 cd backend
 npm install
-npm run dev
+npm start        # production
+# or
+npm run dev      # development with nodemon
 ```
-Upon launching, the backend automatically initializes the database tables and runs the required structural migrations.
 
-### 3. Frontend Run
-The frontend is built with vanilla files and can be hosted using any basic static web server. For local development, run a lightweight static server from the `/frontend` directory:
-```bash
-cd frontend
-# Example using Python
-python -m http.server 3000
-# Or using npm serve
-npx serve -l 3000
+The backend auto-creates and migrates all database tables on first startup. It also starts the hourly recycle bin cleanup task immediately.
+
+### 3. Open Frontend
+
+The backend serves the frontend statically. Visit:
 ```
-Visit `http://localhost:3000` in your browser.
+http://localhost:3000
+```
+
+No separate frontend build step is required.
 
 ---
 
-## 🧹 Maintenance & Background Tasks
+## Deployment
 
-SecureVault includes an automated server-side cleanup task inside `server.js`:
-* **Recycle Bin Pruning**: Runs hourly. It queries the database for files marked as deleted (`is_deleted = TRUE`) that have been in the recycle bin for longer than **7 days**.
-* **AWS S3 Sync**: The cleanup script deletes the encrypted objects directly from AWS S3, and removes the corresponding rows from the database.
+The project includes a `vercel.json` for one-click deployment to **Vercel**:
+- All routes forward to `backend/server.js`
+- Static frontend files are served by Express
+- Set all environment variables in the Vercel project dashboard
 
 ---
-*Engineered for Absolute Confidentiality & Seamless Vault Access.*
+
+## Project Structure
+
+```
+SecureVault/
+├── backend/
+│   ├── server.js          # Express API, DB schema, S3 integration, auth, cleanup
+│   ├── package.json
+│   └── .env.example       # Environment variable template
+├── frontend/
+│   ├── index.html         # Single-page app shell (all views)
+│   ├── app.js             # All client logic: crypto, UI, API calls, file viewer
+│   ├── style.css          # Complete design system: light theme, dark theme, mobile
+│   ├── favicon.png
+│   └── images/            # UI preview screenshots
+├── .gitignore
+├── vercel.json
+└── README.md
+```
+
+---
+
+## Background Tasks
+
+| Task | Interval | Action |
+|---|---|---|
+| Recycle Bin Pruning | Every 1 hour | Deletes S3 objects and DB rows for files deleted > 7 days ago |
+| OTP Cleanup | On each OTP request | Expired OTPs replaced via `ON CONFLICT DO UPDATE` |
+| Recovery Token Cleanup | On each reset execution | Tokens deleted immediately after use |
+
+---
+
+## Security Notes
+
+- The master passcode is **never stored** anywhere — not in the browser, not in the database
+- The derived Vault Key lives only in `sessionStorage` and is wiped on logout
+- All file content, filenames, and metadata sizes are opaque to the server
+- JWT tokens expire after 7 days
+- Security PIN is stored as a bcrypt hash (separate from the master passcode)
+- S3 objects use UUID filenames — no relationship to the original filename is stored in plain text
+
+---
+
+*Built with precision. Engineered for absolute confidentiality.*
