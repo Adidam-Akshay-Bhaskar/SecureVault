@@ -3596,3 +3596,67 @@ document.addEventListener("click", (e) => {
     wrapper.classList.remove("open");
   }
 });
+
+// ============================================
+// SCREENSHOT PROTECTION - SecureVault Security
+// ============================================
+(function initScreenshotProtection() {
+  const overlay = document.getElementById('sv-security-overlay');
+  const isDashboardActive = () => {
+    const dash = document.getElementById('view-dashboard');
+    return dash && !dash.classList.contains('hidden');
+  };
+
+  // Show/hide overlay
+  function showOverlay() {
+    if (overlay && isDashboardActive()) overlay.classList.add('active');
+  }
+  function hideOverlay() {
+    if (overlay) overlay.classList.remove('active');
+  }
+
+  // 1. Hide content when tab goes background (mobile screenshot window, alt-tab)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) { showOverlay(); }
+    else { hideOverlay(); }
+  });
+
+  // 2. Hide content on window blur (Windows Snipping Tool, OS screenshot shortcuts)
+  window.addEventListener('blur', showOverlay);
+  window.addEventListener('focus', hideOverlay);
+
+  // 3. Block keyboard screenshot shortcuts
+  document.addEventListener('keydown', (e) => {
+    // Block: PrintScreen, Ctrl+P (print), Ctrl+Shift+S, Ctrl+U (view source)
+    if (
+      e.key === 'PrintScreen' ||
+      (e.ctrlKey && ['p', 'P', 'u', 'U'].includes(e.key)) ||
+      (e.ctrlKey && e.shiftKey && ['s', 'S', 'i', 'I', 'j', 'J'].includes(e.key)) ||
+      (e.metaKey && e.shiftKey && ['3', '4', '5'].includes(e.key)) // macOS screenshot shortcuts
+    ) {
+      e.preventDefault();
+      e.stopPropagation();
+      // Clear clipboard on PrintScreen attempt
+      if (e.key === 'PrintScreen') {
+        setTimeout(() => { try { navigator.clipboard.writeText(''); } catch {} }, 100);
+      }
+      return false;
+    }
+  }, true); // capture phase to intercept before any handler
+
+  // 4. Block right-click on sensitive content (dashboard)
+  document.addEventListener('contextmenu', (e) => {
+    if (isDashboardActive()) {
+      e.preventDefault();
+      return false;
+    }
+  });
+
+  // 5. Block text drag to prevent content extraction
+  document.addEventListener('dragstart', (e) => {
+    if (isDashboardActive()) {
+      e.preventDefault();
+      return false;
+    }
+  });
+})();
