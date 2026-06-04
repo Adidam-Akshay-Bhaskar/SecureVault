@@ -4,8 +4,8 @@
   --section-bg: #F8FAFC;
   --card-bg: #FFFFFF;
   --input-bg: #F9FAFB;
-  --sidebar-bg: #1E3A8A;
-  --sidebar-hover: #1E40AF;
+  --sidebar-bg: #0C1A3A;
+  --sidebar-hover: #1A2E6B;
   --accent-blue: #1E3A8A;
   --accent-hover: #1E40AF;
   --accent-light: #DBEAFE;
@@ -24,8 +24,8 @@ html.dark-theme {
   --section-bg: #0A0A0A;
   --card-bg: #121212;
   --input-bg: #0C0C0C;
-  --sidebar-bg: #1E3A8A; /* dark blue */
-  --sidebar-hover: #1E40AF;
+  --sidebar-bg: #0C1A3A; /* dark navy blue */
+  --sidebar-hover: #1A2E6B;
   --accent-blue: #3B82F6;
   --accent-hover: #2563EB;
   --accent-light: rgba(59, 130, 246, 0.15);

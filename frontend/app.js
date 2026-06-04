@@ -895,8 +895,7 @@ async function showView(viewId) {
       toggleVaultSubView(storedSub);
     }
     if (viewId === "incoming") { 
-      renderSkeletons();
-      loadFiles(); 
+      loadSharedFiles(); 
     }
     if (viewId === "recycle-bin") { 
       renderSkeletons();
@@ -1222,7 +1221,6 @@ async function loadFiles() {
   if (cached) {
     try {
       const filesData = JSON.parse(cached);
-      filesData.sharedFiles = []; // FORCE NO CACHE memory for incoming shared files
       await applyFilesDOM(filesData);
     } catch (e) {
       console.warn("Cached files parsing failed:", e);
@@ -1250,6 +1248,8 @@ async function loadFiles() {
       }
 
       sessionStorage.setItem("sv_files_cache", JSON.stringify(filesData));
+      // Also save shared files separately for instant incoming tab
+      sessionStorage.setItem("sv_shared_cache", JSON.stringify(filesData.sharedFiles || []));
       await applyFilesDOM(filesData);
     }
   } catch (err) {
@@ -1333,6 +1333,84 @@ function renderFiles() {
     `;
   }
   shBody.innerHTML = shHtml;
+}
+
+// ==========================================
+// SHARED FILES (Incoming Data) — instant cache + background refresh
+// ==========================================
+
+function renderSharedFiles() {
+  const shBody = document.getElementById("shared-list-body");
+  if (!shBody) return;
+  const countEl = document.getElementById("stat-incoming-count");
+  if (countEl) countEl.textContent = allFiles.sharedFiles.length;
+
+  const sorted = [...allFiles.sharedFiles].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+  if (!sorted.length) {
+    shBody.innerHTML = '<div style="padding: 60px; text-align: center; color: var(--text-dim); font-size: 0.9rem; font-weight: 700;">No incoming records found.</div>';
+    return;
+  }
+  let html = "";
+  for (const f of sorted) {
+    const itemId = `shared-${f.link_id}`;
+    const displayName = f.sender_username || (f.sender_email ? f.sender_email.split('@')[0] : 'Unknown Operator');
+    window.fileItemsMap[itemId] = { type: 'shared', id: f.link_id, fileId: f.file_id, name: displayName, encKey: f.encrypted_key, encMeta: f.encrypted_metadata, iv: f.iv, downloadable: f.downloadable };
+    const isSelected = window.selectedItems.includes(itemId);
+    html += `
+      <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="From: ${displayName}">
+        <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+          <div class="file-icon-premium" style="background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%); color: #4F46E5; display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px; height:20px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          </div>
+          <div class="selection-indicator"></div>
+        </div>
+        <div style="flex: 1; min-width: 0;">
+          <p class="folder-name" style="font-size: 0.9rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</p>
+          <p class="folder-count" style="font-size: 0.7rem;">SECRET FILE • Shared • ${new Date(f.created_at).toLocaleDateString()}</p>
+        </div>
+        <div class="card-overlay" onclick="toggleActions(this.parentElement, event)">
+          <button class="action-pill view" onclick="event.stopPropagation(); window.openUnlockModal(${f.file_id || 'null'}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable})" title="Unlock">${svgUnlock}</button>
+          <button class="action-pill delete" onclick="event.stopPropagation(); deleteSharedLink(${f.link_id})" title="Delete">${svgDelete}</button>
+        </div>
+      </div>
+    `;
+  }
+  shBody.innerHTML = html;
+}
+
+async function loadSharedFiles() {
+  const shBody = document.getElementById("shared-list-body");
+  if (!shBody) return;
+
+  // Step 1: Paint from cache immediately (zero network wait)
+  const cached = sessionStorage.getItem("sv_shared_cache");
+  if (cached) {
+    try {
+      allFiles.sharedFiles = JSON.parse(cached);
+      renderSharedFiles();
+    } catch (e) {
+      console.warn("Shared cache parse failed:", e);
+      renderSkeletons();
+    }
+  } else {
+    // No cache yet — show skeletons while we fetch
+    renderSkeletons();
+  }
+
+  // Step 2: Silently refresh in the background
+  try {
+    const res = await fetch(`${API_URL}/files`, {
+      headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` }
+    });
+    if (res.ok) {
+      const data = await res.json();
+      allFiles.sharedFiles = data.sharedFiles || [];
+      sessionStorage.setItem("sv_shared_cache", JSON.stringify(allFiles.sharedFiles));
+      renderSharedFiles();
+    }
+  } catch (err) {
+    console.warn("Shared files background refresh failed:", err);
+  }
 }
 
 async function loadRecycleBin() {
