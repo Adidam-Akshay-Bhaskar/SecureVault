@@ -20,20 +20,20 @@
 }
 
 html.dark-theme {
-  --bg-color: #0F172A;
-  --section-bg: #0B0F19;
-  --card-bg: #1E293B;
-  --input-bg: #0F172A;
-  --sidebar-bg: #0B0F19;
-  --sidebar-hover: #1E293B;
-  --accent-blue: #3B82F6;
-  --accent-hover: #2563EB;
-  --accent-light: rgba(59, 130, 246, 0.15);
+  --bg-color: #000000;
+  --section-bg: #0A0A0A;
+  --card-bg: #121212;
+  --input-bg: #0C0C0C;
+  --sidebar-bg: #6366F1; /* violet colour */
+  --sidebar-hover: #4F46E5;
+  --accent-blue: #6366F1;
+  --accent-hover: #4F46E5;
+  --accent-light: rgba(99, 102, 241, 0.15);
   --accent-cyan: #22D3EE;
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #64748B;
-  --border-color: #334155;
+  --text-primary: #FFFFFF;
+  --text-secondary: #E2E8F0;
+  --text-muted: #94A3B8;
+  --border-color: #222222;
 }
 
 /* Theme Toggle Button Style */
@@ -240,7 +240,7 @@ html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden;
 
 .sidebar {
   width: 280px;
-  background: #0A1329 !important; /* DEEP SAPPHIRE BASEMENT */
+  background: var(--sidebar-bg) !important;
   border-right: 1px solid rgba(255, 255, 255, 0.05);
   display: flex !important;
   flex-direction: column;
@@ -1643,9 +1643,61 @@ input[type="checkbox"]:checked::after {
 .archive-manifest-list { padding: 40px; }
 .archive-item { 
   display: flex; align-items: center; gap: 15px; padding: 12px 20px; 
-  background: #F8FAFC; border: 1px solid #E2E8F0; 
+  background: var(--input-bg); border: 1px solid var(--border-color); 
   border-radius: 10px; margin-bottom: 10px; color: var(--text-primary); 
   font-size: 0.9rem; 
+}
+
+/* Premium Universal Archive Tree Row Styling */
+.archive-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  margin-top: 5px;
+  border-radius: 10px;
+  cursor: default;
+  user-select: none;
+  background: var(--input-bg);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.archive-tree-row.is-directory {
+  cursor: pointer;
+  background: var(--accent-light);
+  border-color: rgba(99, 102, 241, 0.25);
+}
+.archive-tree-row:hover {
+  background: var(--section-bg);
+  border-color: var(--accent-blue);
+}
+.archive-tree-row.is-directory:hover {
+  background: var(--accent-hover);
+}
+.archive-tree-row.is-directory:hover .folder-name {
+  color: #FFFFFF !important;
+}
+.archive-tree-row.is-directory.expanded {
+  background: var(--card-bg);
+  border-color: var(--accent-blue);
+}
+
+/* Mobile Optimizations for Archive Tree */
+@media (max-width: 768px) {
+  .archive-tree-row {
+    padding: 6px 10px;
+    gap: 8px;
+    border-radius: 8px;
+    margin-top: 3px;
+  }
+  .archive-tree-row .folder-name {
+    font-size: 0.8rem !important;
+  }
+  .archive-tree-row .folder-count {
+    font-size: 0.65rem !important;
+    padding: 1px 6px !important;
+  }
 }
 
 .folder-grid-container {
@@ -2931,21 +2983,20 @@ video::-webkit-media-controls-enclosure {
     overflow-y: visible !important; 
     overflow-x: hidden !important;
   }
-  
   .sidebar, .sidebar.collapsed { 
-    width: 85% !important; 
-    max-width: 380px !important; 
-    height: 60px !important; 
+    width: 90% !important; 
+    max-width: 340px !important; 
+    height: 52px !important; 
     position: fixed !important; 
     bottom: 16px !important; 
     top: auto !important; 
     left: 50% !important; 
     transform: translateX(-50%) !important; 
     flex-direction: row !important; 
-    padding: 0 8px !important; 
+    padding: 0 16px !important; 
     z-index: 2500 !important; 
     overflow: visible !important;
-    border-radius: 30px !important;
+    border-radius: 26px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
     background: rgba(15, 23, 42, 0.85) !important; /* Slate 900 translucent */
     backdrop-filter: blur(20px) !important;
@@ -2953,7 +3004,7 @@ video::-webkit-media-controls-enclosure {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 10px rgba(99, 102, 241, 0.1) !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-around !important;
+    justify-content: space-between !important;
     gap: 0 !important;
     border-right: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -2962,9 +3013,9 @@ video::-webkit-media-controls-enclosure {
   .sidebar-top-section { display: contents !important; }
   .nav-links { display: contents !important; }
   .sidebar-bottom-section { display: contents !important; }
-
+ 
   /* Hide exit/logout button from mobile bottom capsule */
-  .logout-item { display: none !important; }
+  .sidebar .logout-item, .sidebar.collapsed .logout-item { display: none !important; }
 
   .sidebar .nav-item, .sidebar.collapsed .nav-item { 
     display: flex !important;
@@ -2984,9 +3035,9 @@ video::-webkit-media-controls-enclosure {
     border-right: none !important;
   }
   .sidebar .nav-icon-box, .sidebar.collapsed .nav-icon-box {
-    width: 32px !important;
-    height: 32px !important;
-    border-radius: 10px !important;
+    width: 28px !important;
+    height: 28px !important;
+    border-radius: 9px !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -2994,15 +3045,15 @@ video::-webkit-media-controls-enclosure {
     margin-bottom: 1px !important;
   }
   .sidebar .nav-icon-box svg, .sidebar.collapsed .nav-icon-box svg {
-    width: 15px !important;
-    height: 15px !important;
+    width: 13px !important;
+    height: 13px !important;
   }
   .sidebar .nav-item.active .nav-icon-box, .sidebar.collapsed .nav-item.active .nav-icon-box {
     transform: scale(1.08) !important;
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.35) !important;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3) !important;
   }
   .sidebar .nav-text, .sidebar.collapsed .nav-text {
-    font-size: 0.58rem !important;
+    font-size: 0.52rem !important;
     font-weight: 700 !important;
     letter-spacing: 0px !important;
     display: block !important;

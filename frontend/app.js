@@ -2042,17 +2042,8 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                         const childCount = entry.isDir ? countChildren(entry.path) : 0;
 
                         const row = document.createElement('div');
-                        row.style.cssText = `
-                            display:flex;align-items:center;gap:10px;
-                            padding:9px 14px;
-                            margin-left:${depth * 24}px;
-                            background:${entry.isDir ? '#FFFBEB' : '#F8FAFC'};
-                            border:1px solid ${entry.isDir ? '#FDE68A' : '#E2E8F0'};
-                            border-radius:10px;
-                            cursor:${entry.isDir ? 'pointer' : 'default'};
-                            user-select:none;
-                            transition:background 0.15s;
-                        `;
+                        row.className = `archive-tree-row ${entry.isDir ? 'is-directory' : 'is-file'}`;
+                        row.style.marginLeft = `${depth * (window.innerWidth < 768 ? 10 : 20)}px`;
 
                         // Chevron for folders
                         let chevron = null;
@@ -2067,6 +2058,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                         iconEl.style.cssText = 'font-size:1rem;flex-shrink:0;';
 
                         const nameEl = document.createElement('span');
+                        nameEl.className = 'folder-name';
                         nameEl.textContent = displayName;
                         nameEl.style.cssText = `flex:1;font-size:0.875rem;font-weight:${entry.isDir ? '700' : '500'};color:var(--text-primary);word-break:break-all;`;
 
@@ -2076,8 +2068,9 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
 
                         if (childCount > 0) {
                             const badge = document.createElement('span');
+                            badge.className = 'folder-count';
                             badge.textContent = childCount + ' file' + (childCount !== 1 ? 's' : '');
-                            badge.style.cssText = 'font-size:0.72rem;color:#94A3B8;font-weight:600;white-space:nowrap;background:#F1F5F9;padding:2px 8px;border-radius:20px;';
+                            badge.style.cssText = 'font-size:0.72rem;color:#94A3B8;font-weight:600;white-space:nowrap;background:var(--section-bg);padding:2px 8px;border-radius:20px;';
                             row.appendChild(badge);
                         }
 
@@ -2107,18 +2100,18 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                                             renderEntries(kids, childArea, depth + 1);
                                         } else {
                                             const empty = document.createElement('div');
-                                            empty.style.cssText = `margin-left:${(depth+1)*24}px;padding:8px 14px;font-size:0.82rem;color:#94A3B8;font-style:italic;`;
+                                            empty.style.cssText = `margin-left:${(depth+1)*(window.innerWidth < 768 ? 10 : 20)}px;padding:8px 14px;font-size:0.82rem;color:#94A3B8;font-style:italic;`;
                                             empty.textContent = 'Empty folder';
                                             childArea.appendChild(empty);
                                         }
                                     }
                                     childArea.style.display = 'flex';
                                     if (chevron) chevron.style.transform = 'rotate(90deg)';
-                                    row.style.background = '#FEF9C3';
+                                    row.classList.add('expanded');
                                 } else {
                                     childArea.style.display = 'none';
                                     if (chevron) chevron.style.transform = 'rotate(0deg)';
-                                    row.style.background = '#FFFBEB';
+                                    row.classList.remove('expanded');
                                 }
                             });
                         }
