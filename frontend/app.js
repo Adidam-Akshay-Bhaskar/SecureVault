@@ -409,6 +409,20 @@ function renderSkeletons() {
       </div>
     </div>`;
 
+  const skRow = () => `
+    <div class="file-row recycle-row skeleton-row-container" style="pointer-events: none; border-bottom: 1px solid var(--border-color);">
+      <div class="skeleton-pulse" style="width: 50px; height: 50px; border-radius: 16px; flex-shrink: 0;"></div>
+      <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+        <div class="skeleton-pulse" style="width: 140px; height: 14px; border-radius: 7px;"></div>
+        <div class="skeleton-pulse" style="width: 90px; height: 10px; border-radius: 5px;"></div>
+      </div>
+      <div class="skeleton-pulse" style="width: 80px; height: 14px; border-radius: 7px; margin: 0 auto;"></div>
+      <div style="display: flex; gap: 10px; width: 180px; justify-content: flex-end;">
+        <div class="skeleton-pulse" style="width: 80px; height: 34px; border-radius: 10px;"></div>
+        <div class="skeleton-pulse" style="width: 80px; height: 34px; border-radius: 10px;"></div>
+      </div>
+    </div>`;
+
   const myBody = document.getElementById("file-list-body");
   if (myBody && !myBody.children.length) {
     myBody.innerHTML = [1,2,3,4,5,6].map(skCard).join("");
@@ -417,6 +431,16 @@ function renderSkeletons() {
   const folderGrid = document.getElementById("folder-list");
   if (folderGrid && !folderGrid.children.length) {
     folderGrid.innerHTML = [1,2,3].map(skCard).join("");
+  }
+
+  const shBody = document.getElementById("shared-list-body");
+  if (shBody && !shBody.children.length) {
+    shBody.innerHTML = [1,2,3,4].map(skCard).join("");
+  }
+
+  const recycleBody = document.getElementById("recycle-list-body");
+  if (recycleBody && (!recycleBody.children.length || recycleBody.innerHTML.includes("Scanning safe"))) {
+    recycleBody.innerHTML = [1,2,3,4].map(skRow).join("");
   }
 
   // Header profile skeleton
@@ -870,8 +894,14 @@ async function showView(viewId) {
       const storedSub = sessionStorage.getItem("activeSubView") || "files";
       toggleVaultSubView(storedSub);
     }
-    if (viewId === "incoming") { loadFiles(); }
-    if (viewId === "recycle-bin") { loadRecycleBin(); }
+    if (viewId === "incoming") { 
+      renderSkeletons();
+      loadFiles(); 
+    }
+    if (viewId === "recycle-bin") { 
+      renderSkeletons();
+      loadRecycleBin(); 
+    }
   } else {
     document.getElementById(viewId).classList.remove("hidden");
   }
@@ -1308,7 +1338,7 @@ function renderFiles() {
 async function loadRecycleBin() {
   const recycleBody = document.getElementById("recycle-list-body");
   if (!recycleBody) return;
-  recycleBody.innerHTML = '<div style="padding: 40px; text-align: center; color: var(--text-dim); opacity: 0.5;">Scanning safe retention hubs...</div>';
+  renderSkeletons();
   
   try {
     const res = await fetch(`${API_URL}/recycle-bin`, {
