@@ -229,7 +229,7 @@ async function ensureAllTables() {
       }
     );
   };
-  setInterval(cleanupRecycleBin, 6 * 60 * 60 * 1000);
+  setInterval(cleanupRecycleBin, 60 * 60 * 1000); // Prune hourly for real-time compliance
   cleanupRecycleBin(); // Initial run
   console.log("All database tables verified/migrated.");
 }
@@ -344,7 +344,7 @@ function generateTokenAndResponse(res, user) {
 
     res.json({
       accessToken,
-      user: { username: user.username, email: user.email, masterKey },
+      user: { username: user.username, email: user.email, profilePhoto: user.profile_photo, masterKey },
     });
   });
 }
@@ -388,34 +388,35 @@ app.post("/api/auth/recover-request", (req, res) => {
           return res.status(500).json({ message: "Security token generation failed." });
         }
 
-        const resetLink = `${req.protocol}://${req.get("host")}/?recovery_token=${token}&type=${type}`;
+        const baseDomain = process.env.FRONTEND_URL || `${req.protocol}://${req.get("host")}`;
+        const resetLink = `${baseDomain}/?recovery_token=${token}&type=${type}`;
         
         const mailOptions = {
           from: `"SecureVault Support" <${process.env.SYSTEM_EMAIL}>`,
           to: normalizedEmail,
           subject: `SecureVault - ${type.toUpperCase()} Reset Protocol`,
           html: `
-            <div style="background-color: #0c0c0d; padding: 40px; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #ffffff; text-align: center; border-radius: 16px;">
-              <div style="margin-bottom: 30px;">
-                <h1 style="color: #00f2ff; font-size: 28px; letter-spacing: 4px; margin: 0; text-transform: uppercase; font-weight: 900;">SecureVault</h1>
-                <p style="color: rgba(255,255,255,0.5); font-size: 12px; margin-top: 5px; letter-spacing: 2px;">SECURE DISPATCH PROTOCOL</p>
+            <div style="background-color: #F8FAFC; padding: 48px 24px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #334155; text-align: center;">
+              <div style="margin-bottom: 28px;">
+                <h1 style="color: #0F172A; font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin: 0;">SecureVault</h1>
+                <p style="color: #64748B; font-size: 11px; margin: 6px 0 0 0; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600;">Secure Dispatch Protocol</p>
               </div>
               
-              <div style="background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); padding: 35px; border-radius: 20px; max-width: 500px; margin: 0 auto;">
-                <h2 style="font-size: 20px; margin-bottom: 15px; color: #fff;">Vault Restoration</h2>
-                <p style="color: #a0a0a0; line-height: 1.6; margin-bottom: 25px;">
-                  Hello, <strong style="color: #fff;">${user.username}</strong>. A request was detected to reset your <strong>${type}</strong>. 
+              <div style="background: #FFFFFF; border: 1px solid #E2E8F0; padding: 40px 32px; border-radius: 20px; max-width: 480px; margin: 0 auto; box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03); text-align: center;">
+                <h2 style="font-size: 20px; font-weight: 700; margin: 0 0 16px 0; color: #0F172A;">Vault Restoration</h2>
+                <p style="color: #475569; font-size: 15px; line-height: 1.6; margin: 0 0 28px 0; text-align: center;">
+                  Hello, <strong style="color: #0F172A;">${user.username}</strong>. A request was detected to reset your <strong>${type}</strong>. 
                   Synchronize your credentials using the secure link below.
                 </p>
                 
-                <a href="${resetLink}" style="display: inline-block; padding: 18px 36px; background: #00f2ff; color: #000000; text-decoration: none; border-radius: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: 1px; box-shadow: 0 10px 20px rgba(0,242,255,0.2);">Reset ${type}</a>
+                <a href="${resetLink}" style="display: inline-block; padding: 14px 28px; background: #2563EB; color: #FFFFFF; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 14px; box-shadow: 0 6px 18px rgba(37, 99, 235, 0.15);">Reset ${type.toUpperCase()}</a>
                 
-                <p style="color: #666; font-size: 12px; margin-top: 30px;">This encrypted link expires in <span style="color: #ff3e3e;">15 minutes</span>.</p>
+                <p style="color: #94A3B8; font-size: 12px; margin: 28px 0 0 0;">This encrypted link expires in <span style="color: #EF4444; font-weight: 600;">15 minutes</span>.</p>
               </div>
               
-              <div style="margin-top: 35px;">
-                <p style="color: #444; font-size: 11px; margin: 0;">If you did not initiate this protocol, please disregard this transmission.</p>
-                <p style="color: #222; font-size: 10px; margin-top: 10px;">&copy; ${new Date().getFullYear()} SecureVault Labs. All rights reserved.</p>
+              <div style="margin-top: 32px;">
+                <p style="color: #94A3B8; font-size: 11px; margin: 0;">If you did not initiate this protocol, please disregard this transmission.</p>
+                <p style="color: #CBD5E1; font-size: 10px; margin: 12px 0 0 0;">&copy; ${new Date().getFullYear()} SecureVault Inc. All rights reserved.</p>
               </div>
             </div>
           `
@@ -752,7 +753,7 @@ app.get("/api/files", authenticateToken, (req, res) => {
       if (err) return res.status(500).json({ error: err });
 
       db.query(
-        `SELECT sl.link_id, f.file_id, f.file_uuid, sl.created_at, sl.encrypted_metadata, sl.iv, sl.encrypted_file_key as encrypted_key, sl.downloadable, u.email as sender_email, 'SHARED' as role
+        `SELECT sl.link_id, f.file_id, f.file_uuid, sl.created_at, sl.encrypted_metadata, sl.iv, sl.encrypted_file_key as encrypted_key, sl.downloadable, u.email as sender_email, u.username as sender_username, 'SHARED' as role
          FROM shared_links sl
          JOIN files f ON sl.file_id = f.file_id
          JOIN users u ON f.owner_id = u.user_id
@@ -769,10 +770,11 @@ app.get("/api/files", authenticateToken, (req, res) => {
             created_at: row.created_at,
             encrypted_metadata: row.encrypted_metadata.toString("base64"),
             iv: row.iv,
-            downloadable: row.downloadable === 1 || row.downloadable === true,
+            downloadable: row.downloadable === 1 || row.downloadable === true || row.downloadable === 'true' || row.downloadable === '1' || row.downloadable === 't',
             encrypted_key: row.encrypted_key,
             role: row.role,
             sender_email: row.sender_email,
+            sender_username: row.sender_username,
           }));
 
           res.json({ myFiles: processFiles(myFiles), sharedFiles: processFiles(sharedFiles) });
@@ -873,7 +875,7 @@ app.post("/api/share", authenticateToken, (req, res) => {
 
     db.query(
       "INSERT INTO shared_links (file_id, recipient_email, token_hash, encrypted_file_key, encrypted_metadata, iv, downloadable, expires_at) VALUES (?, ?, ?, ?, decode(?, 'base64'), ?, ?, ?)",
-      [fileId, targetEmail, tokenHash, encryptedKey, encryptedMetadata || "", metadataIv, req.body.downloadable ? 1 : 0, expiry],
+      [fileId, targetEmail, tokenHash, encryptedKey, encryptedMetadata || "", metadataIv, req.body.downloadable ? true : false, expiry],
       (err) => {
         if (err) return res.status(500).json({ error: err });
         
@@ -933,7 +935,7 @@ app.post("/api/access-share", (req, res) => {
         encryptedMetadata: link.encrypted_metadata ? link.encrypted_metadata.toString("base64") : null,
         metadataIv: link.iv,
         downloadUrl,
-        downloadable: !!link.downloadable
+        downloadable: link.downloadable === 1 || link.downloadable === true || link.downloadable === 'true' || link.downloadable === '1' || link.downloadable === 't'
       });
     }
   );

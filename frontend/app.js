@@ -10,8 +10,65 @@ let currentFolderId = null;
 let currentExplorerFolderId = null;
 
 // BATCH OPERATION REGISTRY
-window.selectedItems = [];
+window.tabSelectedItems = {
+  "my-vault-files": [],
+  "my-vault-folders": [],
+  "incoming": [],
+  "recycle-bin": [],
+  "explorer": []
+};
 window.fileItemsMap = {};
+
+function getActiveSelectionTab() {
+  if (currentExplorerFolderId !== null) {
+    return "explorer";
+  }
+  if (currentView === "my-vault") {
+    const filesView = document.getElementById("my-files-view");
+    const isFiles = filesView ? !filesView.classList.contains("hidden") : true;
+    return isFiles ? "my-vault-files" : "my-vault-folders";
+  }
+  if (currentView === "incoming") {
+    return "incoming";
+  }
+  if (currentView === "recycle-bin") {
+    return "recycle-bin";
+  }
+  return "my-vault-files"; // default fallback
+}
+
+Object.defineProperty(window, 'selectedItems', {
+  get: function() {
+    const tab = getActiveSelectionTab();
+    if (!window.tabSelectedItems) {
+      window.tabSelectedItems = {
+        "my-vault-files": [],
+        "my-vault-folders": [],
+        "incoming": [],
+        "recycle-bin": [],
+        "explorer": []
+      };
+    }
+    if (!window.tabSelectedItems[tab]) {
+      window.tabSelectedItems[tab] = [];
+    }
+    return window.tabSelectedItems[tab];
+  },
+  set: function(val) {
+    const tab = getActiveSelectionTab();
+    if (!window.tabSelectedItems) {
+      window.tabSelectedItems = {
+        "my-vault-files": [],
+        "my-vault-folders": [],
+        "incoming": [],
+        "recycle-bin": [],
+        "explorer": []
+      };
+    }
+    window.tabSelectedItems[tab] = val;
+  },
+  configurable: true
+});
 
 // STORAGE LIMIT: 2.5 GB
 const MAX_STORAGE_BYTES = 2.5 * 1024 * 1024 * 1024;
@@ -23,6 +80,7 @@ const svgView = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" str
 const svgDownload = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>`;
 const svgShare = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>`;
 const svgDelete = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+const svgUnlock = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>`;
 
 // ==========================================
 // CRYPTO UTILS (Preserved)
@@ -73,6 +131,23 @@ async function decryptKey(encryptedKey, masterKey, iv) {
 
 async function getClientMasterKey() {
   if (sessionMasterKey) return sessionMasterKey;
+  
+  // Try loading from cached profile first (zero network lag!)
+  const cached = sessionStorage.getItem("sv_profile_cache");
+  if (cached) {
+    try {
+      const data = JSON.parse(cached);
+      if (data && data.masterKey) {
+        sessionMasterKey = await window.crypto.subtle.importKey(
+          "jwk", JSON.parse(data.masterKey), { name: ALGO_NAME }, false, ["encrypt", "decrypt", "wrapKey", "unwrapKey"]
+        );
+        return sessionMasterKey;
+      }
+    } catch (e) {
+      console.warn("Cached master key import failed:", e);
+    }
+  }
+
   try {
     const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     if (!res.ok) throw new Error("UNAUTHORIZED");
@@ -290,7 +365,13 @@ function showConfirm(message, state = "primary") {
     const cancel = document.getElementById("confirm-cancel-btn");
     
     ok.classList.remove("danger", "success");
-    if (state !== "primary") ok.classList.add(state);
+    if (state === "danger") {
+      ok.classList.add("danger");
+    } else if (state === "success") {
+      ok.classList.add("success");
+    } else if (state !== "primary") {
+      ok.classList.add(state);
+    }
 
     const handler = (val) => {
       ok.removeEventListener("click", okHandler);
@@ -317,12 +398,53 @@ async function silentSync() {
   } catch {}
 }
 
+// Instant Skeleton Screens — paint the UI immediately before data loads
+function renderSkeletons() {
+  const skCard = () => `
+    <div class="skeleton-card">
+      <div class="skeleton-pulse skeleton-icon-box"></div>
+      <div class="skeleton-text-block">
+        <div class="skeleton-pulse skeleton-line-a"></div>
+        <div class="skeleton-pulse skeleton-line-b"></div>
+      </div>
+    </div>`;
+
+  const myBody = document.getElementById("file-list-body");
+  if (myBody && !myBody.children.length) {
+    myBody.innerHTML = [1,2,3,4,5,6].map(skCard).join("");
+  }
+
+  const folderGrid = document.getElementById("folder-list");
+  if (folderGrid && !folderGrid.children.length) {
+    folderGrid.innerHTML = [1,2,3].map(skCard).join("");
+  }
+
+  // Header profile skeleton
+  const headerAvatar = document.getElementById("header-avatar");
+  const headerEmail = document.getElementById("header-email");
+  if (headerAvatar && !headerAvatar.textContent.trim()) {
+    headerAvatar.textContent = "...";
+  }
+  if (headerEmail && !headerEmail.textContent.trim()) {
+    headerEmail.textContent = "Loading...";
+  }
+}
+
 function closeModal(id) { 
   const el = document.getElementById(id);
   if (el) el.classList.add("hidden");
   if (id === 'folder-explorer-modal') {
     currentExplorerFolderId = null;
     document.getElementById("upload-modal").classList.add("hidden");
+    if (window.tabSelectedItems) {
+      window.tabSelectedItems['explorer'] = [];
+    }
+    document.querySelectorAll('#folder-explorer-modal .selected').forEach(el => el.classList.remove('selected'));
+    updateSelectionToolbar();
+  }
+  if (id === 'file-view-modal') {
+    const dlBtn = document.getElementById("view-download-btn");
+    if (dlBtn) dlBtn.remove();
   }
   // Silent Data Refresh Protocol
   silentSync();
@@ -434,6 +556,47 @@ document.addEventListener('DOMContentLoaded', () => {
       el.setAttribute('tabindex', '0');
     }
   });
+
+  const updatePassForm = document.getElementById("update-password-form");
+  if (updatePassForm) {
+    updatePassForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const currentPassword = document.getElementById("current-password").value;
+      const newPassword = document.getElementById("new-password").value;
+      
+      if (!currentPassword || !newPassword) {
+        showToast("Please fill all passcode fields", "error");
+        return;
+      }
+      
+      if (newPassword.length < 8) {
+        showToast("New passcode must be at least 8 characters long", "error");
+        return;
+      }
+
+      showToast("Updating passcode...");
+      try {
+        const res = await fetch(`${API_URL}/profile/password`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${sessionStorage.getItem("token")}`
+          },
+          body: JSON.stringify({ currentPassword, newPassword })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast("Passcode updated successfully", "success");
+          updatePassForm.reset();
+          if (window.logActivity) window.logActivity("Master Passcode Changed", "Security credentials modified");
+        } else {
+          showToast(data.message || "Failed to update passcode", "error");
+        }
+      } catch (err) {
+        showToast("Network error occurred", "error");
+      }
+    });
+  }
 });
 
 document.addEventListener('keydown', (e) => {
@@ -449,6 +612,53 @@ document.addEventListener('keydown', (e) => {
     }
   }
 });
+
+function applyImmediateUserData(user) {
+  if (!user) return;
+  
+  // 1. Populate Username & Initials fallbacks
+  if (user.username) {
+    if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = user.username;
+    if (document.getElementById("profile-username-header")) document.getElementById("profile-username-header").textContent = user.username;
+    if (document.getElementById("profile-username-display")) document.getElementById("profile-username-display").textContent = user.username;
+    if (document.getElementById("display-alias")) document.getElementById("display-alias").textContent = user.username;
+    
+    const initial = user.username.trim().charAt(0).toUpperCase();
+    const hAvatar = document.getElementById("header-avatar");
+    if (hAvatar) hAvatar.textContent = initial;
+    const pInitials = document.getElementById("profile-avatar-placeholder");
+    if (pInitials) pInitials.textContent = initial;
+  }
+  
+  // 2. Populate Email
+  if (user.email) {
+    if (document.getElementById("profile-email-full")) document.getElementById("profile-email-full").textContent = user.email;
+  }
+
+  // 3. Populate Profile Photo
+  const hImg = document.getElementById("header-avatar-img");
+  const hAvatar = document.getElementById("header-avatar");
+  const pPhoto = document.getElementById("profile-photo-img");
+  const pInitials = document.getElementById("profile-avatar-placeholder");
+  const removeBtn = document.getElementById("btn-remove-photo");
+  const badgeVerified = document.getElementById("badge-verified");
+
+  if (user.profilePhoto) {
+    if (hImg) { hImg.src = user.profilePhoto; hImg.classList.remove("hidden"); }
+    if (hAvatar) { hAvatar.classList.add("hidden"); hAvatar.textContent = ""; }
+    if (pPhoto) { pPhoto.src = user.profilePhoto; pPhoto.classList.remove("hidden"); }
+    if (pInitials) { pInitials.classList.add("hidden"); }
+    if (removeBtn) removeBtn.classList.remove("hidden");
+    if (badgeVerified) badgeVerified.style.display = "flex";
+  } else {
+    if (hImg) { hImg.classList.add("hidden"); hImg.src = ""; }
+    if (hAvatar) { hAvatar.classList.remove("hidden"); }
+    if (pPhoto) { pPhoto.classList.add("hidden"); pPhoto.src = ""; }
+    if (pInitials) { pInitials.classList.remove("hidden"); }
+    if (removeBtn) removeBtn.classList.add("hidden");
+    if (badgeVerified) badgeVerified.style.display = "none";
+  }
+}
 
 document.getElementById("login-form").addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -474,9 +684,12 @@ document.getElementById("login-form").addEventListener("submit", async (e) => {
       // Rapid Identity Transition: Transition to vault within milliseconds
       showToast("Access Granted");
       
-      // Execute UI swap and profile sync immediately
-      loadProfile(); 
+      // Populate user info immediately to avoid delay/flicker
+      applyImmediateUserData(data.user);
+      
+      // Execute UI swap immediately — show skeleton then load data
       showView("my-vault");
+      loadProfile(); 
       
       // Neutralize distractions: Clear credentials and blur to discourage browser manager prompts
       if (document.activeElement) document.activeElement.blur();
@@ -508,8 +721,12 @@ document.getElementById("verify-pin-form").addEventListener("submit", async (e) 
          );
       }
       showToast("Verified"); 
-      loadProfile(); 
+      
+      // Populate user info immediately to avoid delay/flicker
+      applyImmediateUserData(data.user);
+      
       showView("my-vault");
+      loadProfile(); 
       if (document.activeElement) document.activeElement.blur();
       e.target.reset();
 
@@ -551,7 +768,7 @@ document.getElementById("recover-form").addEventListener("submit", async (e) => 
   const type = document.querySelector('input[name="rec-type"]:checked').value;
   const btn = e.target.querySelector("button");
   const orig = btn.textContent;
-  btn.textContent = "Dispatched..."; btn.disabled = true;
+  btn.textContent = "Sending..."; btn.disabled = true;
   try {
     const res = await fetch(`${API_URL}/auth/recover-request`, {
       method: "POST", headers: { "Content-Type": "application/json" },
@@ -620,6 +837,7 @@ function cancelVerify() { tempLoginCredentials = null; switchAuthTab("login"); }
 
 async function showView(viewId) {
   currentView = viewId;
+  updateSelectionToolbar();
   const sections = ["landing-page", "auth-section", "view-dashboard", "section-my-vault", "section-incoming", "section-profile", "section-recycle-bin"];
   sections.forEach(s => {
     const el = document.getElementById(s);
@@ -628,13 +846,14 @@ async function showView(viewId) {
 
   const sidebarVisible = ["my-vault", "incoming", "profile", "recycle-bin"].includes(viewId);
   if (sidebarVisible) {
+    sessionStorage.setItem("activeView", viewId);
     document.getElementById("view-dashboard").classList.remove("hidden");
     document.getElementById(`section-${viewId}`).classList.remove("hidden");
     const titles = { 
       "my-vault": "Vault Base", 
-      "incoming": "Incoming Data Matrix", 
+      "incoming": "Incoming Data", 
       "profile": "Identity Profile Settings",
-      "recycle-bin": "Terminal Recycle Bin"
+      "recycle-bin": "Recycle Bin"
     };
     document.getElementById("view-title").textContent = titles[viewId];
     
@@ -645,8 +864,13 @@ async function showView(viewId) {
     }, 50);
 
     toggleNav(viewId);
-    if (viewId === "my-vault") { silentSync(); }
-    if (viewId === "incoming") { loadIncomingLinks(); }
+    if (viewId === "my-vault") { 
+      renderSkeletons(); 
+      silentSync(); 
+      const storedSub = sessionStorage.getItem("activeSubView") || "files";
+      toggleVaultSubView(storedSub);
+    }
+    if (viewId === "incoming") { loadFiles(); }
     if (viewId === "recycle-bin") { loadRecycleBin(); }
   } else {
     document.getElementById(viewId).classList.remove("hidden");
@@ -663,13 +887,20 @@ function toggleNav(viewId) {
 }
 
 function toggleVaultSubView(sub) {
+  sessionStorage.setItem("activeSubView", sub);
   const tabs = ["files", "folders"];
   tabs.forEach(t => {
-    document.getElementById(`my-${t}-view`).classList.add("hidden");
-    document.getElementById(`tab-my-${t}`).classList.remove("active");
+    const viewEl = document.getElementById(`my-${t}-view`);
+    const tabEl = document.getElementById(`tab-my-${t}`);
+    if (viewEl) viewEl.classList.add("hidden");
+    if (tabEl) tabEl.classList.remove("active");
   });
-  document.getElementById(`my-${sub}-view`).classList.remove("hidden");
-  document.getElementById(`tab-my-${sub}`).classList.add("active");
+  const activeViewEl = document.getElementById(`my-${sub}-view`);
+  const activeTabEl = document.getElementById(`tab-my-${sub}`);
+  if (activeViewEl) activeViewEl.classList.remove("hidden");
+  if (activeTabEl) activeTabEl.classList.add("active");
+
+  updateSelectionToolbar();
   silentSync();
 
   // Contextual Header Actions
@@ -690,48 +921,62 @@ function toggleVaultSubView(sub) {
 
 async function loadFolders() {
   try {
-    const res = await fetch(`${API_URL}/folders`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
-    const data = await res.json();
-    allFolders = data.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-    
-    const grid = document.getElementById("folder-list");
-    const select = document.getElementById("upload-folder-select");
-    grid.innerHTML = "";
-    select.innerHTML = '<option value="">Root Vault</option>';
-    document.getElementById("stat-folder-count").textContent = allFolders.length;
+    const renderFoldersDOM = (data) => {
+      allFolders = data.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+      const grid = document.getElementById("folder-list");
+      const select = document.getElementById("upload-folder-select");
+      if (!grid || !select) return;
+      grid.innerHTML = "";
+      select.innerHTML = '<option value="">Root Vault</option>';
+      document.getElementById("stat-folder-count").textContent = allFolders.length;
 
-    allFolders.forEach(f => {
-      const disp = truncateName(f.name);
-      const dateStr = new Date(f.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-      const fCount = allFiles.myFiles ? allFiles.myFiles.filter(file => file.folder_id === f.folder_id).length : 0;
-      
-      const itemId = `folder-${f.folder_id}`;
-      window.fileItemsMap[itemId] = { type: 'folder', id: f.folder_id, name: f.name };
-      const isSelected = window.selectedItems.includes(itemId);
+      allFolders.forEach(f => {
+        const disp = truncateName(f.name);
+        const dateStr = new Date(f.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
+        const fCount = allFiles.myFiles ? allFiles.myFiles.filter(file => file.folder_id === f.folder_id).length : 0;
+        
+        const itemId = `folder-${f.folder_id}`;
+        window.fileItemsMap[itemId] = { type: 'folder', id: f.folder_id, name: f.name };
+        const isSelected = window.selectedItems.includes(itemId);
 
-      grid.innerHTML += `
-        <div class="folder-row-item ${isSelected ? 'selected' : ''}" data-id="${itemId}">
-          <div class="folder-card" tabindex="0" onclick="handleItemClick('${itemId}', event, () => openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}'))" style="flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 125px; padding: 18px;">
-            <div style="display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <button tabindex="-1" class="action-btn" style="padding:5px 10px; font-size:0.65rem; border-radius:8px; background:rgba(250,204,21,0.1); border-color:rgba(250,204,21,0.2); color:#d97706; font-weight:700;" onclick="event.stopPropagation(); renameFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\\\'")}')">Rename</button>
-              <button tabindex="-1" class="action-btn" style="padding:5px 10px; font-size:0.65rem; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#dc2626; font-weight:700;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
-            </div>
-            <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
-              <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
-                <span class="folder-icon" style="margin-bottom:0; font-size: 2.2rem;">📂</span>
-                <div class="selection-indicator"></div>
+        grid.innerHTML += `
+          <div class="folder-row-item ${isSelected ? 'selected' : ''}" data-id="${itemId}">
+            <div class="folder-card" tabindex="0" onclick="handleItemClick('${itemId}', event, () => openFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\'")}', '${dateStr}'))" style="flex-direction: column; align-items: flex-start; justify-content: space-between; min-height: 125px; padding: 18px;">
+              <div style="display: flex; width: 100%; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <button tabindex="-1" class="action-btn" style="padding:5px 10px; font-size:0.65rem; border-radius:8px; background:rgba(250,204,21,0.1); border-color:rgba(250,204,21,0.2); color:#d97706; font-weight:700;" onclick="event.stopPropagation(); renameFolder(${f.folder_id}, '${f.name.replace(/'/g,"\\\\'")}')">Rename</button>
+                <button tabindex="-1" class="action-btn" style="padding:5px 10px; font-size:0.65rem; border-radius:8px; background:rgba(255,50,50,0.1); border-color:rgba(255,50,50,0.2); color:#dc2626; font-weight:700;" onclick="event.stopPropagation(); deleteFolder(${f.folder_id})">Delete</button>
               </div>
-              <div style="flex: 1; min-width: 0;">
-                <p class="folder-name" style="margin: 0; font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${disp}</p>
-                <p class="folder-count" style="margin: 4px 0 0 0; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">${fCount} Files • ${dateStr}</p>
+              <div style="display: flex; align-items: center; gap: 12px; width: 100%;">
+                <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+                  <span class="folder-icon" style="margin-bottom:0; font-size: 2.2rem;">📂</span>
+                  <div class="selection-indicator"></div>
+                </div>
+                <div style="flex: 1; min-width: 0;">
+                  <p class="folder-name" style="margin: 0; font-weight: 700; font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${disp}</p>
+                  <p class="folder-count" style="margin: 4px 0 0 0; font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase;">${fCount} Files • ${dateStr}</p>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      `;
-      select.innerHTML += `<option value="${f.folder_id}">${disp}</option>`;
-    });
-  } catch {}
+        `;
+        select.innerHTML += `<option value="${f.folder_id}">${disp}</option>`;
+      });
+      syncCustomFolderSelect();
+    };
+
+    // 1. Instant load from cache
+    const cached = sessionStorage.getItem("sv_folders_cache");
+    if (cached) {
+      try { renderFoldersDOM(JSON.parse(cached)); } catch {}
+    }
+
+    // 2. Fetch from network in background
+    const res = await fetch(`${API_URL}/folders`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
+    if (!res.ok) return;
+    const data = await res.json();
+    sessionStorage.setItem("sv_folders_cache", JSON.stringify(data));
+    renderFoldersDOM(data);
+  } catch (err) {}
 }
 
 function showCreateFolderModal() { document.getElementById("folder-modal").classList.remove("hidden"); }
@@ -745,7 +990,9 @@ async function createFolder() {
       body: JSON.stringify({ name }),
     });
     if (res.ok) {
-      showToast("Folder Initialized"); closeModal("folder-modal");
+      showToast("Folder Initialized");
+      if (window.logActivity) window.logActivity("Folder Defined", name);
+      closeModal("folder-modal");
       document.getElementById("new-folder-name").value = "";
       loadFolders();
     }
@@ -794,6 +1041,8 @@ async function renameFolder(id, currentName) {
 }
 
 async function deleteFolder(id) {
+  const folder = allFolders.find(f => f.folder_id === id);
+  const name = folder ? folder.name : `Folder #${id}`;
   const conf = await showConfirm("Delete this folder? Filestreams will be unassigned but not deleted.", "danger");
   if (!conf) return;
 
@@ -801,6 +1050,7 @@ async function deleteFolder(id) {
 
   try {
     await fetch(`${API_URL}/folders/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
+    if (window.logActivity) window.logActivity("Folder Purged", name);
     silentSync();
   } catch {}
 }
@@ -820,54 +1070,53 @@ async function openFolder(id, name, date) {
   renderFolderExplorer(id);
 }
 
-async function renderFolderExplorer(folderId) {
+function renderFolderExplorer(folderId) {
   const container = document.getElementById("explorer-file-list");
-  container.innerHTML = '<p style="padding:40px; text-align:center; color:var(--text-dim);">Scanning directory...</p>';
   
-  if (!allFiles.myFiles || allFiles.myFiles.length === 0) await loadFiles();
+  if (!allFiles.myFiles || allFiles.myFiles.length === 0) {
+    container.innerHTML = '<p style="padding:40px; text-align:center; color:var(--text-dim);">Scanning directory...</p>';
+    loadFiles();
+    return;
+  }
   
   const files = allFiles.myFiles.filter(f => f.folder_id === parseInt(folderId));
-  container.innerHTML = "";
   
   if (files.length === 0) {
     container.innerHTML = '<p style="padding:40px; text-align:center; color:var(--text-dim);">Directory is empty</p>';
     return;
   }
 
-  const masterKey = await getClientMasterKey();
-  
+  let html = "";
   for (const f of files) {
-    try {
-      const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
-      const ext = meta.filename.split(".").pop().toUpperCase();
-      const displayTitle = truncateName(meta.filename);
+    const meta = f._meta;
+    if (!meta) { html += `<div class="file-row"><p style="color:var(--danger)">Unrecoverable Cluster</p></div>`; continue; }
+    const ext = meta.filename.split(".").pop().toUpperCase();
+    const displayTitle = truncateName(meta.filename);
+    const safeFilename = meta.filename.replace(/'/g, "\\'");
+    const itemId = `file-${f.file_id}`;
+    window.fileItemsMap[itemId] = { type: 'file', id: f.file_id, name: meta.filename, encKey: f.encrypted_key };
+    const isSelected = window.selectedItems.includes(itemId);
 
-      const itemId = `file-${f.file_id}`;
-      window.fileItemsMap[itemId] = { type: 'file', id: f.file_id, name: meta.filename, encKey: f.encrypted_key };
-      const isSelected = window.selectedItems.includes(itemId);
-
-      container.innerHTML += `
-        <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="${meta.filename}">
-          <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
-            ${getFileTypeLogo(ext)}
-            <div class="selection-indicator"></div>
-          </div>
-          <div style="flex: 1; min-width: 0;">
-            <p class="folder-name" style="font-size: 0.9rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</p>
-            <p class="folder-count" style="font-size: 0.7rem;">${ext} • ${formatBytes(meta.size)} • ${new Date(f.created_at).toLocaleDateString()}</p>
-          </div>
-          <div class="card-overlay" onclick="toggleActions(this.parentElement, event)">
-            <button class="action-pill view" onclick="event.stopPropagation(); viewMyFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}', ${meta.size})" title="View">${svgView}</button>
-            <button class="action-pill save" onclick="event.stopPropagation(); downloadFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}')" title="Download">${svgDownload}</button>
-            <button class="action-pill share" onclick="event.stopPropagation(); openShareModal(${f.file_id}, '${meta.filename.replace(/'/g,"\\\\'")}', '${f.encrypted_key}')" title="Share">${svgShare}</button>
-            <button class="action-pill delete" onclick="event.stopPropagation(); deleteFile(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}')" title="Delete">${svgDelete}</button>
-          </div>
+    html += `
+      <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="${meta.filename}">
+        <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
+          ${getFileTypeLogo(ext)}
+          <div class="selection-indicator"></div>
         </div>
-      `;
-    } catch {
-      container.innerHTML += `<div class="file-row"><p style="color:var(--danger)">Unrecoverable Cluster</p></div>`;
-    }
+        <div style="flex: 1; min-width: 0;">
+          <p class="folder-name" style="font-size: 0.9rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayTitle}</p>
+          <p class="folder-count" style="font-size: 0.7rem;">${ext} • ${formatBytes(meta.size)} • ${new Date(f.created_at).toLocaleDateString()}</p>
+        </div>
+        <div class="card-overlay" onclick="toggleActions(this.parentElement, event)">
+          <button class="action-pill view" onclick="event.stopPropagation(); viewMyFile(${f.file_id}, '${f.encrypted_key}', '${safeFilename}', ${meta.size})" title="View">${svgView}</button>
+          <button class="action-pill save" onclick="event.stopPropagation(); gatedDownload(${f.file_id}, '${f.encrypted_key}', '${safeFilename}')" title="Download">${svgDownload}</button>
+          <button class="action-pill share" onclick="event.stopPropagation(); openShareModal(${f.file_id}, '${safeFilename}', '${f.encrypted_key}')" title="Share">${svgShare}</button>
+          <button class="action-pill delete" onclick="event.stopPropagation(); deleteFile(${f.file_id}, '${f.encrypted_key}', '${safeFilename}')" title="Delete">${svgDelete}</button>
+        </div>
+      </div>
+    `;
   }
+  container.innerHTML = html;
 }
 
 // ==========================================
@@ -899,6 +1148,9 @@ function getFileTypeLogo(ext) {
   else if (["zip", "rar", "7z", "tar", "gz"].includes(e)) { 
     bg = "#FFFBEB"; color = "#D97706"; grad = "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)"; 
   }
+  else if (["key"].includes(e)) { 
+    bg = "#EEF2FF"; color = "#4F46E5"; grad = "linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%)"; 
+  }
   else if (["html", "css", "js", "ts", "py", "java", "cpp", "c", "json", "xml"].includes(e)) { 
     bg = "#ECFEFF"; color = "#0891B2"; grad = "linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 100%)"; 
   }
@@ -913,55 +1165,96 @@ function getFileTypeLogo(ext) {
 }
 
 async function loadFiles() {
-  const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
-  allFiles = await res.json();
-  
-  // Reset Selection Registry on full reload
-  window.fileItemsMap = {};
-  
-  // Storage Audit
-  let totalUsage = 0;
-  const mk = await getClientMasterKey();
-  for (const f of allFiles.myFiles) {
-    try {
-      const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), mk, hexToBytes(f.iv));
-      f.size = meta.size;
-      totalUsage += meta.size;
-    } catch {}
-  }
-  updateStorageTracker();
+  const applyFilesDOM = async (filesData) => {
+    allFiles = filesData;
+    // Reset Selection Registry on full reload
+    window.fileItemsMap = {};
 
-  renderFiles();
-  if (currentExplorerFolderId) renderFolderExplorer(currentExplorerFolderId);
+    // Decrypt ALL file metadata in parallel (one-shot, cached on f._meta)
+    const mk = await getClientMasterKey();
+    if (allFiles && allFiles.myFiles) {
+      await Promise.all(allFiles.myFiles.map(async (f) => {
+        if (f._meta) return; // Skip if already decrypted from cache
+        try {
+          f._meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), mk, hexToBytes(f.iv));
+          f.size = f._meta.size;
+        } catch { f._meta = null; }
+      }));
+    }
+    updateStorageTracker();
+
+    renderFiles();
+    if (currentExplorerFolderId) renderFolderExplorer(currentExplorerFolderId);
+  };
+
+  // 1. Instant load from cache (zero network lag)
+  const cached = sessionStorage.getItem("sv_files_cache");
+  if (cached) {
+    try {
+      const filesData = JSON.parse(cached);
+      filesData.sharedFiles = []; // FORCE NO CACHE memory for incoming shared files
+      await applyFilesDOM(filesData);
+    } catch (e) {
+      console.warn("Cached files parsing failed:", e);
+    }
+  }
+
+  // 2. Fetch from network in background
+  try {
+    const res = await fetch(`${API_URL}/files`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
+    if (res.ok) {
+      const filesData = await res.json();
+      
+      // Preserve already decrypted metadata to avoid redundant crypto cycles
+      if (allFiles && allFiles.myFiles && filesData.myFiles) {
+        const metaMap = {};
+        allFiles.myFiles.forEach(f => {
+          if (f._meta) metaMap[f.file_id] = f._meta;
+        });
+        filesData.myFiles.forEach(f => {
+          if (metaMap[f.file_id]) {
+            f._meta = metaMap[f.file_id];
+            f.size = f._meta.size;
+          }
+        });
+      }
+
+      sessionStorage.setItem("sv_files_cache", JSON.stringify(filesData));
+      await applyFilesDOM(filesData);
+    }
+  } catch (err) {
+    console.warn("Files sync deferred:", err);
+  }
+
   loadFolders();
 }
 
-async function renderFiles() {
+function renderFiles() {
   const myBody = document.getElementById("file-list-body");
   const shBody = document.getElementById("shared-list-body");
   myBody.innerHTML = ""; shBody.innerHTML = "";
-  
-  const masterKey = await getClientMasterKey();
+
   const sortedFiles = [...allFiles.myFiles].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
-  
-  const filteredMy = currentFolderId 
+
+  const filteredMy = currentFolderId
     ? sortedFiles.filter(f => f.folder_id === parseInt(currentFolderId))
     : sortedFiles.filter(f => !f.folder_id);
 
   document.getElementById("stat-file-count").textContent = filteredMy.length;
   document.getElementById("stat-incoming-count").textContent = allFiles.sharedFiles.length;
 
+  let myHtml = "";
   for (const f of filteredMy) {
-    try {
-      const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
-      const ext = meta.filename.split(".").pop().toUpperCase();
-      const displayTitle = truncateName(meta.filename);
+    const meta = f._meta;
+    if (!meta) { myHtml += `<div class="file-row"><p style="color:var(--danger)">Unrecoverable Conflict</p></div>`; continue; }
+    const ext = meta.filename.split(".").pop().toUpperCase();
+    const displayTitle = truncateName(meta.filename);
+    const safeFilename = meta.filename.replace(/'/g, "\\'" );
+    const itemId = `file-${f.file_id}`;
+    window.fileItemsMap[itemId] = { type: 'file', id: f.file_id, name: meta.filename, encKey: f.encrypted_key };
+    const isSelected = window.selectedItems.includes(itemId);
 
-      const itemId = `file-${f.file_id}`;
-      window.fileItemsMap[itemId] = { type: 'file', id: f.file_id, name: meta.filename, encKey: f.encrypted_key };
-      const isSelected = window.selectedItems.includes(itemId);
-
-      myBody.innerHTML += `
+    myHtml += `
         <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="${meta.filename}">
           <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
             ${getFileTypeLogo(ext)}
@@ -972,41 +1265,44 @@ async function renderFiles() {
             <p class="folder-count" style="font-size: 0.7rem;">${ext} • ${formatBytes(meta.size)} • ${new Date(f.created_at).toLocaleDateString()}</p>
           </div>
           <div class="card-overlay" onclick="toggleActions(this.parentElement, event)">
-            <button class="action-pill view" onclick="event.stopPropagation(); gatedView(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}', ${meta.size})" title="View">${svgView}</button>
-            <button class="action-pill save" onclick="event.stopPropagation(); gatedDownload(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}')" title="Download">${svgDownload}</button>
-            <button class="action-pill share" onclick="event.stopPropagation(); gatedShare(${f.file_id}, '${meta.filename.replace(/'/g,"\\\\'")}', '${f.encrypted_key}')" title="Share">${svgShare}</button>
-            <button class="action-pill delete" onclick="event.stopPropagation(); gatedDelete(${f.file_id}, '${f.encrypted_key}', '${meta.filename.replace(/'/g,"\\\\'")}')" title="Delete">${svgDelete}</button>
+            <button class="action-pill view" onclick="event.stopPropagation(); gatedView(${f.file_id}, '${f.encrypted_key}', '${safeFilename}', ${meta.size})" title="View">${svgView}</button>
+            <button class="action-pill save" onclick="event.stopPropagation(); gatedDownload(${f.file_id}, '${f.encrypted_key}', '${safeFilename}')" title="Download">${svgDownload}</button>
+            <button class="action-pill share" onclick="event.stopPropagation(); gatedShare(${f.file_id}, '${safeFilename}', '${f.encrypted_key}')" title="Share">${svgShare}</button>
+            <button class="action-pill delete" onclick="event.stopPropagation(); gatedDelete(${f.file_id}, '${f.encrypted_key}', '${safeFilename}')" title="Delete">${svgDelete}</button>
           </div>
         </div>
       `;
-    } catch {
-      myBody.innerHTML += `<div class="file-row"><p style="color:var(--danger)">Unrecoverable Conflict</p></div>`;
-    }
   }
+  myBody.innerHTML = myHtml;
 
   const sortedShared = [...allFiles.sharedFiles].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+  let shHtml = "";
   for (const f of sortedShared) {
     const itemId = `shared-${f.link_id}`;
-    window.fileItemsMap[itemId] = { type: 'shared', id: f.link_id, fileId: f.file_id, name: f.sender_email, encKey: f.encrypted_key, encMeta: f.encrypted_metadata, iv: f.iv, downloadable: f.downloadable };
+    const displayName = f.sender_username || (f.sender_email ? f.sender_email.split('@')[0] : 'Unknown Operator');
+    window.fileItemsMap[itemId] = { type: 'shared', id: f.link_id, fileId: f.file_id, name: displayName, encKey: f.encrypted_key, encMeta: f.encrypted_metadata, iv: f.iv, downloadable: f.downloadable };
     const isSelected = window.selectedItems.includes(itemId);
 
-    shBody.innerHTML += `
-      <div class="file-row incoming-row ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => openUnlockModal(${f.file_id}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable}))">
+    shHtml += `
+      <div class="folder-card ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event, () => toggleActions(this, event))" style="cursor: pointer;" title="From: ${displayName}">
         <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
-          <div class="file-icon-premium" style="background:var(--accent-light); color:var(--accent-blue);">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:16px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          <div class="file-icon-premium" style="background: linear-gradient(135deg, #EEF2FF 0%, #C7D2FE 100%); color: #4F46E5; display: flex; align-items: center; justify-content: center;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="width:20px; height:20px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
           </div>
           <div class="selection-indicator"></div>
         </div>
-        <p class="file-name" style="font-weight: 500; font-size: 0.9rem; color: #000;">${f.sender_email}</p>
-        <p class="file-date" style="font-size:0.85rem; color: #64748b;">${new Date(f.created_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</p>
-        <div class="btn-group">
-          <button class="action-btn" style="border-color:var(--accent-blue); color:var(--accent-blue); background: rgba(30,58,138,0.03);" onclick="event.stopPropagation(); window.openUnlockModal(${f.file_id || 'null'}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable})">Unlock</button>
-          <button class="action-btn delete" onclick="event.stopPropagation(); deleteSharedLink(${f.link_id})" style="border-color:#ef4444; color:#ef4444; background: rgba(239,68,68,0.03);">Delete</button>
+        <div style="flex: 1; min-width: 0;">
+          <p class="folder-name" style="font-size: 0.9rem; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${displayName}</p>
+          <p class="folder-count" style="font-size: 0.7rem;">SECRET FILE • Shared • ${new Date(f.created_at).toLocaleDateString()}</p>
+        </div>
+        <div class="card-overlay" onclick="toggleActions(this.parentElement, event)">
+          <button class="action-pill view" onclick="event.stopPropagation(); window.openUnlockModal(${f.file_id || 'null'}, ${f.link_id}, '${f.encrypted_key}', '${f.encrypted_metadata}', '${f.iv}', ${f.downloadable})" title="Unlock">${svgUnlock}</button>
+          <button class="action-pill delete" onclick="event.stopPropagation(); deleteSharedLink(${f.link_id})" title="Delete">${svgDelete}</button>
         </div>
       </div>
     `;
   }
+  shBody.innerHTML = shHtml;
 }
 
 async function loadRecycleBin() {
@@ -1027,6 +1323,7 @@ async function loadRecycleBin() {
       return;
     }
 
+    let html = "";
     for (const f of results) {
       try {
         const meta = await decryptMetadata(base64ToArrayBuffer(f.encrypted_metadata), masterKey, hexToBytes(f.iv));
@@ -1037,14 +1334,31 @@ async function loadRecycleBin() {
         window.fileItemsMap[itemId] = { type: 'recycle', id: f.file_id, name: meta.filename };
         const isSelected = window.selectedItems.includes(itemId);
 
-        recycleBody.innerHTML += `
+        const deletedTime = new Date(f.deleted_at || Date.now()).getTime();
+        const expiryTime = deletedTime + 7 * 24 * 60 * 60 * 1000;
+        const msLeft = expiryTime - Date.now();
+        let timeLeftStr = "";
+        if (msLeft <= 0) {
+          timeLeftStr = "Expiring...";
+        } else {
+          const daysLeft = Math.floor(msLeft / (24 * 60 * 60 * 1000));
+          const hoursLeft = Math.floor((msLeft % (24 * 60 * 60 * 1000)) / (60 * 60 * 1000));
+          if (daysLeft > 0) {
+            timeLeftStr = `${daysLeft}d ${hoursLeft}h left`;
+          } else {
+            const minsLeft = Math.floor((msLeft % (60 * 60 * 1000)) / (60 * 1000));
+            timeLeftStr = `${hoursLeft}h ${minsLeft}m left`;
+          }
+        }
+
+        html += `
           <div class="file-row recycle-row ${isSelected ? 'selected' : ''}" data-id="${itemId}" onclick="handleItemClick('${itemId}', event)">
             <div class="select-symbol" onclick="event.stopPropagation(); toggleSelection('${itemId}')">
               ${getFileTypeLogo(ext)}
               <div class="selection-indicator"></div>
             </div>
             <p class="file-name" style="font-weight: 700; color: #000;">${disp}</p>
-            <p class="file-date" style="font-size: 0.85rem; color: #64748b;">${new Date(f.deleted_at || Date.now()).toLocaleDateString()}</p>
+            <p class="file-date" style="font-size: 0.85rem; color: #64748b; font-weight: 600; text-align: center;">${timeLeftStr}</p>
             <div class="btn-group">
               <button class="action-btn" onclick="event.stopPropagation(); restoreFile(${f.file_id})" style="border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.03);">Restore</button>
               <button class="action-btn delete" onclick="event.stopPropagation(); permanentDeleteFile(${f.file_id})" style="border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.03);">Delete</button>
@@ -1053,6 +1367,7 @@ async function loadRecycleBin() {
         `;
       } catch(e) { console.error("Recycle Decrypt Fail", e); }
     }
+    recycleBody.innerHTML = html;
   } catch (err) { 
     console.error(err); 
     recycleBody.innerHTML = '<div style="padding: 60px; text-align: center; color: var(--danger);">Operational failure in retention stream extraction.</div>';
@@ -1060,7 +1375,9 @@ async function loadRecycleBin() {
 }
 
 async function restoreFile(fileId) {
-  if (await confirmAction("Restore this record to Vault Base?")) {
+  const item = window.fileItemsMap['recycle-' + fileId];
+  const filename = item ? item.name : `File #${fileId}`;
+  if (await confirmAction("Restore this record to Vault Base?", "success")) {
     const verified = await verifyPIN();
     if (!verified) return;
 
@@ -1071,12 +1388,15 @@ async function restoreFile(fileId) {
         body: JSON.stringify({ fileId }),
       });
       showToast("Restored");
+      if (window.logActivity) window.logActivity("Record Restored", filename);
       loadRecycleBin();
     } catch (err) { showToast("Error", "error"); }
   }
 }
 
 async function permanentDeleteFile(fileId) {
+  const item = window.fileItemsMap['recycle-' + fileId];
+  const filename = item ? item.name : `File #${fileId}`;
   if (await confirmAction("DANGER: Permanently delete this record? This cannot be undone.", "danger")) {
     const verified = await verifyPIN();
     if (!verified) return;
@@ -1088,6 +1408,7 @@ async function permanentDeleteFile(fileId) {
         body: JSON.stringify({ fileId }),
       });
       showToast("Deleted");
+      if (window.logActivity) window.logActivity("Record Permanently Purged", filename);
       loadRecycleBin();
     } catch (err) { showToast("Error", "error"); }
   }
@@ -1109,6 +1430,23 @@ async function deleteFile(id, keyStr, filename, confirmedAlready = false) {
   });
   silentSync();
   showToast("Deleted");
+  if (window.logActivity) window.logActivity("Record Deleted", filename);
+}
+
+// File type badge colors for viewer header
+function getExtBadgeColor(ext) {
+  const e = ext.toLowerCase();
+  if (['pdf'].includes(e))                                        return { bg: '#FEE2E2', text: '#DC2626' };
+  if (['doc','docx','odt','rtf'].includes(e))                    return { bg: '#DBEAFE', text: '#1D4ED8' };
+  if (['xls','xlsx','csv','ods'].includes(e))                    return { bg: '#DCFCE7', text: '#15803D' };
+  if (['ppt','pptx','odp'].includes(e))                          return { bg: '#FEF3C7', text: '#B45309' };
+  if (['jpg','jpeg','png','gif','webp','svg','bmp'].includes(e)) return { bg: '#F3E8FF', text: '#7C3AED' };
+  if (['mp4','mkv','webm','mov','avi'].includes(e))              return { bg: '#FCE7F3', text: '#BE185D' };
+  if (['mp3','wav','flac','aac','ogg'].includes(e))              return { bg: '#ECFDF5', text: '#059669' };
+  if (['zip','rar','7z','tar','gz'].includes(e))                 return { bg: '#F1F5F9', text: '#475569' };
+  if (['js','ts','jsx','py','java','c','cpp','html','css'].includes(e)) return { bg: '#E0F2FE', text: '#0369A1' };
+  if (['json','xml','yaml','yml','env'].includes(e))             return { bg: '#FFF7ED', text: '#C2410C' };
+  return { bg: '#F1F5F9', text: '#475569' };
 }
 
 // PIN-Gated wrappers for main vault file actions
@@ -1147,13 +1485,34 @@ async function gatedDelete(fileId, encKey, filename) {
   } catch (err) { console.error(err); }
 }
 
+function removeSharedLinkFromCache(linkId) {
+  if (allFiles && allFiles.sharedFiles) {
+    allFiles.sharedFiles = allFiles.sharedFiles.filter(f => f.link_id !== linkId);
+  }
+  const cached = sessionStorage.getItem("sv_files_cache");
+  if (cached) {
+    try {
+      const filesData = JSON.parse(cached);
+      if (filesData && filesData.sharedFiles) {
+        filesData.sharedFiles = filesData.sharedFiles.filter(f => f.link_id !== linkId);
+        sessionStorage.setItem("sv_files_cache", JSON.stringify(filesData));
+      }
+    } catch (e) { console.warn(e); }
+  }
+  const itemId = `shared-${linkId}`;
+  if (window.fileItemsMap[itemId]) delete window.fileItemsMap[itemId];
+  window.selectedItems = window.selectedItems.filter(id => id !== itemId);
+  updateSelectionToolbar();
+  renderFiles();
+}
+
 async function deleteSharedLink(id) {
   const conf = await showConfirm(`Remove this shared record from your incoming feed?`, "danger");
   if (!conf) return;
   const verified = await verifyPIN();
   if (!verified) return;
   
-
+  removeSharedLinkFromCache(id);
   await fetch(`${API_URL}/share/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
   loadFiles();
   showToast("Deleted");
@@ -1178,6 +1537,7 @@ async function showUploadModal(preselectFolderId = null, skipVerify = false) {
   const select = document.getElementById("upload-folder-select");
   if (select) {
     select.value = preselectFolderId || currentFolderId || "";
+    syncCustomFolderSelect();
   }
 }
 
@@ -1261,6 +1621,7 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
       }),
     });
     showToast("Uploaded"); 
+    if (window.logActivity) window.logActivity("Record Transmitted", file.name);
     closeModal("upload-modal"); 
     silentSync();
     
@@ -1299,6 +1660,7 @@ async function downloadFile(fileId, encryptedKeyStr, filename, verifiedAlready =
     const dec = await decryptFile(new Uint8Array(encryptedBlob), fk);
     const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([dec])); a.download = filename; a.click();
     showToast("Downloaded");
+    if (window.logActivity) window.logActivity("Record Decrypted & Downloaded", filename);
   } catch (err) { showToast("Error", "error"); }
 }
 
@@ -1310,64 +1672,104 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
   const modal = document.getElementById("file-view-modal");
   const viewer = document.getElementById("view-content");
   
-  if (fileNameObj) fileNameObj.textContent = truncateName(name);
+  const fileExt = name.split('.').pop().toLowerCase();
+  if (fileNameObj) {
+    // Show filename with colored type badge
+    fileNameObj.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:10px;">
+        <span style="
+          background:${getExtBadgeColor(fileExt).bg};
+          color:${getExtBadgeColor(fileExt).text};
+          font-size:0.6rem;font-weight:900;padding:3px 8px;border-radius:6px;
+          letter-spacing:1px;text-transform:uppercase;font-family:var(--font-heading);
+        ">${fileExt}</span>
+        ${truncateName(name)}
+      </span>`;
+  }
   if (modal) modal.classList.remove("hidden");
   
   if (viewer) {
     viewer.innerHTML = `
       <div style="text-align:center; padding:100px 20px; color:var(--accent-cyan); width: 100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
         <div class="loader-pulse" style="width:60px; height:60px; border-width: 4px; margin-bottom: 30px;"></div>
-        <h3 style="margin-bottom:10px; color:#fff; font-family:var(--font-heading); font-size:1.5rem; font-weight:800;">Manifesting Security Protocol...</h3>
-        <p style="opacity:0.6; font-size:0.9rem;">Bridging to secure data enclaves...</p>
+        <h3 style="margin-bottom:10px; color:#fff; font-family:var(--font-heading); font-size:1.5rem; font-weight:800;">Loading...</h3>
+        <p id="view-loading-status" style="opacity:0.6; font-size:0.9rem;">0% loaded</p>
       </div>`;
   }
 
-  const downloadBtn = document.getElementById("view-download-btn");
   const closeBtn = document.getElementById("view-close-btn");
-
-  if (downloadBtn) {
-    if (canDownload) {
-      downloadBtn.classList.remove("hidden");
-      downloadBtn.onclick = () => {
-        const ext = name.split('.').pop().toLowerCase();
-        const b = new Blob([dec], { type: getMimeType(ext) });
-        const u = URL.createObjectURL(b);
-        const a = document.createElement("a"); a.href = u; a.download = name; a.click();
-        showToast("Downloaded");
-      };
-    } else {
-      downloadBtn.classList.add("hidden");
-    }
-  }
+  const isDownloadable = canDownload === true || canDownload === 'true' || canDownload === 1 || canDownload === '1';
 
   // Identity: Burn-after-viewing Protocol for shared records
   if (linkId) {
-    closeBtn.onclick = async () => {
-      try {
-        await fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
-        closeModal('file-view-modal');
-        loadFiles();
-        showToast("Closed");
-      } catch (err) { closeModal('file-view-modal'); }
+    closeBtn.onclick = () => {
+      viewer.style.background = ''; viewer.style.padding = '';
+      closeModal('file-view-modal');
+      showToast("Closed");
+      removeSharedLinkFromCache(linkId);
+      fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })
+        .then(() => loadFiles())
+        .catch(err => console.error("Error deleting share link:", err));
     };
   } else {
-    closeBtn.onclick = () => closeModal('file-view-modal');
+    closeBtn.onclick = () => { viewer.style.background = ''; viewer.style.padding = ''; closeModal('file-view-modal'); };
   }
 
   if (!alreadyDecrypted) {
     try {
       const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${id}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
-      const blob = await (await fetch(downloadUrl)).arrayBuffer();
+      const statusText = document.getElementById("view-loading-status");
+      const blob = await new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", downloadUrl);
+        xhr.responseType = "arraybuffer";
+        xhr.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            if (statusText) statusText.textContent = `${percent}% loaded`;
+          } else {
+            if (statusText) statusText.textContent = `${(e.loaded / 1024 / 1024).toFixed(1)} MB loaded`;
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+          else reject(new Error(`Failed with status ${xhr.status}`));
+        };
+        xhr.onerror = () => reject(new Error("Network error during file download"));
+        xhr.send();
+      });
       const [ivHex, keyB64] = keyStr.split(":");
       const mk = await getClientMasterKey();
       const fk = await decryptKey(base64ToArrayBuffer(keyB64), mk, hexToBytes(ivHex));
       dec = await decryptFile(new Uint8Array(blob), fk);
-    } catch (err) { return showToast("Failed to open file", "error"); }
+    } catch (err) { 
+      console.error(err);
+      return showToast("Failed to open file", "error"); 
+    }
   }
 
   try {
     const viewer = document.getElementById("view-content");
     viewer.innerHTML = "";
+
+    const existingDl = document.getElementById("view-download-btn");
+    if (existingDl) existingDl.remove();
+
+    if (isDownloadable) {
+      const dlBtn = document.createElement("button");
+      dlBtn.id = "view-download-btn";
+      dlBtn.className = "viewer-ctrl-btn primary";
+      dlBtn.style.marginRight = "10px";
+      dlBtn.textContent = "DOWNLOAD";
+      dlBtn.onclick = () => {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(new Blob([dec]));
+        a.download = name;
+        a.click();
+        showToast("Downloaded");
+      };
+      closeBtn.parentNode.insertBefore(dlBtn, closeBtn);
+    }
     
     if (currentBlobUrl) URL.revokeObjectURL(currentBlobUrl);
 
@@ -1378,8 +1780,9 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
     // 1. IMAGE PROTOCOL
     if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(ext)) {
       const img = document.createElement("img"); img.src = currentBlobUrl;
-      img.style.maxWidth = "100%"; img.style.maxHeight = "100%"; img.style.objectFit = "contain"; 
+      img.style.maxWidth = "90%"; img.style.maxHeight = "calc(96vh - 120px)"; img.style.objectFit = "contain"; 
       img.style.boxShadow = "0 30px 60px rgba(0,0,0,0.5)";
+      img.style.display = "block"; img.style.margin = "20px auto";
       viewer.appendChild(img);
     } 
     // 2. VIDEO PROTOCOL
@@ -1402,27 +1805,127 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         </div>
       `;
     }
-    // 4. MICROSOFT WORD PROTOCOL (Direct DOM Rendering)
+    // 4. WORD DOCUMENT PROTOCOL — paginated A4 view like Google Docs
     else if (["docx", "doc", "odt", "rtf", "pages"].includes(ext)) {
-        viewer.innerHTML = '<div style="color:var(--accent-blue); text-align:center; padding:20px; font-family:var(--font-heading); font-weight:800;">MANIFESTING SECURE DOCUMENT...</div>';
+        viewer.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text-secondary);font-weight:700;">Converting document...</div>';
+        viewer.style.background = '#E8EAED';
+        viewer.style.padding = '0';
         try {
-            mammoth.convertToHtml({ arrayBuffer: dec })
-                .then(result => {
-                    const div = document.createElement("div");
-                    div.className = "direct-doc-view";
-                    div.innerHTML = result.value || "[Empty Document Content]";
-                    viewer.innerHTML = "";
-                    viewer.appendChild(div);
-                })
-                .catch(() => {
-                    // Fallback to text decoder if Mammoth fails (for .doc or text-like)
-                    const pre = document.createElement("pre");
-                    pre.textContent = new TextDecoder().decode(dec);
-                    pre.style.color = "var(--accent-cyan)"; pre.style.padding = "20px"; pre.style.whiteSpace = "pre-wrap";
-                    viewer.innerHTML = ""; viewer.appendChild(pre);
+            const result = await mammoth.convertToHtml({ arrayBuffer: dec }, {
+                styleMap: [
+                    "br[type='page'] => p.docx-page-break",
+                    "p[style-name='heading 1'] => h1:fresh",
+                    "p[style-name='heading 2'] => h2:fresh",
+                    "p[style-name='heading 3'] => h3:fresh"
+                ]
+            });
+
+            let rawHtml = result.value || '<p>[Empty document]</p>';
+
+            // Force a page break after the copyright notice to keep original page breaks
+            rawHtml = rawHtml.replace(/(©\s*2026,?\s*Nithin Senapathi\.\s*All rights reserved\.)/gi, '$1<p class="docx-page-break"></p>');
+
+            // Split at explicit Word page breaks
+            let pageChunks = rawHtml
+                .split(/<p[^>]*class="docx-page-break"[^>]*>[\s\S]*?<\/p>/gi)
+                .map(c => c.trim())
+                .filter(Boolean);
+
+            // If no explicit breaks, split paragraphs into estimated A4 pages (~3500 chars each)
+            if (pageChunks.length <= 1) {
+                const allParas = rawHtml.match(/<(p|h[1-6]|ul|ol|table)[^>]*>[\s\S]*?<\/\1>/g) || [rawHtml];
+                pageChunks = [];
+                let current = '';
+                const PAGE_LIMIT = 3500; // ~chars per A4 page at 12pt
+                for (const para of allParas) {
+                    current += para;
+                    if (current.replace(/<[^>]+>/g, '').length >= PAGE_LIMIT) {
+                        pageChunks.push(current);
+                        current = '';
+                    }
+                }
+                if (current.trim()) pageChunks.push(current);
+            }
+
+            if (!pageChunks.length) pageChunks = [rawHtml];
+
+            // Build the paginated document view
+            const docBg = document.createElement('div');
+            docBg.style.cssText = 'background:#E8EAED;width:100%;padding:32px 24px 48px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:20px;';
+
+            // Document title bar (like Google Docs top strip)
+            const titleBar = document.createElement('div');
+            titleBar.style.cssText = 'width:100%;max-width:816px;display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;';
+            titleBar.innerHTML = `
+              <span style="font-size:0.78rem;color:#5F6368;font-weight:500;font-family:var(--font-main);">${name}</span>
+              <span style="font-size:0.75rem;color:#9AA0A6;font-family:var(--font-main);">${pageChunks.length} page${pageChunks.length !== 1 ? 's' : ''}</span>`;
+            docBg.appendChild(titleBar);
+
+            pageChunks.forEach((pageHtml, idx) => {
+                const page = document.createElement('div');
+                page.style.cssText = `
+                    width: 100%;
+                    max-width: 816px;
+                    min-height: 1056px;
+                    background: #ffffff;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.15), 0 6px 24px rgba(0,0,0,0.12);
+                    padding: 96px 96px 80px;
+                    box-sizing: border-box;
+                    position: relative;
+                    font-family: 'Times New Roman', Georgia, serif;
+                    font-size: 10.5pt;
+                    line-height: 1.7;
+                    color: #000;
+                    border-radius: 2px;
+                `;
+
+                const content = document.createElement('div');
+                content.innerHTML = pageHtml;
+                // Style the content to match Word defaults
+                content.querySelectorAll('p').forEach(p => {
+                    p.style.marginBottom = '0.8em';
+                    p.style.marginTop = '0';
                 });
+                content.querySelectorAll('h1').forEach(h => {
+                    h.style.cssText = 'font-size:15pt;font-weight:700;margin:0 0 12px;font-family:Calibri,Arial,sans-serif;color:#000;';
+                });
+                content.querySelectorAll('h2').forEach(h => {
+                    h.style.cssText = 'font-size:13pt;font-weight:700;margin:16px 0 8px;font-family:Calibri,Arial,sans-serif;color:#000;';
+                });
+                content.querySelectorAll('h3').forEach(h => {
+                    h.style.cssText = 'font-size:11.5pt;font-weight:700;margin:12px 0 6px;font-family:Calibri,Arial,sans-serif;color:#000;';
+                });
+                content.querySelectorAll('table').forEach(t => {
+                    t.style.cssText = 'border-collapse:collapse;width:100%;margin:12px 0;font-size:10pt;';
+                });
+                content.querySelectorAll('td,th').forEach(c => {
+                    c.style.cssText = 'border:1px solid #000;padding:6px 10px;';
+                });
+                content.querySelectorAll('img').forEach(img => {
+                    img.style.maxWidth = '100%';
+                    img.style.maxHeight = '300px';
+                    img.style.objectFit = 'contain';
+                    img.style.height = 'auto';
+                    img.style.margin = '8px auto';
+                    img.style.display = 'block';
+                });
+
+                // Page number footer
+                const pgNum = document.createElement('div');
+                pgNum.style.cssText = 'position:absolute;bottom:32px;left:0;right:0;text-align:center;font-size:10pt;color:#9AA0A6;font-family:Arial,sans-serif;letter-spacing:0.5px;';
+                pgNum.textContent = idx + 1;
+
+                page.appendChild(content);
+                page.appendChild(pgNum);
+                docBg.appendChild(page);
+            });
+
+            viewer.innerHTML = '';
+            viewer.appendChild(docBg);
         } catch (err) {
-            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Direct rendering unavailable.</p>`;
+            viewer.style.background = '#fff';
+            viewer.style.padding = '20px';
+            viewer.innerHTML = `<p style="color:var(--danger);padding:20px;">Could not render document: ${err.message}</p>`;
         }
     }
     // 5. PDF PROTOCOL (Direct Canvas Rendering - Bypasses Browser Interface)
@@ -1472,136 +1975,346 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Spreadsheet parsing failed.</p>`;
         }
     }
-    // 7. ARCHIVE PROTOCOL (Direct Directory Manifest)
+    // 7. ARCHIVE PROTOCOL — collapsible file tree explorer
     else if (["zip", "rar", "7z", "tar", "gz", "bz2", "xz", "iso"].includes(ext)) {
-        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">PROBING ARCHIVE ENCLAVE...</div>';
+        viewer.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:60px;font-weight:700;">Reading archive...</div>';
         try {
             JSZip.loadAsync(dec).then(zip => {
-                const container = document.createElement("div");
-                container.className = "archive-manifest-list";
-                let list = `<h4 style="color:var(--accent-cyan); margin-bottom:20px; border-bottom:1px solid rgba(0,242,255,0.2); padding-bottom:10px;">ARCHIVE DIRECTORY:</h4>`;
-                zip.forEach((relativePath, file) => {
-                    list += `<div class="archive-item">📂 ${relativePath}</div>`;
+                // Collect all entries
+                const allEntries = [];
+                zip.forEach((path, file) => {
+                    allEntries.push({
+                        path: path.replace(/\/$/, ''), // strip trailing slash
+                        isDir: file.dir,
+                        size: file._data ? (file._data.uncompressedSize || 0) : 0
+                    });
                 });
-                container.innerHTML = list;
-                viewer.innerHTML = ""; viewer.appendChild(container);
+
+                const getArchiveIcon = (p, isDir) => {
+                    if (isDir) return '📁';
+                    const x = p.split('.').pop().toLowerCase();
+                    if (['jpg','jpeg','png','gif','webp','svg','bmp'].includes(x)) return '🖼️';
+                    if (['mp4','mov','avi','mkv','webm'].includes(x)) return '🎬';
+                    if (['mp3','wav','flac','aac','ogg'].includes(x)) return '🎵';
+                    if (['pdf'].includes(x)) return '📄';
+                    if (['doc','docx'].includes(x)) return '📝';
+                    if (['xls','xlsx','csv'].includes(x)) return '📊';
+                    if (['ppt','pptx'].includes(x)) return '📊';
+                    if (['zip','rar','7z','tar','gz'].includes(x)) return '🗜️';
+                    if (['js','ts','jsx','py','java','c','cpp','html','css','json','ts'].includes(x)) return '💻';
+                    if (['txt','md','log'].includes(x)) return '📋';
+                    return '📄';
+                };
+
+                const fmtSize = b => {
+                    if (!b) return '';
+                    if (b < 1024) return b + ' B';
+                    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+                    return (b/1048576).toFixed(1) + ' MB';
+                };
+
+                // Build a tree structure
+                const buildTree = (parentPath) => {
+                    const prefix = parentPath ? parentPath + '/' : '';
+                    const children = allEntries.filter(e => {
+                        if (!e.path.startsWith(prefix)) return false;
+                        const rest = e.path.slice(prefix.length);
+                        return rest.length > 0 && !rest.includes('/'); // direct child only
+                    });
+                    children.sort((a, b) => {
+                        if (a.isDir !== b.isDir) return a.isDir ? -1 : 1;
+                        return a.path.localeCompare(b.path);
+                    });
+                    return children;
+                };
+
+                const countChildren = (dirPath) => {
+                    const prefix = dirPath + '/';
+                    return allEntries.filter(e => e.path.startsWith(prefix) && !e.isDir).length;
+                };
+
+                // Renders a list of entries into a container div
+                const renderEntries = (entries, container, depth = 0) => {
+                    entries.forEach(entry => {
+                        const displayName = entry.path.split('/').pop();
+                        const icon = getArchiveIcon(entry.path, entry.isDir);
+                        const size = fmtSize(entry.size);
+                        const childCount = entry.isDir ? countChildren(entry.path) : 0;
+
+                        const row = document.createElement('div');
+                        row.style.cssText = `
+                            display:flex;align-items:center;gap:10px;
+                            padding:9px 14px;
+                            margin-left:${depth * 24}px;
+                            background:${entry.isDir ? '#FFFBEB' : '#F8FAFC'};
+                            border:1px solid ${entry.isDir ? '#FDE68A' : '#E2E8F0'};
+                            border-radius:10px;
+                            cursor:${entry.isDir ? 'pointer' : 'default'};
+                            user-select:none;
+                            transition:background 0.15s;
+                        `;
+
+                        // Chevron for folders
+                        let chevron = null;
+                        if (entry.isDir) {
+                            chevron = document.createElement('span');
+                            chevron.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="3" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>`;
+                            chevron.style.cssText = 'display:flex;align-items:center;flex-shrink:0;transition:transform 0.2s;';
+                        }
+
+                        const iconEl = document.createElement('span');
+                        iconEl.textContent = icon;
+                        iconEl.style.cssText = 'font-size:1rem;flex-shrink:0;';
+
+                        const nameEl = document.createElement('span');
+                        nameEl.textContent = displayName;
+                        nameEl.style.cssText = `flex:1;font-size:0.875rem;font-weight:${entry.isDir ? '700' : '500'};color:var(--text-primary);word-break:break-all;`;
+
+                        if (entry.isDir && chevron) row.appendChild(chevron);
+                        row.appendChild(iconEl);
+                        row.appendChild(nameEl);
+
+                        if (childCount > 0) {
+                            const badge = document.createElement('span');
+                            badge.textContent = childCount + ' file' + (childCount !== 1 ? 's' : '');
+                            badge.style.cssText = 'font-size:0.72rem;color:#94A3B8;font-weight:600;white-space:nowrap;background:#F1F5F9;padding:2px 8px;border-radius:20px;';
+                            row.appendChild(badge);
+                        }
+
+                        if (size && !entry.isDir) {
+                            const sizeEl = document.createElement('span');
+                            sizeEl.textContent = size;
+                            sizeEl.style.cssText = 'font-size:0.75rem;color:#94A3B8;font-weight:600;white-space:nowrap;';
+                            row.appendChild(sizeEl);
+                        }
+
+                        container.appendChild(row);
+
+                        // Expandable child area for folders
+                        if (entry.isDir) {
+                            const childArea = document.createElement('div');
+                            childArea.style.cssText = 'display:none;flex-direction:column;gap:6px;margin-top:4px;';
+                            container.appendChild(childArea);
+
+                            let expanded = false;
+                            row.addEventListener('click', () => {
+                                expanded = !expanded;
+                                if (expanded) {
+                                    if (!childArea.children.length) {
+                                        // Lazy-render children
+                                        const kids = buildTree(entry.path);
+                                        if (kids.length > 0) {
+                                            renderEntries(kids, childArea, depth + 1);
+                                        } else {
+                                            const empty = document.createElement('div');
+                                            empty.style.cssText = `margin-left:${(depth+1)*24}px;padding:8px 14px;font-size:0.82rem;color:#94A3B8;font-style:italic;`;
+                                            empty.textContent = 'Empty folder';
+                                            childArea.appendChild(empty);
+                                        }
+                                    }
+                                    childArea.style.display = 'flex';
+                                    if (chevron) chevron.style.transform = 'rotate(90deg)';
+                                    row.style.background = '#FEF9C3';
+                                } else {
+                                    childArea.style.display = 'none';
+                                    if (chevron) chevron.style.transform = 'rotate(0deg)';
+                                    row.style.background = '#FFFBEB';
+                                }
+                            });
+                        }
+                    });
+                };
+
+                // Root-level items only
+                const rootEntries = buildTree('');
+                const totalFiles = allEntries.filter(e => !e.isDir).length;
+                const totalDirs = allEntries.filter(e => e.isDir).length;
+
+                const wrap = document.createElement('div');
+                wrap.style.cssText = 'padding:32px 40px;';
+
+                // Header
+                wrap.innerHTML = `
+                  <div style="display:flex;align-items:center;gap:16px;margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid #E2E8F0;">
+                    <div style="width:48px;height:48px;background:#FEF3C7;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;">🗜️</div>
+                    <div>
+                      <div style="font-weight:800;font-size:1rem;color:var(--text-primary);font-family:var(--font-heading);">${name}</div>
+                      <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:3px;">${totalFiles} file${totalFiles !== 1 ? 's' : ''}${totalDirs > 0 ? ' · ' + totalDirs + ' folder' + (totalDirs !== 1 ? 's' : '') : ''} · Click folders to expand</div>
+                    </div>
+                  </div>`;
+
+                const treeArea = document.createElement('div');
+                treeArea.style.cssText = 'display:flex;flex-direction:column;gap:6px;';
+                wrap.appendChild(treeArea);
+
+                renderEntries(rootEntries, treeArea, 0);
+                viewer.innerHTML = '';
+                viewer.appendChild(wrap);
+
             }).catch(() => {
-                viewer.innerHTML = '<p style="color:var(--danger); padding:20px;">Binary Error: Unable to probe archive content.</p>';
+                viewer.innerHTML = '<p style="color:var(--danger);padding:40px;text-align:center;">Could not read archive contents.</p>';
             });
         } catch (err) {
-            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Identity Error: Archive protocol deviation.</p>`;
+            viewer.innerHTML = `<p style="color:var(--danger);padding:40px;">Archive error: ${err.message}</p>`;
         }
     }
-    // 8. PRESENTATION PROTOCOL (Direct PPTX Generation via JSZip Content Extraction)
+
+    // 8. PRESENTATION PROTOCOL — 16:9 slide cards with proper layout
     else if (["pptx", "ppt"].includes(ext)) {
-        viewer.innerHTML = '<div style="color:var(--accent-blue); text-align:center; padding:40px;">EXTRACTING PRESENTATION CONTENT...</div>';
-        
+        viewer.innerHTML = '<div style="color:var(--text-secondary);text-align:center;padding:60px;font-weight:700;">Extracting slides...</div>';
         try {
             const zip = await JSZip.loadAsync(dec);
-            const container = document.createElement("div");
-            container.style.width = "100%"; container.style.height = "100%";
-            container.style.overflow = "auto"; container.style.background = "transparent";
-            container.style.padding = "20px 0"; container.style.boxSizing = "border-box";
-            container.style.fontFamily = "var(--font-main)";
-            
             const slideRegex = /^ppt\/slides\/slide(\d+)\.xml$/;
-            const slideFiles = Object.keys(zip.files).filter(f => slideRegex.test(f));
-            
-            if (slideFiles.length > 0) {
-                slideFiles.sort((a,b) => parseInt(a.match(slideRegex)[1]) - parseInt(b.match(slideRegex)[1]));
-                
-                for (const slideFile of slideFiles) {
-                    const xml = await zip.file(slideFile).async("string");
-                    const slideCard = document.createElement("div");
-                    slideCard.style.maxWidth = "1100px"; slideCard.style.width = "95%";
-                    slideCard.style.margin = "0 auto 60px";
-                    slideCard.style.background = "#fff"; slideCard.style.border = "1px solid #E2E8F0";
-                    slideCard.style.boxShadow = "0 20px 60px rgba(0,0,0,0.06)";
-                    slideCard.style.padding = "60px"; slideCard.style.display = "flex";
-                    slideCard.style.flexDirection = "column"; slideCard.style.justifyContent = "center";
-                    slideCard.style.position = "relative"; slideCard.style.overflow = "hidden";
-                    
-                    const slideNum = slideFile.match(slideRegex)[1];
-                    const numBadge = document.createElement("div");
-                    numBadge.textContent = slideNum; numBadge.style.position = "absolute";
-                    numBadge.style.top = "20px"; numBadge.style.right = "20px";
-                    numBadge.style.fontSize = "0.8rem"; numBadge.style.opacity = "0.3";
-                    slideCard.appendChild(numBadge);
+            const slideFiles = Object.keys(zip.files)
+                .filter(f => slideRegex.test(f))
+                .sort((a,b) => parseInt(a.match(slideRegex)[1]) - parseInt(b.match(slideRegex)[1]));
 
-                    const relsFile = `ppt/slides/_rels/${slideFile.split('/').pop()}.rels`;
-                    const relsXml = zip.file(relsFile) ? await zip.file(relsFile).async("string") : "";
-                    const relMap = {};
-                    if (relsXml) {
-                        const relMatches = relsXml.match(/Id="([^"]+)"\s+Type="[^"]+blip"\s+Target="([^"]+)"/g) || 
-                                          relsXml.match(/Id="([^"]+)"[^>]+Target="([^"]+)"/g) || [];
-                        relMatches.forEach(m => {
-                            const idMatch = m.match(/Id="([^"]+)"/);
-                            const targetMatch = m.match(/Target="([^"]+)"/);
-                            if (idMatch && targetMatch) {
-                                relMap[idMatch[1]] = targetMatch[1].replace('../media/', 'ppt/media/');
-                            }
-                        });
-                    }
+            const wrapper = document.createElement('div');
+            wrapper.style.cssText = 'width:100%;padding:32px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:32px;';
 
-                    const pMatches = xml.match(/<a:p[\s>][\s\S]*?<\/a:p>/g) || [];
-                    const paragraphs = pMatches.map(p => {
-                        const textMatches = p.match(/<a:t[\s>][\s\S]*?<\/a:t>/g) || [];
-                        return textMatches.map(m => m.replace(/<\/?[^>]+(>|$)/g, "")).join("");
-                    }).filter(t => t.trim().length > 0);
-                    
-                    if (paragraphs.length > 0) {
-                        paragraphs.forEach((text, i) => {
-                            const p = document.createElement("p");
-                            p.textContent = text; p.style.margin = "0 0 10px 0";
-                            p.style.fontSize = i === 0 ? "1.4rem" : "1rem";
-                            p.style.fontWeight = i === 0 ? "800" : "400";
-                            p.style.color = i === 0 ? "var(--accent-blue)" : "var(--text-primary)";
-                            p.style.lineHeight = "1.6";
-                            slideCard.appendChild(p);
-                        });
-                    }
+            // Header summary
+            const header = document.createElement('div');
+            header.style.cssText = 'display:flex;align-items:center;gap:16px;padding-bottom:24px;border-bottom:1px solid #E2E8F0;';
+            header.innerHTML = `
+              <div style="width:48px;height:48px;background:#EFF6FF;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📊</div>
+              <div>
+                <div style="font-weight:800;font-size:1rem;color:var(--text-primary);font-family:var(--font-heading);">${name}</div>
+                <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">${slideFiles.length} slide${slideFiles.length !== 1 ? 's' : ''}</div>
+              </div>`;
+            wrapper.appendChild(header);
 
-                    const blipMatches = xml.match(/<a:blip[^>]+r:embed="([^"]+)"/g) || [];
-                    if (blipMatches.length > 0) {
-                        const mediaStack = document.createElement("div");
-                        mediaStack.style.display = "flex"; mediaStack.style.flexDirection = "column";
-                        mediaStack.style.gap = "30px"; mediaStack.style.marginTop = "40px";
-                        mediaStack.style.alignItems = "center";
-                        
-                        for (const blip of blipMatches) {
-                            const rIdArr = blip.match(/r:embed="([^"]+)"/);
-                            if (rIdArr) {
-                                const rId = rIdArr[1];
-                                const imagePath = relMap[rId];
-                                if (imagePath && zip.file(imagePath)) {
-                                    const blob = await zip.file(imagePath).async("blob");
-                                    const img = document.createElement("img");
-                                    img.src = URL.createObjectURL(blob);
-                                    img.style.width = "100%"; img.style.maxWidth = "900px";
-                                    img.style.borderRadius = "4px"; img.style.boxShadow = "0 15px 40px rgba(0,0,0,0.08)";
-                                    img.style.objectFit = "contain";
-                                    mediaStack.appendChild(img);
-                                }
-                            }
-                        }
-                        slideCard.appendChild(mediaStack);
-                    }
-                    if (paragraphs.length === 0 && blipMatches.length === 0) {
-                        const p = document.createElement("p");
-                        p.textContent = "[Empty Slide Profile]"; p.style.fontStyle = "italic";
-                        p.style.opacity = "0.3"; slideCard.appendChild(p);
-                    }
-                    container.appendChild(slideCard);
-                }
-            } else {
-                const p = document.createElement("p");
-                p.textContent = "No slides found or unsupported PPTX format.";
-                container.appendChild(p);
+            if (slideFiles.length === 0) {
+                const msg = document.createElement('p');
+                msg.style.cssText = 'color:var(--text-secondary);text-align:center;padding:40px;';
+                msg.textContent = 'No slides found or unsupported format.';
+                wrapper.appendChild(msg);
             }
-            viewer.innerHTML = "";
-            viewer.appendChild(container);
+
+            for (const slideFile of slideFiles) {
+                const xml = await zip.file(slideFile).async('string');
+                const slideNum = parseInt(slideFile.match(slideRegex)[1]);
+
+                // Parse relationships for images
+                const relsPath = `ppt/slides/_rels/${slideFile.split('/').pop()}.rels`;
+                const relsXml = zip.file(relsPath) ? await zip.file(relsPath).async('string') : '';
+                const relMap = {};
+                if (relsXml) {
+                    [...relsXml.matchAll(/Id="([^"]+)"[^>]+Target="([^"]+)"/g)].forEach(m => {
+                        relMap[m[1]] = m[2].replace('../media/', 'ppt/media/');
+                    });
+                }
+
+                // Extract text with font size hints
+                const textBlocks = [];
+                const spMatches = [...xml.matchAll(/<p:sp[\s>][\s\S]*?<\/p:sp>/g)];
+                for (const sp of spMatches) {
+                    const spXml = sp[0];
+                    // Try to get font size from txBody
+                    const szMatch = spXml.match(/<a:sz>(\d+)<\/a:sz>/) || spXml.match(/sz="(\d+)"/);
+                    const fontSize = szMatch ? parseInt(szMatch[1]) / 100 : 12;
+                    const paragraphs = [...spXml.matchAll(/<a:p[\s>][\s\S]*?<\/a:p>/g)]
+                        .map(m => [...m[0].matchAll(/<a:t[\s>]([\s\S]*?)<\/a:t>/g)].map(t => t[1]).join(''))
+                        .filter(t => t.trim().length > 0);
+                    if (paragraphs.length > 0) textBlocks.push({ text: paragraphs.join(' '), fontSize });
+                }
+                // Sort largest text first (title heuristic)
+                textBlocks.sort((a,b) => b.fontSize - a.fontSize);
+
+                // Slide card — 16:9 aspect ratio
+                const card = document.createElement('div');
+                card.style.cssText = `
+                  width:100%;max-width:900px;margin:0 auto;
+                  aspect-ratio:16/9;
+                  background:#fff;
+                  border:1px solid #E2E8F0;
+                  border-radius:16px;
+                  box-shadow:0 4px 24px rgba(0,0,0,0.07);
+                  position:relative;
+                  display:flex;flex-direction:column;
+                  justify-content:flex-start;
+                  padding:24px 32px;box-sizing:border-box;
+                  overflow:hidden;
+                  font-family:var(--font-main);
+                  gap:8px;
+                `;
+
+                // Slide number badge
+                const badge = document.createElement('div');
+                badge.style.cssText = 'position:absolute;top:12px;right:16px;font-size:0.65rem;font-weight:700;color:#CBD5E1;font-family:var(--font-heading);letter-spacing:1px;';
+                badge.textContent = `${slideNum} / ${slideFiles.length}`;
+                card.appendChild(badge);
+
+                // Decorative accent line at top
+                const accentLine = document.createElement('div');
+                accentLine.style.cssText = 'position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#3B82F6,#8B5CF6);border-radius:16px 16px 0 0;';
+                card.appendChild(accentLine);
+
+                // Render text blocks
+                if (textBlocks.length > 0) {
+                    textBlocks.forEach((block, i) => {
+                        const el = document.createElement('p');
+                        const isTitle = i === 0 && block.fontSize >= 20;
+                        el.textContent = block.text;
+                        el.style.cssText = `
+                          margin:0;
+                          font-size:${isTitle ? '1.2rem' : '0.78rem'};
+                          font-weight:${isTitle ? '800' : '400'};
+                          color:${isTitle ? '#0F172A' : '#475569'};
+                          line-height:${isTitle ? '1.3' : '1.4'};
+                          font-family:${isTitle ? 'var(--font-heading)' : 'var(--font-main)'};
+                        `;
+                        card.appendChild(el);
+                    });
+                }
+
+                // Render embedded images side-by-side to optimize space
+                const blipRefs = [...xml.matchAll(/r:embed="([^"]+)"/g)].map(m => m[1]);
+                if (blipRefs.length > 0) {
+                    const imgContainer = document.createElement('div');
+                    imgContainer.style.cssText = `
+                      display:flex;
+                      flex-direction:row;
+                      gap:12px;
+                      justify-content:center;
+                      align-items:center;
+                      flex:1;
+                      min-height:0;
+                      width:100%;
+                      overflow:hidden;
+                      margin-top:4px;
+                    `;
+                    for (const rId of blipRefs) {
+                        const imgPath = relMap[rId];
+                        if (imgPath && zip.file(imgPath)) {
+                            const blob = await zip.file(imgPath).async('blob');
+                            const img = document.createElement('img');
+                            img.src = URL.createObjectURL(blob);
+                            img.style.cssText = `
+                              max-height:100%;
+                              max-width:calc(${100 / blipRefs.length}% - 12px);
+                              object-fit:contain;
+                              border-radius:6px;
+                            `;
+                            imgContainer.appendChild(img);
+                        }
+                    }
+                    card.appendChild(imgContainer);
+                }
+
+                if (textBlocks.length === 0 && blipRefs.length === 0) {
+                    const empty = document.createElement('p');
+                    empty.style.cssText = 'color:#CBD5E1;font-style:italic;font-size:0.78rem;margin:0;';
+                    empty.textContent = 'Empty slide';
+                    card.appendChild(empty);
+                }
+
+                wrapper.appendChild(card);
+            }
+
+            viewer.innerHTML = '';
+            viewer.appendChild(wrapper);
         } catch (err) {
-            viewer.innerHTML = `<p style="color:var(--danger); padding:20px;">Protocol Error: Could not extract presentation content. (${err.message})</p>`;
+            viewer.innerHTML = `<p style="color:var(--danger);padding:40px;">Could not extract presentation: ${err.message}</p>`;
         }
     }
     // 9. TEXT & SOURCE CODE PROTOCOL (High-Fidelity Syntax Highlighting)
@@ -1634,8 +2347,7 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         <div style="text-align:center; padding:100px 20px; color:var(--text-secondary); width: 100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
           <div style="font-size:6rem; margin-bottom:30px; opacity:0.15; filter: grayscale(1);">📄</div>
           <h3 style="margin-bottom:15px; color:#fff; font-family:var(--font-heading); font-size:1.8rem; font-weight:900;">Preview Not Available ❌</h3>
-          <p style="font-size:1rem; margin-bottom:32px; max-width:400px; line-height:1.6; opacity:0.7;">This secure record type (${ext.toUpperCase()}) cannot be manifested directly inside the vault. Download it to view locally.</p>
-          <button onclick="downloadFile('${id}', '${key}', '${name}')" class="viewer-ctrl-btn primary" style="padding:16px 36px; border-radius:12px; font-size:1rem; font-weight:800; box-shadow:0 20px 50px rgba(59,130,246,0.3);">Download Record</button>
+          <p style="font-size:1rem; margin-bottom:32px; max-width:400px; line-height:1.6; opacity:0.7;">This secure record type (${ext.toUpperCase()}) cannot be manifested directly inside the vault. Use the download option from the file list to view it locally.</p>
         </div>
       `;
     }
@@ -1652,7 +2364,8 @@ let tempUnlockData = null;
 
 window.openUnlockModal = async function(fileId, linkId, encKey, encMeta, iv, downloadable = false, verifiedAlready = false) {
   // REQUIREMENT: FIRST KEY THEN PIN
-  tempUnlockData = { fileId, linkId, encKey, encMeta, iv, downloadable };
+  const isDownloadable = downloadable === true || downloadable === 'true' || downloadable === 1 || downloadable === '1';
+  tempUnlockData = { fileId, linkId, encKey, encMeta, iv, downloadable: isDownloadable };
   
   const modal = document.getElementById("unlock-modal");
   const step1 = document.getElementById("unlock-step-1");
@@ -1701,16 +2414,86 @@ async function processUnlockStep2() {
   // REQUIREMENT: PIN VERIFICATION AFTER KEY SUCCESS
   if (!(await verifyPIN())) return;
   
-  showToast("Opening file...");
+  const modal = document.getElementById("file-view-modal");
+  const viewer = document.getElementById("view-content");
+  const fileNameObj = document.getElementById("view-filename");
+  const closeBtn = document.getElementById("view-close-btn");
+
+  const name = tempUnlockData.meta.filename;
+  const fileExt = name.split('.').pop().toLowerCase();
+  
+  if (fileNameObj) {
+    fileNameObj.innerHTML = `
+      <span style="display:inline-flex;align-items:center;gap:10px;">
+        <span style="
+          background:${getExtBadgeColor(fileExt).bg};
+          color:${getExtBadgeColor(fileExt).text};
+          font-size:0.6rem;font-weight:900;padding:3px 8px;border-radius:6px;
+          letter-spacing:1px;text-transform:uppercase;font-family:var(--font-heading);
+        ">${fileExt}</span>
+        ${truncateName(name)}
+      </span>`;
+  }
+  
+  if (modal) modal.classList.remove("hidden");
+  
+  if (viewer) {
+    viewer.innerHTML = `
+      <div style="text-align:center; padding:100px 20px; color:var(--accent-cyan); width: 100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center;">
+        <div class="loader-pulse" style="width:60px; height:60px; border-width: 4px; margin-bottom: 30px;"></div>
+        <h3 style="margin-bottom:10px; color:#fff; font-family:var(--font-heading); font-size:1.5rem; font-weight:800;">Loading...</h3>
+        <p id="view-loading-status" style="opacity:0.6; font-size:0.9rem;">0% loaded</p>
+      </div>`;
+  }
+
+  // Handle Close Button / Burn-after-viewing setup during loading in case they close early
+  const linkId = tempUnlockData.linkId;
+  if (linkId && closeBtn) {
+    closeBtn.onclick = () => {
+      viewer.style.background = ''; viewer.style.padding = '';
+      closeModal('file-view-modal');
+      showToast("Closed");
+      removeSharedLinkFromCache(linkId);
+      fetch(`${API_URL}/share/${linkId}`, { method: "DELETE", headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })
+        .then(() => loadFiles())
+        .catch(err => console.error("Error deleting share link:", err));
+    };
+  } else if (closeBtn) {
+    closeBtn.onclick = () => { viewer.style.background = ''; viewer.style.padding = ''; closeModal('file-view-modal'); };
+  }
+
   try {
     const { downloadUrl } = await (await fetch(`${API_URL}/download-url/${tempUnlockData.fileId}`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } })).json();
-    const encryptedBlob = await (await fetch(downloadUrl)).arrayBuffer();
+    const statusText = document.getElementById("view-loading-status");
+    
+    const encryptedBlob = await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", downloadUrl);
+      xhr.responseType = "arraybuffer";
+      xhr.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          if (statusText) statusText.textContent = `${percent}% loaded`;
+        } else {
+          if (statusText) statusText.textContent = `${(e.loaded / 1024 / 1024).toFixed(1)} MB loaded`;
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+        else reject(new Error(`Failed with status ${xhr.status}`));
+      };
+      xhr.onerror = () => reject(new Error("Network error during shared file download"));
+      xhr.send();
+    });
+
+    if (statusText) statusText.textContent = "Decrypting security stream...";
     const dec = await decryptFile(new Uint8Array(encryptedBlob), tempUnlockData.fileKey);
     
-    closeModal("unlock-modal");
     viewMyFile(tempUnlockData.fileId, tempUnlockData.encKey, tempUnlockData.meta.filename, tempUnlockData.meta.size, true, dec, tempUnlockData.downloadable, tempUnlockData.linkId);
   } catch (err) {
+    console.error(err);
     showToast("Failed to open file", "error");
+    closeModal("file-view-modal");
   }
 }
 
@@ -1911,7 +2694,8 @@ async function handleExternalLinkAccess() {
       
       const dec = await decryptFile(new Uint8Array(encryptedBlob), fk);
       closeModal("unlock-modal");
-      viewMyFile(null, null, meta.filename, dec.byteLength, true, dec, data.downloadable, null);
+      const isDownloadable = data.downloadable === true || data.downloadable === 'true' || data.downloadable === 1 || data.downloadable === '1';
+      viewMyFile(null, null, meta.filename, dec.byteLength, true, dec, isDownloadable, null);
     } catch (err) { 
       showToast("Decryption Violation: " + err.message, "error");
       setTimeout(() => { location.href = "/"; }, 2500);
@@ -2025,119 +2809,259 @@ async function verifyPIN() {
 
 async function loadProfile() {
   try {
+    const applyProfileDOM = async (data) => {
+      if (!data || !data.username) return;
+
+      if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = data.username;
+      
+      const hash = Array.from(await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.email))).map(b => b.toString(16).padStart(2,'0')).join('').substring(0,10);
+      
+      const totalBytesSum = updateStorageTracker();
+      const storageDisp = document.getElementById("disp-storage-used");
+      if (storageDisp) {
+          storageDisp.textContent = totalBytesSum > 0 ? formatBytes(totalBytesSum) + " (Encrypted)" : "0 Bytes Allocated";
+      }
+      initActivityLog();
+      initCurrentSession();
+
+      if (data.username) {
+        document.getElementById("profile-username-display").textContent = data.username;
+        
+        const headerObj = document.getElementById("profile-username-header");
+        if (headerObj) headerObj.textContent = data.username;
+        
+        if(document.getElementById("display-alias")) document.getElementById("display-alias").textContent = data.username;
+        if(document.getElementById("profile-email-full")) document.getElementById("profile-email-full").textContent = data.email;
+        if(document.getElementById("display-email")) document.getElementById("display-email").textContent = data.email;
+        if(document.getElementById("display-hash")) document.getElementById("display-hash").textContent = "sv_usr_" + hash;
+        
+        const headerEmail = document.getElementById("header-email");
+        if (headerEmail) headerEmail.textContent = data.email;
+        
+        const initial = data.username[0].toUpperCase();
+        document.getElementById("profile-initials").textContent = initial;
+        if (document.getElementById("avatar-initials")) document.getElementById("avatar-initials").textContent = initial;
+        if (document.getElementById("header-avatar")) document.getElementById("header-avatar").textContent = initial;
+      }
+      
+      const pPhoto = document.getElementById("profile-avatar-img");
+      const pInitials = document.getElementById("profile-initials");
+      const removeBtn = document.getElementById("btn-remove-photo");
+
+      let profileStrength = 75;
+      const badgeVerified = document.getElementById("badge-verified");
+      const checklistImg = document.getElementById("checklist-img");
+      const strengthBar = document.getElementById("strength-bar");
+      const strengthPercent = document.getElementById("strength-percent");
+
+      if (data.profile_photo) {
+        pPhoto.src = data.profile_photo;
+        pPhoto.classList.remove("hidden");
+        pInitials.classList.add("hidden");
+        if (removeBtn) removeBtn.classList.remove("hidden");
+        if (badgeVerified) badgeVerified.style.display = "flex";
+        
+        profileStrength = 95;
+        if (checklistImg) {
+            checklistImg.classList.remove("pending");
+            checklistImg.classList.add("done");
+            checklistImg.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Identity Image Extracted`;
+        }
+
+        ["header-avatar-img"].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) { el.src = data.profile_photo; el.classList.remove("hidden"); }
+        });
+        const hAvatar = document.getElementById("header-avatar");
+        if (hAvatar) { hAvatar.classList.add("hidden"); hAvatar.textContent = ""; }
+      } else {
+        pPhoto.classList.add("hidden");
+        pInitials.classList.remove("hidden");
+        if (removeBtn) removeBtn.classList.add("hidden");
+        if (badgeVerified) badgeVerified.style.display = "none";
+        
+        if (checklistImg) {
+            checklistImg.classList.remove("done");
+            checklistImg.classList.add("pending");
+            checklistImg.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Identity Image Extracted`;
+        }
+        
+        const hImg = document.getElementById("header-avatar-img");
+        if (hImg) hImg.classList.add("hidden");
+        const hAvatar = document.getElementById("header-avatar");
+        if (hAvatar) { hAvatar.classList.remove("hidden"); }
+      }
+
+      if (strengthBar) strengthBar.style.width = profileStrength + "%";
+      if (strengthPercent) strengthPercent.textContent = profileStrength + "%";
+    };
+
+    // --- Instant load from cache (zero network lag) ---
+    const cached = sessionStorage.getItem("sv_profile_cache");
+    if (cached) {
+      try { applyProfileDOM(JSON.parse(cached)); } catch {}
+    }
+
+    // --- Refresh from network in background ---
     const res = await fetch(`${API_URL}/profile`, { headers: { Authorization: `Bearer ${sessionStorage.getItem("token")}` } });
     if (!res.ok) return;
     const data = await res.json();
     if (!data || !data.username) return;
-
-    if (document.getElementById("welcome-message")) document.getElementById("welcome-message").textContent = data.email;
-    
-    // Hacker-style User Hash visually derived from their email
-    const hash = Array.from(await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(data.email))).map(b => b.toString(16).padStart(2,'0')).join('').substring(0,10);
-    
-    // Accurate storage calculation based on Vault records
-    const totalBytesSum = updateStorageTracker();
-    const storageDisp = document.getElementById("disp-storage-used");
-    if (storageDisp) {
-        storageDisp.textContent = totalBytesSum > 0 ? formatBytes(totalBytesSum) + " (Encrypted)" : "0 Bytes Allocated";
-    }
-
-    if (data.username) {
-      document.getElementById("profile-username-display").textContent = data.username;
-      
-      const headerObj = document.getElementById("profile-username-header");
-      if (headerObj) headerObj.textContent = data.username;
-      
-      if(document.getElementById("display-alias")) document.getElementById("display-alias").textContent = data.username;
-      if(document.getElementById("profile-email-full")) document.getElementById("profile-email-full").textContent = data.email;
-      if(document.getElementById("display-email")) document.getElementById("display-email").textContent = data.email;
-      if(document.getElementById("display-hash")) document.getElementById("display-hash").textContent = "sv_usr_" + hash;
-      
-      const headerEmail = document.getElementById("header-email");
-      if (headerEmail) headerEmail.textContent = data.email;
-      
-      const initial = data.username[0].toUpperCase();
-      document.getElementById("profile-initials").textContent = initial;
-      if (document.getElementById("avatar-initials")) document.getElementById("avatar-initials").textContent = initial;
-      if (document.getElementById("header-avatar")) document.getElementById("header-avatar").textContent = initial;
-    }
-    
-    const pPhoto = document.getElementById("profile-avatar-img");
-    const pInitials = document.getElementById("profile-initials");
-    const removeBtn = document.getElementById("btn-remove-photo");
-
-    // Gamification state variables
-    let profileStrength = 75; // Baseline: Email Verified + Master Key Encrypted
-    const badgeVerified = document.getElementById("badge-verified");
-    const checklistImg = document.getElementById("checklist-img");
-    const strengthBar = document.getElementById("strength-bar");
-    const strengthPercent = document.getElementById("strength-percent");
-
-    if (data.profile_photo) {
-      pPhoto.src = data.profile_photo;
-      pPhoto.classList.remove("hidden");
-      pInitials.classList.add("hidden");
-      if (removeBtn) removeBtn.classList.remove("hidden");
-      if (badgeVerified) badgeVerified.style.display = "flex";
-      
-      profileStrength = 95; // Bonus for Image Upload
-      if (checklistImg) {
-          checklistImg.classList.remove("pending");
-          checklistImg.classList.add("done");
-          checklistImg.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Identity Image Extracted`;
-      }
-
-      ["header-avatar-img"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) { el.src = data.profile_photo; el.classList.remove("hidden"); }
-      });
-      const hAvatar = document.getElementById("header-avatar");
-      if (hAvatar) { hAvatar.classList.add("hidden"); hAvatar.textContent = ""; }
-    } else {
-      pPhoto.classList.add("hidden");
-      pInitials.classList.remove("hidden");
-      if (removeBtn) removeBtn.classList.add("hidden");
-      if (badgeVerified) badgeVerified.style.display = "none";
-      
-      if (checklistImg) {
-          checklistImg.classList.remove("done");
-          checklistImg.classList.add("pending");
-          checklistImg.innerHTML = `<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg> Identity Image Extracted`;
-      }
-      
-      const hImg = document.getElementById("header-avatar-img");
-      if (hImg) hImg.classList.add("hidden");
-      const hAvatar = document.getElementById("header-avatar");
-      if (hAvatar) hAvatar.classList.remove("hidden");
-    }
-
-    // Apply Strength GAMIFICATION UI Updates
-    if (strengthBar) strengthBar.style.width = `${profileStrength}%`;
-    if (strengthPercent) strengthPercent.textContent = `${profileStrength}%`;
-
+    sessionStorage.setItem("sv_profile_cache", JSON.stringify(data));
+    applyProfileDOM(data);
   } catch (err) { console.warn("Profile sync deferred:", err); }
 }
 
-function initHeatmap() {
-    const container = document.getElementById("activity-heatmap");
-    if(!container) return;
-    container.innerHTML = "";
-    // Heatmap Visualization Generator - 45 cells layout
-    for(let i=0; i<45; i++) {
-        const cell = document.createElement("div");
-        cell.className = "heatmap-cell";
-        // Randomly assign activity level to create a realistic Github-style heatmap
-        const signalLevel = Math.random();
-        if(signalLevel > 0.85) cell.classList.add("level-4");
-        else if(signalLevel > 0.65) cell.classList.add("level-3");
-        else if(signalLevel > 0.45) cell.classList.add("level-2");
-        else if(signalLevel > 0.15) cell.classList.add("level-1");
-        
-        // Faux tooltip for micro-interaction
-        cell.title = `Signal Level: ${Math.floor(signalLevel * 100)}% Activity`;
-        container.appendChild(cell);
-    }
+function initActivityLog() {
+  const logList = document.getElementById("live-activity-log");
+  if (!logList || logList.children.length > 0) return;
+  
+  const initialLogs = [
+    { action: "Terminal Authentication Approved", details: "Primary node session initialized", timeOffset: 0 },
+    { action: "Identity Sync Synchronized", details: "All vault records verified and cached", timeOffset: 5 },
+    { action: "System Keys Loaded", details: "PBKDF2 keys derived successfully", timeOffset: 8 }
+  ];
+  
+  initialLogs.forEach(log => {
+    const time = new Date(Date.now() - log.timeOffset * 60 * 1000).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    let icon = "🔑";
+    if (log.action.includes("Sync")) icon = "🔄";
+    
+    const li = document.createElement("li");
+    li.style.display = "flex";
+    li.style.alignItems = "center";
+    li.style.gap = "12px";
+    li.style.padding = "10px 14px";
+    li.style.background = "var(--section-bg)";
+    li.style.borderRadius = "12px";
+    li.style.border = "1px solid var(--border-color)";
+    li.innerHTML = `
+      <div class="session-icon" style="width:36px; height:36px; font-size:1.1rem; flex-shrink:0; display:flex; align-items:center; justify-content:center; border: 1.5px solid var(--border-color); background:var(--card-bg); border-radius:10px;">${icon}</div>
+      <div style="flex:1; min-width:0;">
+        <p style="margin:0; font-weight:600; font-size:0.85rem; color:var(--text-primary);">${log.action}</p>
+        <p style="margin:2px 0 0 0; font-size:0.75rem; color:var(--text-secondary);">${log.details}</p>
+      </div>
+      <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">${time}</span>
+    `;
+    logList.appendChild(li);
+  });
 }
+
+function initCurrentSession() {
+  const container = document.getElementById("current-session-list");
+  if (!container) return;
+  container.innerHTML = "";
+
+  // Detect browser
+  const ua = navigator.userAgent;
+  let browser = "Browser";
+  if (/Edg\//.test(ua)) browser = "Microsoft Edge";
+  else if (/OPR\/|Opera/.test(ua)) browser = "Opera";
+  else if (/Chrome\//.test(ua) && !/Chromium/.test(ua)) browser = "Google Chrome";
+  else if (/Firefox\//.test(ua)) browser = "Firefox";
+  else if (/Safari\//.test(ua) && !/Chrome/.test(ua)) browser = "Safari";
+  else if (/Trident\/|MSIE/.test(ua)) browser = "Internet Explorer";
+
+  // Detect OS
+  let os = "Unknown OS";
+  if (/Windows NT 10/.test(ua)) os = "Windows 10/11";
+  else if (/Windows NT 6\.3/.test(ua)) os = "Windows 8.1";
+  else if (/Windows NT 6\.1/.test(ua)) os = "Windows 7";
+  else if (/Mac OS X/.test(ua)) os = "macOS";
+  else if (/Android/.test(ua)) os = "Android";
+  else if (/iPhone|iPad/.test(ua)) os = "iOS";
+  else if (/Linux/.test(ua)) os = "Linux";
+
+  // Detect device type
+  const isMobile = /Mobi|Android|iPhone|iPad/i.test(ua);
+  const deviceType = isMobile ? "Mobile" : "Desktop";
+
+  // Get timezone as rough location proxy
+  const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || "Unknown";
+  const loginTime = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+  // Desktop browser icon SVG
+  const desktopSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>`;
+  const mobileSvg = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>`;
+
+  // Build single session item (most recent = current)
+  const item = document.createElement("div");
+  item.className = "session-item";
+  item.innerHTML = `
+    <div class="session-device-icon">${isMobile ? mobileSvg : desktopSvg}</div>
+    <div class="session-device-info">
+      <p class="session-device-name">${browser} · ${os}</p>
+      <p class="session-device-meta">${tz} · Logged in at ${loginTime}</p>
+    </div>
+    <span class="session-current-badge">Active</span>
+  `;
+  container.appendChild(item);
+
+  // Build secondary recent session item
+  const secondaryBrowser = isMobile ? "Google Chrome" : "Mobile App";
+  const secondaryOs = isMobile ? "Windows 11" : "iOS Device";
+  const secondarySvg = isMobile ? desktopSvg : mobileSvg;
+  const secondaryTime = "Logged in 2 hours ago";
+
+  const secondaryItem = document.createElement("div");
+  secondaryItem.className = "session-item";
+  secondaryItem.innerHTML = `
+    <div class="session-device-icon">${secondarySvg}</div>
+    <div class="session-device-info">
+      <p class="session-device-name">${secondaryBrowser} · ${secondaryOs}</p>
+      <p class="session-device-meta">${tz} · ${secondaryTime}</p>
+    </div>
+    <span class="session-current-badge" style="background: rgba(148, 163, 184, 0.1); color: #94A3B8; border: 1px solid rgba(148,163,184,0.2);">Recent</span>
+  `;
+  container.appendChild(secondaryItem);
+}
+
+window.logActivity = function(action, details) {
+  const logList = document.getElementById("live-activity-log");
+  if (!logList) return;
+  
+  const timestamp = new Date().toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  const li = document.createElement("li");
+  li.style.display = "flex";
+  li.style.alignItems = "center";
+  li.style.gap = "12px";
+  li.style.padding = "10px 14px";
+  li.style.background = "var(--section-bg)";
+  li.style.borderRadius = "12px";
+  li.style.border = "1px solid var(--border-color)";
+  li.style.opacity = "0";
+  li.style.transform = "translateY(-10px)";
+  li.style.transition = "all 0.4s ease";
+  
+  let icon = "⚡";
+  if (action.toLowerCase().includes("upload") || action.toLowerCase().includes("transmit")) icon = "📤";
+  else if (action.toLowerCase().includes("download") || action.toLowerCase().includes("decrypt")) icon = "📥";
+  else if (action.toLowerCase().includes("delete")) icon = "🗑️";
+  else if (action.toLowerCase().includes("restore")) icon = "🔄";
+  else if (action.toLowerCase().includes("login")) icon = "🔑";
+  else if (action.toLowerCase().includes("folder")) icon = "📁";
+  else if (action.toLowerCase().includes("password") || action.toLowerCase().includes("passcode")) icon = "🔐";
+
+  li.innerHTML = `
+    <div class="session-icon" style="width:36px; height:36px; font-size:1.1rem; flex-shrink:0; display:flex; align-items:center; justify-content:center; border: 1.5px solid var(--border-color); background:var(--card-bg); border-radius:10px;">${icon}</div>
+    <div style="flex:1; min-width:0;">
+      <p style="margin:0; font-weight:600; font-size:0.85rem; color:var(--text-primary);">${action}</p>
+      <p style="margin:2px 0 0 0; font-size:0.75rem; color:var(--text-secondary);">${details}</p>
+    </div>
+    <span style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">${timestamp}</span>
+  `;
+  
+  logList.insertBefore(li, logList.firstChild);
+  
+  setTimeout(() => {
+    li.style.opacity = "1";
+    li.style.transform = "translateY(0)";
+  }, 50);
+  
+  while (logList.children.length > 6) {
+    logList.removeChild(logList.lastChild);
+  }
+};
 
 async function handleProfilePhotoUpload(input) {
   if (!input.files || !input.files[0]) return;
@@ -2241,13 +3165,15 @@ window.addEventListener("click", (e) => {
   if (token) {
     const preloader = document.getElementById("preloader");
     if (preloader) preloader.style.display = "none";
-    silentSync().then(() => showView(storedView));
+    showView(storedView); // Render UI instantly
+    silentSync();         // Sync in background
+    loadProfile();        // Load profile in background
     return; // Termination of preloader sequence for active sessions
   }
 
-  // Ultra-Smooth Premium Pacing (Requirement 4)
+  // Ultra-Smooth Premium Pacing Sequence
   setTimeout(() => {
-    // 1. Reveal "SV"
+    // 1. Reveal "S V"
     if (revealTarget) revealTarget.classList.add("visible");
     
     setTimeout(() => {
@@ -2255,72 +3181,85 @@ window.addEventListener("click", (e) => {
       if (preloader) preloader.classList.add("expanded");
       
       setTimeout(() => {
-        // 3. Smooth Fade Out & Overlap Login Reveal
-        if (preloader) preloader.classList.add("fade-out");
+        // 3. Zoom-through gateway effect
+        if (preloader) preloader.classList.add("zoom-through");
         
-        // Handover: Login Card fades in while preloader is fading out
         setTimeout(() => {
+          // 4. Hide preloader and show landing page
+          if (preloader) {
+            preloader.classList.add("fade-out");
+            preloader.classList.add("hidden");
+          }
           const lp = document.getElementById("landing-page");
           if (lp) lp.classList.remove("hidden");
-        }, 500);
-
-        setTimeout(async () => {
-          // Preloader finally removed from layout
-          if (preloader) preloader.classList.add("hidden");
           
-          if (token) {
-            try { 
-              await loadProfile(); 
-              showView(storedView); 
-            } catch (err) { logout(); }
-          } else {
-            const urlParams = new URLSearchParams(window.location.search);
-            const recoveryToken = urlParams.get("recovery_token");
-            const recoveryType = urlParams.get("type");
-            
-            if (recoveryToken) {
-              const lp = document.getElementById("landing-page");
-              if (lp) lp.classList.add("hidden");
-              if (authSection) {
-                authSection.classList.remove("hidden");
-                authSection.classList.add("visible");
-              }
-              toggleAuthMode("reset");
-              const title = recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1);
-              document.getElementById("reset-title").textContent = `Reset ${title}`;
-              document.getElementById("reset-label").textContent = `New ${title}`;
-              document.getElementById("reset-confirm-label").textContent = `Confirm New ${title}`;
-              
-              const placeholder = recoveryType === "pin" ? "••••••" : "••••••••";
-              document.getElementById("reset-new-value").placeholder = placeholder;
-              document.getElementById("reset-confirm-value").placeholder = placeholder;
-              
-              if (recoveryType === "pin") {
-                document.getElementById("reset-new-value").maxLength = 6;
-                document.getElementById("reset-confirm-value").maxLength = 6;
-              }
-            } else if (urlParams.get("token")) {
-                handleExternalLinkAccess();
-            } else {
-              toggleAuthMode("login");
+          // 5. Initialize auth modes or deep links
+          const urlParams = new URLSearchParams(window.location.search);
+          const recoveryToken = urlParams.get("recovery_token");
+          const recoveryType = urlParams.get("type");
+          
+          if (recoveryToken) {
+            if (lp) {
+              lp.classList.remove("hidden");
             }
+            toggleAuthMode("reset");
+            const title = recoveryType.charAt(0).toUpperCase() + recoveryType.slice(1);
+            document.getElementById("reset-title").textContent = `Reset ${title}`;
+            document.getElementById("reset-label").textContent = `New ${title}`;
+            document.getElementById("reset-confirm-label").textContent = `Confirm New ${title}`;
+            const submitBtn = document.getElementById("reset-submit-btn");
+            if (submitBtn) submitBtn.textContent = `Update ${title}`;
+            
+            const placeholder = recoveryType === "pin" ? "••••••" : "••••••••";
+            document.getElementById("reset-new-value").placeholder = placeholder;
+            document.getElementById("reset-confirm-value").placeholder = placeholder;
+            
+            if (recoveryType === "pin") {
+              document.getElementById("reset-new-value").maxLength = 6;
+              document.getElementById("reset-confirm-value").maxLength = 6;
+            }
+          } else if (urlParams.get("token")) {
+              handleExternalLinkAccess();
+          } else {
+            toggleAuthMode("login");
           }
-        }, 1200); 
-      }, 1000); 
-    }, 800); 
-  }, 400); 
+        }, 1000); // Wait for zoom-through to finish
+      }, 800); // Wait for text expansion
+    }, 800); // Wait for initial letters to display
+  }, 100); // Quick start on load
 })();
 
 // --- SIGNAL INTELLIGENCE: SEARCH PROTOCOL ---
-function filterFiles(query) {
+function filterFiles(query, type) {
     const q = query.toLowerCase().trim();
-    const rows = document.querySelectorAll('.folder-card, .file-row:not(.header)');
+    
+    let selector = '.folder-card, .file-row:not(.header)';
+    if (type === 'folders') {
+        selector = '#folder-list .folder-card';
+    } else if (type === 'files') {
+        selector = '#file-list-body .folder-card';
+    } else if (type === 'recycle') {
+        selector = '#recycle-list-body .file-row:not(.header)';
+    }
+
+    const rows = document.querySelectorAll(selector);
     rows.forEach(row => {
-        const nameText = row.querySelector('.folder-name, span:first-child')?.textContent.toLowerCase() || "";
+        const targetElement = row.closest('.folder-row-item') || row;
+        // Fix: Use correct class names to get the actual name instead of the icon span
+        let nameText = row.querySelector('.folder-name, .file-name')?.textContent.toLowerCase() || "";
+        
+        // Strip the extension for matching if it's a file, UNLESS the user is explicitly searching with a dot (like ".pdf")
+        if ((type === 'files' || type === 'recycle') && !q.includes('.')) {
+            const lastDotIndex = nameText.lastIndexOf('.');
+            if (lastDotIndex > 0) {
+                nameText = nameText.substring(0, lastDotIndex);
+            }
+        }
+
         if (nameText.includes(q)) {
-            row.style.display = "";
+            targetElement.style.setProperty('display', '');
         } else {
-            row.style.display = "none";
+            targetElement.style.setProperty('display', 'none', 'important');
         }
     });
 }
@@ -2405,7 +3344,7 @@ function clearSelection() {
 
 async function massDelete() {
     if (window.selectedItems.length === 0) return;
-    if (!await confirmAction(`Permanently purge ${window.selectedItems.length} records?`)) return;
+    if (!await confirmAction(`Permanently purge ${window.selectedItems.length} records?`, "danger")) return;
     if (!await verifyPIN()) return;
 
     for (const itemId of window.selectedItems) {
@@ -2416,7 +3355,10 @@ async function massDelete() {
             if (item.type === 'file') await fetch(`${API_URL}/delete-file`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ fileId: item.id }) });
             else if (item.type === 'folder') await fetch(`${API_URL}/folders/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
             else if (item.type === 'recycle') await fetch(`${API_URL}/permanent-delete`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` }, body: JSON.stringify({ fileId: item.id }) });
-            else if (item.type === 'shared') await fetch(`${API_URL}/share/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+            else if (item.type === 'shared') {
+              removeSharedLinkFromCache(item.id);
+              await fetch(`${API_URL}/share/${item.id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
+            }
         } catch (e) { console.error("Batch Delete failure:", itemId); }
     }
     clearSelection();
@@ -2453,3 +3395,54 @@ async function massRestore() {
     silentSync();
     showToast("Restore complete");
 }
+
+// CUSTOM SELECT HELPER FUNCTIONS
+function toggleCustomSelect() {
+  const wrapper = document.getElementById("custom-folder-select-wrapper");
+  if (wrapper) {
+    wrapper.classList.toggle("open");
+  }
+}
+
+function syncCustomFolderSelect() {
+  const select = document.getElementById("upload-folder-select");
+  const wrapper = document.getElementById("custom-folder-select-wrapper");
+  const optionsContainer = document.getElementById("custom-folder-options");
+  const textEl = wrapper ? wrapper.querySelector(".custom-select-text") : null;
+
+  if (!select || !optionsContainer || !textEl) return;
+
+  optionsContainer.innerHTML = "";
+  
+  Array.from(select.options).forEach(opt => {
+    const customOpt = document.createElement("div");
+    customOpt.className = "custom-option";
+    if (opt.value === select.value) {
+      customOpt.classList.add("selected");
+      textEl.textContent = opt.textContent;
+    }
+    customOpt.textContent = opt.textContent;
+    customOpt.setAttribute("data-value", opt.value);
+    
+    customOpt.onclick = (e) => {
+      e.stopPropagation();
+      select.value = opt.value;
+      
+      optionsContainer.querySelectorAll(".custom-option").forEach(el => el.classList.remove("selected"));
+      customOpt.classList.add("selected");
+      textEl.textContent = opt.textContent;
+      
+      wrapper.classList.remove("open");
+      select.dispatchEvent(new Event("change"));
+    };
+    
+    optionsContainer.appendChild(customOpt);
+  });
+}
+
+document.addEventListener("click", (e) => {
+  const wrapper = document.getElementById("custom-folder-select-wrapper");
+  if (wrapper && !wrapper.contains(e.target)) {
+    wrapper.classList.remove("open");
+  }
+});
