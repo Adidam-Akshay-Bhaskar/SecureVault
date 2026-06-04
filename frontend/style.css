@@ -24,11 +24,11 @@ html.dark-theme {
   --section-bg: #0A0A0A;
   --card-bg: #121212;
   --input-bg: #0C0C0C;
-  --sidebar-bg: #6366F1; /* violet colour */
-  --sidebar-hover: #4F46E5;
-  --accent-blue: #6366F1;
-  --accent-hover: #4F46E5;
-  --accent-light: rgba(99, 102, 241, 0.15);
+  --sidebar-bg: #1E3A8A; /* dark blue */
+  --sidebar-hover: #1E40AF;
+  --accent-blue: #3B82F6;
+  --accent-hover: #2563EB;
+  --accent-light: rgba(59, 130, 246, 0.15);
   --accent-cyan: #22D3EE;
   --text-primary: #FFFFFF;
   --text-secondary: #E2E8F0;
@@ -2319,7 +2319,7 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
   .sidebar.collapsed { width: 100% !important; padding: 0.6rem; }
   .sidebar-header { margin-bottom: 0; padding: 0; width: auto; }
   #sidebar-brand { font-size: 1rem; letter-spacing: 0; font-weight: 900; }
-  .sidebar-toggle, .bottom-actions { display: none !important; } 
+  .sidebar-toggle, .bottom-actions, .sidebar-bottom-section, .logout-item { display: none !important; } 
   
   nav { display: flex; gap: 4px; overflow-x: auto; padding: 0; margin-left: auto; scrollbar-width: none; }
   nav::-webkit-scrollbar { display: none; }
@@ -2668,8 +2668,9 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
     border-bottom: 2px solid rgba(255,255,255,0.1) !important;
     justify-content: flex-start !important; gap: 0 !important;
     border-right: none !important;
-    background: #111827 !important; /* Premium Dark Navy */
+    background: var(--sidebar-bg) !important;
   }
+  .sidebar-bottom-section, .logout-item { display: none !important; }
   .sidebar-header { display: none !important; } /* Hide Brand on mobile to save space */
   .sidebar nav { display: flex !important; flex-direction: row !important; align-items: center !important; height: 100% !important; }
   .nav-item { 
@@ -2998,7 +2999,7 @@ video::-webkit-media-controls-enclosure {
     overflow: visible !important;
     border-radius: 26px !important;
     border: 1px solid rgba(255, 255, 255, 0.08) !important;
-    background: rgba(15, 23, 42, 0.85) !important; /* Slate 900 translucent */
+    background: rgba(30, 58, 138, 0.85) !important; /* Dark Blue translucent */
     backdrop-filter: blur(20px) !important;
     -webkit-backdrop-filter: blur(20px) !important;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 10px rgba(99, 102, 241, 0.1) !important;
@@ -3012,10 +3013,7 @@ video::-webkit-media-controls-enclosure {
   .sidebar-header { display: none !important; } /* Hide Brand on mobile to save space */
   .sidebar-top-section { display: contents !important; }
   .nav-links { display: contents !important; }
-  .sidebar-bottom-section { display: contents !important; }
- 
-  /* Hide exit/logout button from mobile bottom capsule */
-  .sidebar .logout-item, .sidebar.collapsed .logout-item { display: none !important; }
+  .sidebar-bottom-section, .logout-item { display: none !important; }
 
   .sidebar .nav-item, .sidebar.collapsed .nav-item { 
     display: flex !important;
