@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="style.css?v=60" />
   <script>
     (function() {
-      const savedTheme = localStorage.getItem('theme') || 'dark';
+      const savedTheme = localStorage.getItem('theme') || 'light';
       if (savedTheme === 'dark') {
         document.documentElement.classList.add('dark-theme');
       } else {
@@ -564,7 +564,7 @@
       <div id="section-recycle-bin" class="hidden">
         <div style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: flex-end;">
           <div>
-            <h2 style="font-size: 1.1rem; color: #fff; margin-bottom: 6px; letter-spacing: 0.5px;">Recently Deleted Records</h2>
+            <h2 style="font-size: 1.1rem; color: var(--text-primary); margin-bottom: 6px; letter-spacing: 0.5px;">Recently Deleted Records</h2>
             <p style="color: var(--text-dim); font-size: 0.8rem; opacity: 0.7;">Retention threshold: 7 days. Remaining records will be automatically purged.</p>
           </div>
           <div class="search-container" style="flex: 1; max-width: 350px; margin-left: 20px; position: relative;">

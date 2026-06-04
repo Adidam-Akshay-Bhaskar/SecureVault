@@ -1357,7 +1357,7 @@ async function loadRecycleBin() {
               ${getFileTypeLogo(ext)}
               <div class="selection-indicator"></div>
             </div>
-            <p class="file-name" style="font-weight: 700; color: #000;">${disp}</p>
+            <p class="file-name" style="font-weight: 700; color: var(--text-primary);">${disp}</p>
             <p class="file-date" style="font-size: 0.85rem; color: #64748b; font-weight: 600; text-align: center;">${timeLeftStr}</p>
             <div class="btn-group">
               <button class="action-btn" onclick="event.stopPropagation(); restoreFile(${f.file_id})" style="border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.03);">Restore</button>
@@ -1532,7 +1532,7 @@ async function showUploadModal(preselectFolderId = null, skipVerify = false) {
   const label = document.getElementById("file-label");
   if (label) {
     label.innerHTML = "Drop record or click to browse";
-    label.style.color = "#000";
+    label.style.color = "var(--text-primary)";
   }
   const select = document.getElementById("upload-folder-select");
   if (select) {
@@ -1550,7 +1550,7 @@ function handleUploadFileChange(input) {
     label.style.color = "var(--accent-blue)";
   } else {
     label.innerHTML = "Drop record or click to browse";
-    label.style.color = "#000";
+    label.style.color = "var(--text-primary)";
   }
 }
 
@@ -3140,7 +3140,7 @@ window.addEventListener("click", (e) => {
 
 // Theme Operations
 function initTheme() {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'light';
   const isDark = savedTheme === 'dark';
   if (isDark) {
     document.documentElement.classList.add('dark-theme');
