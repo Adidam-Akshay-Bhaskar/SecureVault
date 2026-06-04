@@ -2991,7 +2991,7 @@ video::-webkit-media-controls-enclosure {
     left: 50% !important; 
     transform: translateX(-50%) !important; 
     flex-direction: row !important; 
-    padding: 0 16px !important; 
+    padding: 0 !important; 
     z-index: 2500 !important; 
     overflow: visible !important;
     border-radius: 26px !important;
@@ -3002,14 +3002,14 @@ video::-webkit-media-controls-enclosure {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35), 0 0 10px rgba(99, 102, 241, 0.1) !important;
     display: flex !important;
     align-items: center !important;
-    justify-content: space-between !important;
+    justify-content: center !important;
     gap: 0 !important;
     border-right: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
   }
   .sidebar-header { display: none !important; } /* Hide Brand on mobile to save space */
-  .sidebar-top-section { display: contents !important; }
-  .nav-links { display: contents !important; }
+  .sidebar-top-section { display: flex !important; width: 100% !important; height: 100% !important; justify-content: center !important; align-items: center !important; }
+  .nav-links { display: flex !important; width: 100% !important; height: 100% !important; flex-direction: row !important; justify-content: space-evenly !important; align-items: center !important; gap: 0 !important; }
   .sidebar-bottom-section, .logout-item { display: none !important; }
 
   .sidebar .nav-item, .sidebar.collapsed .nav-item { 
