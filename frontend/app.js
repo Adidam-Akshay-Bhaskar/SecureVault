@@ -1704,9 +1704,9 @@ document.getElementById("upload-form").addEventListener("submit", async (e) => {
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
           const percent = Math.round((event.loaded / event.total) * 100);
-          progressBar.style.width = percent + "%";
-          percentageText.textContent = percent + "%";
-          if (percent === 100) statusText.textContent = "Verifying Integrity...";
+          if (progressBar) progressBar.style.width = percent + "%";
+          if (percentageText) percentageText.textContent = percent + "%";
+          if (percent === 100 && statusText) statusText.textContent = "Verifying Integrity...";
         }
       };
       
