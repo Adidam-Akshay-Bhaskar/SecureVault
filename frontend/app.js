@@ -2054,10 +2054,10 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             viewer.innerHTML = `<p style="color:var(--danger);padding:20px;">Could not render document: ${err.message}</p>`;
         }
     }
-    // 5. PDF PROTOCOL — Centered page with dark gutters, zoom controls
+    // 5. PDF PROTOCOL — Centered page with light gutters, zoom controls
     else if (ext === "pdf") {
-        viewer.innerHTML = '<div style="color:var(--accent-cyan);text-align:center;padding:40px;">Loading PDF...</div>';
-        viewer.style.background = "#3a3a3a";
+        viewer.innerHTML = '<div style="color:#64748b;text-align:center;padding:40px;font-weight:600;">Loading PDF...</div>';
+        viewer.style.background = "#E8E5E0";
         viewer.style.display = "flex";
         viewer.style.flexDirection = "column";
         viewer.style.padding = "0";
@@ -2067,26 +2067,26 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         pdfJS.getDocument({ data: dec }).promise.then(pdf => {
             viewer.innerHTML = "";
 
-            // === ZOOM TOOLBAR (top-left pill, app-themed) ===
-            let currentZoom = 1.0;
+            // === ZOOM TOOLBAR (top-left pill, light theme) ===
+            let currentZoom = 1.25;
             const RENDER_SCALE = 2.0; // High-res render, CSS scales display
 
             const toolbar = document.createElement("div");
             toolbar.style.cssText = `
                 position: absolute; top: 12px; left: 14px; z-index: 20;
                 display: flex; align-items: center; gap: 0;
-                background: rgba(15,23,42,0.82);
-                border: 1px solid rgba(255,255,255,0.12);
+                background: #ffffff;
+                border: 1px solid #d1d5db;
                 border-radius: 10px; overflow: hidden;
                 backdrop-filter: blur(12px);
-                box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+                box-shadow: 0 2px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08);
             `;
 
             const mkBtn = (text) => {
                 const b = document.createElement("button");
                 b.textContent = text;
-                b.style.cssText = "width:32px;height:32px;border:none;background:transparent;color:#e2e8f0;font-size:1.15rem;cursor:pointer;font-weight:700;transition:background 0.15s;display:flex;align-items:center;justify-content:center;";
-                b.onmouseenter = () => b.style.background = "rgba(255,255,255,0.1)";
+                b.style.cssText = "width:32px;height:32px;border:none;background:transparent;color:#374151;font-size:1.15rem;cursor:pointer;font-weight:700;transition:background 0.15s;display:flex;align-items:center;justify-content:center;";
+                b.onmouseenter = () => b.style.background = "#f3f4f6";
                 b.onmouseleave = () => b.style.background = "transparent";
                 return b;
             };
@@ -2095,24 +2095,24 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             const zoomIn  = mkBtn("+");
 
             const divider = document.createElement("div");
-            divider.style.cssText = "width:1px;height:18px;background:rgba(255,255,255,0.12);";
+            divider.style.cssText = "width:1px;height:18px;background:#e5e7eb;";
 
             const zoomLabel = document.createElement("span");
-            zoomLabel.textContent = "100%";
-            zoomLabel.style.cssText = "color:#e2e8f0;font-size:0.78rem;font-weight:700;font-family:var(--font-heading);padding:0 10px;min-width:44px;text-align:center;letter-spacing:0.5px;";
+            zoomLabel.textContent = "125%";
+            zoomLabel.style.cssText = "color:#111827;font-size:0.78rem;font-weight:700;font-family:var(--font-heading);padding:0 10px;min-width:44px;text-align:center;letter-spacing:0.5px;";
 
             const divider2 = document.createElement("div");
-            divider2.style.cssText = "width:1px;height:18px;background:rgba(255,255,255,0.12);";
+            divider2.style.cssText = "width:1px;height:18px;background:#e5e7eb;";
 
             const pageInfo = document.createElement("span");
             pageInfo.textContent = `${pdf.numPages}p`;
-            pageInfo.style.cssText = "color:rgba(255,255,255,0.35);font-size:0.72rem;font-weight:600;padding:0 10px;font-family:var(--font-heading);";
+            pageInfo.style.cssText = "color:#6b7280;font-size:0.72rem;font-weight:600;padding:0 10px;font-family:var(--font-heading);";
 
             toolbar.append(zoomOut, divider, zoomLabel, divider2, zoomIn, pageInfo);
 
-            // === SCROLL CONTAINER with dark gutters ===
+            // === SCROLL CONTAINER with light warm gutters ===
             const scrollWrap = document.createElement("div");
-            scrollWrap.style.cssText = "flex:1;overflow-y:auto;overflow-x:auto;background:#3a3a3a;display:flex;flex-direction:column;align-items:center;padding:32px 60px 48px;gap:20px;position:relative;";
+            scrollWrap.style.cssText = "flex:1;overflow-y:auto;overflow-x:auto;background:#E8E5E0;display:flex;flex-direction:column;align-items:center;padding:36px 60px 56px;gap:24px;position:relative;";
             scrollWrap.appendChild(toolbar);
 
             viewer.appendChild(scrollWrap);
@@ -2132,10 +2132,9 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                         const wrapper = document.createElement("div");
                         wrapper.style.cssText = `
                             background: #fff;
-                            box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.25);
-                            border-radius: 1px;
+                            box-shadow: 0 1px 4px rgba(0,0,0,0.12), 0 8px 24px rgba(0,0,0,0.10);
+                            border-radius: 2px;
                             flex-shrink: 0;
-                            /* CSS display size: 100% of scroll container width minus gutters */
                             width: min(calc(100% - 0px), ${vp.width / RENDER_SCALE}px);
                             aspect-ratio: ${vp.width} / ${vp.height};
                             position: relative;
