@@ -1156,35 +1156,53 @@ function getFileTypeLogo(ext) {
   const e = ext.toLowerCase();
   let bg = "#F1F5F9", color = "#64748B", grad = "linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%)";
   
-  if (["pdf", "doc", "docx", "txt", "rtf", "odt"].includes(e)) { 
-    bg = "#FEF2F2"; color = "#EF4444"; grad = "linear-gradient(135deg, #FFF1F2 0%, #FECDD3 100%)"; 
+  // PDF — Red
+  if (["pdf"].includes(e)) {
+    bg = "#FEF2F2"; color = "#EF4444"; grad = "linear-gradient(135deg, #FFF1F2 0%, #FECDD3 100%)";
   }
-  else if (["xls", "xlsx", "csv", "ods"].includes(e)) { 
-    bg = "#ECFDF5"; color = "#10B981"; grad = "linear-gradient(135deg, #F0FDF4 0%, #BBF7D0 100%)"; 
+  // DOC / DOCX — Blue
+  else if (["doc", "docx", "odt"].includes(e)) {
+    bg = "#EFF6FF"; color = "#2563EB"; grad = "linear-gradient(135deg, #DBEAFE 0%, #BFDBFE 100%)";
   }
-  else if (["ppt", "pptx", "odp"].includes(e)) { 
-    bg = "#FFF7ED"; color = "#F97316"; grad = "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)"; 
+  // TXT / RTF — Slate
+  else if (["txt", "rtf", "md"].includes(e)) {
+    bg = "#F8FAFC"; color = "#475569"; grad = "linear-gradient(135deg, #F1F5F9 0%, #CBD5E1 100%)";
   }
-  else if (["jpg", "jpeg", "png", "gif", "svg", "webp"].includes(e)) { 
-    bg = "#EFF6FF"; color = "#3B82F6"; grad = "linear-gradient(135deg, #EFF6FF 0%, #DBEAFE 100%)"; 
+  // XLS / XLSX / CSV — Green
+  else if (["xls", "xlsx", "csv", "ods"].includes(e)) {
+    bg = "#ECFDF5"; color = "#059669"; grad = "linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%)";
   }
-  else if (["mp4", "mkv", "avi", "mov"].includes(e)) { 
-    bg = "#F5F3FF"; color = "#8B5CF6"; grad = "linear-gradient(135deg, #F5F3FF 0%, #DDD6FE 100%)"; 
+  // PPT / PPTX — Orange
+  else if (["ppt", "pptx", "odp"].includes(e)) {
+    bg = "#FFF7ED"; color = "#EA580C"; grad = "linear-gradient(135deg, #FFEDD5 0%, #FED7AA 100%)";
   }
-  else if (["mp3", "wav", "aac", "flac"].includes(e)) { 
-    bg = "#FDF2F8"; color = "#DB2777"; grad = "linear-gradient(135deg, #FDF2F8 0%, #FCE7F3 100%)"; 
+  // Images — Violet
+  else if (["jpg", "jpeg", "png", "gif", "svg", "webp", "bmp", "ico"].includes(e)) {
+    bg = "#F5F3FF"; color = "#7C3AED"; grad = "linear-gradient(135deg, #EDE9FE 0%, #DDD6FE 100%)";
   }
-  else if (["zip", "rar", "7z", "tar", "gz"].includes(e)) { 
-    bg = "#FFFBEB"; color = "#D97706"; grad = "linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%)"; 
+  // Video — Rose/Pink
+  else if (["mp4", "mkv", "avi", "mov", "webm"].includes(e)) {
+    bg = "#FFF1F2"; color = "#E11D48"; grad = "linear-gradient(135deg, #FFE4E6 0%, #FECDD3 100%)";
   }
-  else if (["key"].includes(e)) { 
-    bg = "#EEF2FF"; color = "#4F46E5"; grad = "linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%)"; 
+  // Audio — Teal
+  else if (["mp3", "wav", "aac", "flac", "ogg"].includes(e)) {
+    bg = "#F0FDFA"; color = "#0D9488"; grad = "linear-gradient(135deg, #CCFBF1 0%, #99F6E4 100%)";
   }
-  else if (["html", "css", "js", "ts", "py", "java", "cpp", "c", "json", "xml"].includes(e)) { 
-    bg = "#ECFEFF"; color = "#0891B2"; grad = "linear-gradient(135deg, #ECFEFF 0%, #CFFAFE 100%)"; 
+  // Archives — Amber
+  else if (["zip", "rar", "7z", "tar", "gz"].includes(e)) {
+    bg = "#FFFBEB"; color = "#D97706"; grad = "linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%)";
   }
-  else if (["exe", "apk", "dll", "bat"].includes(e)) { 
-    bg = "#F8FAFC"; color = "#0F172A"; grad = "linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%)"; 
+  // Code files — Cyan
+  else if (["html", "css", "js", "ts", "py", "java", "cpp", "c", "json", "xml", "jsx", "tsx"].includes(e)) {
+    bg = "#ECFEFF"; color = "#0891B2"; grad = "linear-gradient(135deg, #CFFAFE 0%, #A5F3FC 100%)";
+  }
+  // Key / Security — Indigo
+  else if (["key", "pem", "cert"].includes(e)) {
+    bg = "#EEF2FF"; color = "#4338CA"; grad = "linear-gradient(135deg, #E0E7FF 0%, #C7D2FE 100%)";
+  }
+  // Executables — Dark
+  else if (["exe", "apk", "dll", "bat", "msi"].includes(e)) {
+    bg = "#F1F5F9"; color = "#1E293B"; grad = "linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%)";
   }
   
   const displayText = ext.toUpperCase() === "GITIGNORE" ? ".GN" : (ext.length > 4 ? ext.substring(0,3) : ext).toUpperCase();
