@@ -25,14 +25,6 @@ The server **never** receives raw file content, filenames, or the master passcod
 
 ---
 
-## Visual Showcase
-
-| DataVault Dashboard | Incoming Data | Recycle Bin |
-|:---:|:---:|:---:|
-| ![DataVault](frontend/images/vault_base.png) | ![Incoming Data](frontend/images/incoming_data.png) | ![Recycle Bin](frontend/images/recycle_bin.png) |
-
----
-
 ## Feature Set
 
 ### 🔒 Zero-Knowledge Encryption
