@@ -2054,33 +2054,96 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             viewer.innerHTML = `<p style="color:var(--danger);padding:20px;">Could not render document: ${err.message}</p>`;
         }
     }
-    // 5. PDF PROTOCOL (Direct Canvas Rendering - Bypasses Browser Interface)
+    // 5. PDF PROTOCOL (Direct Canvas Rendering with Zoom Controls)
     else if (ext === "pdf") {
         viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">MANIFESTING PDF DATA FIELDS...</div>';
         const pdfJS = window['pdfjs-dist/build/pdf'];
-        pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';        
+        pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         pdfJS.getDocument({ data: dec }).promise.then(pdf => {
             viewer.innerHTML = "";
+            viewer.style.display = "flex";
+            viewer.style.flexDirection = "column";
+
+            // === ZOOM TOOLBAR ===
+            let currentZoom = 1.0; // 100% default
+            const BASE_SCALE = window.innerWidth < 768 ? 3.0 : 2.5;
+
+            const toolbar = document.createElement("div");
+            toolbar.style.cssText = `
+                display: flex; align-items: center; justify-content: center; gap: 12px;
+                padding: 10px 20px; background: rgba(15,23,42,0.85);
+                border-bottom: 1px solid rgba(255,255,255,0.08);
+                position: sticky; top: 0; z-index: 10; flex-shrink: 0;
+                backdrop-filter: blur(10px);
+            `;
+
+            const zoomOut = document.createElement("button");
+            zoomOut.textContent = "−";
+            zoomOut.style.cssText = "width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#fff;font-size:1.3rem;cursor:pointer;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;transition:background 0.2s;";
+            zoomOut.onmouseenter = () => zoomOut.style.background = "rgba(255,255,255,0.15)";
+            zoomOut.onmouseleave = () => zoomOut.style.background = "rgba(255,255,255,0.07)";
+
+            const zoomLabel = document.createElement("span");
+            zoomLabel.textContent = "100%";
+            zoomLabel.style.cssText = "color:#fff;font-size:0.85rem;font-weight:700;font-family:var(--font-heading);min-width:48px;text-align:center;letter-spacing:0.5px;";
+
+            const zoomIn = document.createElement("button");
+            zoomIn.textContent = "+";
+            zoomIn.style.cssText = "width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#fff;font-size:1.3rem;cursor:pointer;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;transition:background 0.2s;";
+            zoomIn.onmouseenter = () => zoomIn.style.background = "rgba(255,255,255,0.15)";
+            zoomIn.onmouseleave = () => zoomIn.style.background = "rgba(255,255,255,0.07)";
+
+            const pageLabel = document.createElement("span");
+            pageLabel.textContent = `${pdf.numPages} page${pdf.numPages !== 1 ? 's' : ''}`;
+            pageLabel.style.cssText = "color:rgba(255,255,255,0.35);font-size:0.75rem;font-weight:600;font-family:var(--font-heading);margin-left:8px;";
+
+            toolbar.appendChild(zoomOut);
+            toolbar.appendChild(zoomLabel);
+            toolbar.appendChild(zoomIn);
+            toolbar.appendChild(pageLabel);
+            viewer.appendChild(toolbar);
+
+            // === SCROLL CONTAINER ===
             const container = document.createElement("div");
             container.className = "pdf-canvas-container";
-            container.style.width = "100%"; container.style.height = "100%"; container.style.overflowY = "auto";
+            container.style.cssText = "flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:24px 16px;gap:24px;background:#525659;";
             viewer.appendChild(container);
-            
-            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-                pdf.getPage(pageNum).then(page => {
-                    const isMobile = window.innerWidth < 768;
-                    const viewport = page.getViewport({ scale: isMobile ? 3.0 : 2.5 });
-                    const canvas = document.createElement("canvas");
-                    canvas.className = "pdf-page-canvas";
-                    canvas.style.width = isMobile ? "100%" : "85%"; 
-                    canvas.style.marginBottom = isMobile ? "15px" : "30px";
-                    canvas.style.borderRadius = "0"; canvas.style.boxShadow = "0 30px 60px rgba(0,0,0,0.1)";
-                    const context = canvas.getContext('2d');
-                    canvas.height = viewport.height; canvas.width = viewport.width;
-                    container.appendChild(canvas);
-                    page.render({ canvasContext: context, viewport: viewport });
-                });
-            }
+
+            // === RENDER FUNCTION ===
+            const renderAllPages = (zoom) => {
+                container.innerHTML = "";
+                const scale = BASE_SCALE * zoom;
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    pdf.getPage(pageNum).then(page => {
+                        const viewport = page.getViewport({ scale });
+                        const canvas = document.createElement("canvas");
+                        canvas.className = "pdf-page-canvas";
+                        canvas.style.cssText = `display:block;box-shadow:0 4px 20px rgba(0,0,0,0.4);border-radius:2px;max-width:100%;`;
+                        canvas.height = viewport.height;
+                        canvas.width = viewport.width;
+                        container.appendChild(canvas);
+                        page.render({ canvasContext: canvas.getContext('2d'), viewport });
+                    });
+                }
+            };
+
+            // Initial render at 100%
+            renderAllPages(currentZoom);
+
+            // Zoom controls
+            zoomIn.onclick = () => {
+                if (currentZoom >= 3.0) return;
+                currentZoom = Math.min(3.0, currentZoom + 0.25);
+                zoomLabel.textContent = Math.round(currentZoom * 100) + "%";
+                renderAllPages(currentZoom);
+            };
+            zoomOut.onclick = () => {
+                if (currentZoom <= 0.25) return;
+                currentZoom = Math.max(0.25, currentZoom - 0.25);
+                zoomLabel.textContent = Math.round(currentZoom * 100) + "%";
+                renderAllPages(currentZoom);
+            };
+
         }).catch(() => {
             viewer.innerHTML = '<p style="color:var(--danger); padding:20px;">Identity Error: PDF Stream Corrupted.</p>';
         });
