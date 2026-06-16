@@ -2066,6 +2066,10 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
         pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         pdfJS.getDocument({ data: dec }).promise.then(pdf => {
             viewer.innerHTML = "";
+            viewer.style.background = "#E8E5E0";
+            viewer.style.display = "flex";
+            viewer.style.flexDirection = "column";
+            viewer.style.padding = "0";
 
             // === ZOOM TOOLBAR (top-left pill, light theme) ===
             let currentZoom = 1.25;
@@ -2373,17 +2377,21 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                 .filter(f => slideRegex.test(f))
                 .sort((a,b) => parseInt(a.match(slideRegex)[1]) - parseInt(b.match(slideRegex)[1]));
 
+            // Make viewer background dark for PPT
+            viewer.style.background = '#1E1E2E';
+            viewer.style.padding = '0';
+
             const wrapper = document.createElement('div');
-            wrapper.style.cssText = 'width:100%;padding:32px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:32px;';
+            wrapper.style.cssText = 'width:100%;max-width:1000px;margin:0 auto;padding:32px 40px;box-sizing:border-box;display:flex;flex-direction:column;gap:28px;';
 
             // Header summary
             const header = document.createElement('div');
-            header.style.cssText = 'display:flex;align-items:center;gap:16px;padding-bottom:24px;border-bottom:1px solid #E2E8F0;';
+            header.style.cssText = 'display:flex;align-items:center;gap:16px;padding-bottom:20px;border-bottom:1px solid rgba(255,255,255,0.08);';
             header.innerHTML = `
-              <div style="width:48px;height:48px;background:#EFF6FF;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📊</div>
+              <div style="width:44px;height:44px;background:rgba(234,88,12,0.15);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;border:1px solid rgba(234,88,12,0.2);">📊</div>
               <div>
-                <div style="font-weight:800;font-size:1rem;color:var(--text-primary);font-family:var(--font-heading);">${name}</div>
-                <div style="font-size:0.78rem;color:var(--text-secondary);margin-top:2px;">${slideFiles.length} slide${slideFiles.length !== 1 ? 's' : ''}</div>
+                <div style="font-weight:800;font-size:0.95rem;color:#F1F5F9;font-family:var(--font-heading);">${name}</div>
+                <div style="font-size:0.75rem;color:#94A3B8;margin-top:3px;font-weight:600;">${slideFiles.length} slide${slideFiles.length !== 1 ? 's' : ''}</div>
               </div>`;
             wrapper.appendChild(header);
 
@@ -2427,19 +2435,20 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
                 // Slide card — 16:9 aspect ratio
                 const card = document.createElement('div');
                 card.style.cssText = `
-                  width:100%;max-width:900px;margin:0 auto;
+                  width:100%;max-width:100%;
                   aspect-ratio:16/9;
-                  background:#fff;
-                  border:1px solid #E2E8F0;
-                  border-radius:16px;
-                  box-shadow:0 4px 24px rgba(0,0,0,0.07);
+                  background:#FFFFFF;
+                  border:none;
+                  border-radius:12px;
+                  box-shadow:0 8px 32px rgba(0,0,0,0.4);
                   position:relative;
                   display:flex;flex-direction:column;
-                  justify-content:flex-start;
-                  padding:24px 32px;box-sizing:border-box;
+                  justify-content:center;
+                  align-items:flex-start;
+                  padding:40px 52px;box-sizing:border-box;
                   overflow:hidden;
                   font-family:var(--font-main);
-                  gap:8px;
+                  gap:10px;
                 `;
 
                 // Slide number badge

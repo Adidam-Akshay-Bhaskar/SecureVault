@@ -1610,11 +1610,16 @@ input[type="checkbox"]:checked::after {
   box-shadow: none !important;
   border: none !important;
 }
-.viewer-header { 
-  border: none !important;
-  border-bottom: none !important;
+.viewer-header {
+  padding: 0 18px;
   background: var(--card-bg);
-  padding-bottom: 0 !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+  height: 42px;
+  border-radius: 0 !important;
 }
 .viewer-body { 
   flex: 1; padding: 20px !important; overflow-y: auto; overflow-x: hidden !important; background: var(--card-bg); 
@@ -2268,7 +2273,7 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
 }
 .timeline-dot.success { background: #4ade80; color: #4ade80; }
 .timeline-dot.upload { background: var(--accent-cyan); color: var(--accent-cyan); }
-.timeline-dot.danger { background: var(--danger); color: var(--danger); }
+.timeline-dot.danger { background: #EF4444; color: #EF4444; }
 .timeline-dot.info { background: #a855f7; color: #a855f7; }
 .timeline-content p { color: #fff; font-size: 0.9rem; margin-bottom: 4px; }
 .timeline-content .time { color: var(--text-dim); font-size: 0.75rem; font-weight: 500; }
@@ -2285,11 +2290,11 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
 /* Micro-Interactions */
 .pulse-hover:hover { transform: scale(1.02); }
 .pulse-danger { 
-    background: rgba(255,71,87,0.1); color: var(--danger); font-weight: 800; 
+    background: rgba(255,71,87,0.1); color: #EF4444; font-weight: 800; 
     border-radius: 12px; padding: 14px; cursor: pointer; transition: 0.3s; 
     text-transform: uppercase; letter-spacing: 1px; border: 1px solid rgba(255,71,87,0.2);
 }
-.pulse-danger:not(:disabled):hover { background: var(--danger); color: #fff; box-shadow: 0 0 20px rgba(255,71,87,0.4); transform: translateY(-2px); }
+.pulse-danger:not(:disabled):hover { background: #EF4444; color: #fff; box-shadow: 0 0 20px rgba(255,71,87,0.4); transform: translateY(-2px); }
 .pulse-danger:disabled { opacity: 0.5; cursor: not-allowed; border-color: rgba(255,255,255,0.1); color: #666; background: rgba(255,255,255,0.05); }
 
 /* Danger Zone Extra */
@@ -2537,31 +2542,32 @@ input:checked + .slider:before { transform: translateX(24px); background-color: 
 }
 
 .viewer-header {
-  padding: 12px 32px;
+  padding: 0 18px;
   background: var(--card-bg);
-  border-bottom: none !important;
+  border-bottom: 1px solid var(--border-color) !important;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-shrink: 0;
-  min-height: 44px;
+  height: 42px;
   border-radius: 0 !important;
 }
 
-.viewer-meta { text-align: left; display: flex; align-items: center; }
+.viewer-meta { text-align: left; display: flex; align-items: center; gap: 10px; }
 .viewer-title {
-  margin: 8px 0 0; font-size: 1rem; font-weight: 850;
+  margin: 0; font-size: 0.85rem; font-weight: 700;
   color: var(--text-primary); font-family: var(--font-heading);
-  line-height: 1.1; letter-spacing: -0.5px;
+  line-height: 1; letter-spacing: 0;
   display: flex; align-items: center;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 65vw;
 }
 .viewer-subtitle { display: none; }
 
 .viewer-controls { display: flex; gap: 8px; align-items: center; }
 .viewer-ctrl-btn {
-  padding: 6px 12px; border: none; border-radius: 0 !important;
-  font-size: 0.75rem; font-weight: 800; cursor: pointer; transition: 0.3s;
-  display: flex; align-items: center; justify-content: center;
+  padding: 5px 16px; border: none; border-radius: 8px !important;
+  font-size: 0.72rem; font-weight: 800; cursor: pointer; transition: 0.2s;
+  display: flex; align-items: center; justify-content: center; letter-spacing: 0.5px;
 }
 .viewer-ctrl-btn.primary { 
   background: #10b981; 
