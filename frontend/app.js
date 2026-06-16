@@ -2054,98 +2054,121 @@ async function viewMyFile(id, keyStr, name, size, alreadyDecrypted = false, decB
             viewer.innerHTML = `<p style="color:var(--danger);padding:20px;">Could not render document: ${err.message}</p>`;
         }
     }
-    // 5. PDF PROTOCOL (Direct Canvas Rendering with Zoom Controls)
+    // 5. PDF PROTOCOL — Centered page with dark gutters, zoom controls
     else if (ext === "pdf") {
-        viewer.innerHTML = '<div style="color:var(--accent-cyan); text-align:center; padding:40px;">MANIFESTING PDF DATA FIELDS...</div>';
+        viewer.innerHTML = '<div style="color:var(--accent-cyan);text-align:center;padding:40px;">Loading PDF...</div>';
+        viewer.style.background = "#3a3a3a";
+        viewer.style.display = "flex";
+        viewer.style.flexDirection = "column";
+        viewer.style.padding = "0";
+
         const pdfJS = window['pdfjs-dist/build/pdf'];
         pdfJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
         pdfJS.getDocument({ data: dec }).promise.then(pdf => {
             viewer.innerHTML = "";
-            viewer.style.display = "flex";
-            viewer.style.flexDirection = "column";
 
-            // === ZOOM TOOLBAR ===
-            let currentZoom = 1.0; // 100% default
-            const BASE_SCALE = window.innerWidth < 768 ? 3.0 : 2.5;
+            // === ZOOM TOOLBAR (top-left pill, app-themed) ===
+            let currentZoom = 1.0;
+            const RENDER_SCALE = 2.0; // High-res render, CSS scales display
 
             const toolbar = document.createElement("div");
             toolbar.style.cssText = `
-                display: flex; align-items: center; justify-content: center; gap: 12px;
-                padding: 10px 20px; background: rgba(15,23,42,0.85);
-                border-bottom: 1px solid rgba(255,255,255,0.08);
-                position: sticky; top: 0; z-index: 10; flex-shrink: 0;
-                backdrop-filter: blur(10px);
+                position: absolute; top: 12px; left: 14px; z-index: 20;
+                display: flex; align-items: center; gap: 0;
+                background: rgba(15,23,42,0.82);
+                border: 1px solid rgba(255,255,255,0.12);
+                border-radius: 10px; overflow: hidden;
+                backdrop-filter: blur(12px);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.4);
             `;
 
-            const zoomOut = document.createElement("button");
-            zoomOut.textContent = "−";
-            zoomOut.style.cssText = "width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#fff;font-size:1.3rem;cursor:pointer;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;transition:background 0.2s;";
-            zoomOut.onmouseenter = () => zoomOut.style.background = "rgba(255,255,255,0.15)";
-            zoomOut.onmouseleave = () => zoomOut.style.background = "rgba(255,255,255,0.07)";
+            const mkBtn = (text) => {
+                const b = document.createElement("button");
+                b.textContent = text;
+                b.style.cssText = "width:32px;height:32px;border:none;background:transparent;color:#e2e8f0;font-size:1.15rem;cursor:pointer;font-weight:700;transition:background 0.15s;display:flex;align-items:center;justify-content:center;";
+                b.onmouseenter = () => b.style.background = "rgba(255,255,255,0.1)";
+                b.onmouseleave = () => b.style.background = "transparent";
+                return b;
+            };
+
+            const zoomOut = mkBtn("−");
+            const zoomIn  = mkBtn("+");
+
+            const divider = document.createElement("div");
+            divider.style.cssText = "width:1px;height:18px;background:rgba(255,255,255,0.12);";
 
             const zoomLabel = document.createElement("span");
             zoomLabel.textContent = "100%";
-            zoomLabel.style.cssText = "color:#fff;font-size:0.85rem;font-weight:700;font-family:var(--font-heading);min-width:48px;text-align:center;letter-spacing:0.5px;";
+            zoomLabel.style.cssText = "color:#e2e8f0;font-size:0.78rem;font-weight:700;font-family:var(--font-heading);padding:0 10px;min-width:44px;text-align:center;letter-spacing:0.5px;";
 
-            const zoomIn = document.createElement("button");
-            zoomIn.textContent = "+";
-            zoomIn.style.cssText = "width:34px;height:34px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.07);color:#fff;font-size:1.3rem;cursor:pointer;font-weight:700;line-height:1;display:flex;align-items:center;justify-content:center;transition:background 0.2s;";
-            zoomIn.onmouseenter = () => zoomIn.style.background = "rgba(255,255,255,0.15)";
-            zoomIn.onmouseleave = () => zoomIn.style.background = "rgba(255,255,255,0.07)";
+            const divider2 = document.createElement("div");
+            divider2.style.cssText = "width:1px;height:18px;background:rgba(255,255,255,0.12);";
 
-            const pageLabel = document.createElement("span");
-            pageLabel.textContent = `${pdf.numPages} page${pdf.numPages !== 1 ? 's' : ''}`;
-            pageLabel.style.cssText = "color:rgba(255,255,255,0.35);font-size:0.75rem;font-weight:600;font-family:var(--font-heading);margin-left:8px;";
+            const pageInfo = document.createElement("span");
+            pageInfo.textContent = `${pdf.numPages}p`;
+            pageInfo.style.cssText = "color:rgba(255,255,255,0.35);font-size:0.72rem;font-weight:600;padding:0 10px;font-family:var(--font-heading);";
 
-            toolbar.appendChild(zoomOut);
-            toolbar.appendChild(zoomLabel);
-            toolbar.appendChild(zoomIn);
-            toolbar.appendChild(pageLabel);
-            viewer.appendChild(toolbar);
+            toolbar.append(zoomOut, divider, zoomLabel, divider2, zoomIn, pageInfo);
 
-            // === SCROLL CONTAINER ===
-            const container = document.createElement("div");
-            container.className = "pdf-canvas-container";
-            container.style.cssText = "flex:1;overflow-y:auto;display:flex;flex-direction:column;align-items:center;padding:24px 16px;gap:24px;background:#525659;";
-            viewer.appendChild(container);
+            // === SCROLL CONTAINER with dark gutters ===
+            const scrollWrap = document.createElement("div");
+            scrollWrap.style.cssText = "flex:1;overflow-y:auto;overflow-x:auto;background:#3a3a3a;display:flex;flex-direction:column;align-items:center;padding:32px 60px 48px;gap:20px;position:relative;";
+            scrollWrap.appendChild(toolbar);
+
+            viewer.appendChild(scrollWrap);
 
             // === RENDER FUNCTION ===
             const renderAllPages = (zoom) => {
-                container.innerHTML = "";
-                const scale = BASE_SCALE * zoom;
+                // Remove old canvases (keep toolbar)
+                Array.from(scrollWrap.children).forEach(el => {
+                    if (el !== toolbar) el.remove();
+                });
+
+                const scale = RENDER_SCALE * zoom;
+
                 for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                     pdf.getPage(pageNum).then(page => {
-                        const viewport = page.getViewport({ scale });
+                        const vp = page.getViewport({ scale });
+                        const wrapper = document.createElement("div");
+                        wrapper.style.cssText = `
+                            background: #fff;
+                            box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 12px 32px rgba(0,0,0,0.25);
+                            border-radius: 1px;
+                            flex-shrink: 0;
+                            /* CSS display size: 100% of scroll container width minus gutters */
+                            width: min(calc(100% - 0px), ${vp.width / RENDER_SCALE}px);
+                            aspect-ratio: ${vp.width} / ${vp.height};
+                            position: relative;
+                            overflow: hidden;
+                        `;
                         const canvas = document.createElement("canvas");
-                        canvas.className = "pdf-page-canvas";
-                        canvas.style.cssText = `display:block;box-shadow:0 4px 20px rgba(0,0,0,0.4);border-radius:2px;max-width:100%;`;
-                        canvas.height = viewport.height;
-                        canvas.width = viewport.width;
-                        container.appendChild(canvas);
-                        page.render({ canvasContext: canvas.getContext('2d'), viewport });
+                        canvas.height = vp.height;
+                        canvas.width  = vp.width;
+                        canvas.style.cssText = "width:100%;height:100%;display:block;";
+                        wrapper.appendChild(canvas);
+                        scrollWrap.appendChild(wrapper);
+                        page.render({ canvasContext: canvas.getContext("2d"), viewport: vp });
                     });
                 }
             };
 
-            // Initial render at 100%
             renderAllPages(currentZoom);
 
-            // Zoom controls
             zoomIn.onclick = () => {
                 if (currentZoom >= 3.0) return;
-                currentZoom = Math.min(3.0, currentZoom + 0.25);
+                currentZoom = Math.min(3.0, +(currentZoom + 0.25).toFixed(2));
                 zoomLabel.textContent = Math.round(currentZoom * 100) + "%";
                 renderAllPages(currentZoom);
             };
             zoomOut.onclick = () => {
                 if (currentZoom <= 0.25) return;
-                currentZoom = Math.max(0.25, currentZoom - 0.25);
+                currentZoom = Math.max(0.25, +(currentZoom - 0.25).toFixed(2));
                 zoomLabel.textContent = Math.round(currentZoom * 100) + "%";
                 renderAllPages(currentZoom);
             };
 
         }).catch(() => {
-            viewer.innerHTML = '<p style="color:var(--danger); padding:20px;">Identity Error: PDF Stream Corrupted.</p>';
+            viewer.innerHTML = '<p style="color:var(--danger);padding:20px;">PDF could not be rendered.</p>';
         });
     }
     // 6. SPREADSHEET PROTOCOL (Direct Matrix Rendering)
