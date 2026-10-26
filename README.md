@@ -1,9 +1,9 @@
 # SecureVault
 ### Client-Side Encrypted Cloud Storage & Secure File Sharing System
 
-SecureVault is an end-to-end encrypted file storage and secure sharing web application. All cryptographic operations — file encryption, file key wrapping, and metadata obfuscation — take place **directly inside the client's browser** via the standard Web Crypto API. Binary payloads are streamed directly to AWS S3 using pre-signed URLs, ensuring the backend server never processes or stores unencrypted file contents.
+SecureVault is an end-to-end encrypted file storage and secure sharing web application. All cryptographic operations — file payload encryption, key wrapping, and metadata obfuscation — take place **directly inside the client's browser** via the standard Web Crypto API. Binary payloads are streamed directly to AWS S3 using pre-signed URLs, ensuring the backend server never processes or stores unencrypted file contents.
 
-Built with pure Semantic HTML5, Vanilla CSS3, and ES6+ JavaScript on the frontend, and Node.js (Express 5), PostgreSQL (Supabase/Neon), and AWS S3 on the backend.
+Built with Semantic HTML5, Vanilla CSS3, and ES6+ JavaScript on the frontend, and Node.js (Express 5), PostgreSQL (Supabase/Neon), and AWS S3 on the backend.
 
 ---
 
@@ -57,37 +57,44 @@ The server never processes plaintext file contents. File names, file sizes, and 
 
 ---
 
-## Cryptographic Architecture & Key Management
+## Cryptographic Engine & Key Management
 
-### 1. File Encryption
+### 1. File Payload Encryption
 - **Algorithm**: `AES-GCM` (Galois/Counter Mode) with 256-bit key length.
 - **Initialization Vector (IV)**: A cryptographically secure 12-byte random IV (`crypto.getRandomValues(new Uint8Array(12))`) generated per encryption operation.
 - **Payload Structure**: The 12-byte IV is prepended to the ciphertext along with the 16-byte GCM authentication tag: `[12-byte IV] + [Ciphertext + Auth Tag]`.
-- **Integrity**: Any bit-level modification or truncation of ciphertext immediately triggers an authentication tag failure in `crypto.subtle.decrypt`.
+- **Integrity Verification**: Any bit-level modification or truncation of ciphertext triggers an authentication tag failure in `crypto.subtle.decrypt`.
 
 ### 2. File Metadata Encryption
 - **Algorithm**: `AES-GCM` 256-bit.
 - **Payload**: JSON-encoded metadata containing `{ filename, size, type }` is encrypted under the user's Master Key with a unique 12-byte IV.
 - **Database Storage**: The ciphertext is stored in PostgreSQL as `BYTEA` (binary data) via `decode($2, 'base64')` in `file_metadata.encrypted_metadata`, and the IV is stored as a hexadecimal string in `file_metadata.iv`.
 
-### 3. Key Wrapping Architecture & The RSA Specification
-- **Original Architectural Design**: Early design specifications called for a hybrid cryptosystem using `RSA-OAEP` (2048-bit asymmetric keypairs) for key wrapping, where each user held an RSA public/private keypair to wrap and unwrap AES file keys.
-- **Production Implementation**: To optimize performance, eliminate browser compatibility bottlenecks, and ensure reliable cross-device synchronization, SecureVault implements **Symmetric AES-GCM 256-bit Key Wrapping**:
-  - **Master Key (`sessionMasterKey`)**: Generated client-side via `window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt", "wrapKey", "unwrapKey"])`.
-  - **Master Key Export**: Exported as a standard JSON Web Key (`JWK`) string and stored in the database (`users.client_master_key` and `user_keys.encryption_key`) to enable access across multiple browsers and devices.
-  - **File Key Wrapping (`encryptKey`)**: Each file receives a unique 256-bit AES-GCM symmetric key (`fileKey`). The raw 32 bytes of `fileKey` are encrypted under the user's Master Key using a fresh 12-byte random IV.
-  - **Storage Format**: Encrypted keys are stored in `file_keys.encrypted_key` in the format:  
-    `bytesToHex(keyIv) + ":" + arrayBufferToBase64(encryptedKey)`
-  - **Unwrapping (`decryptKey`)**: The client splits the string, decodes the IV and ciphertext, decrypts with `masterKey`, and re-imports the raw bytes as an active `CryptoKey`.
+### 3. Historical Architectural Context: The RSA-OAEP Hybrid Specification
+In the original architectural specification of SecureVault, the system was designed around a **Hybrid Cryptosystem** pairing asymmetric and symmetric cryptography:
+- **Payload Encryption**: Symmetric `AES-256-GCM` for file data.
+- **Asymmetric Key Wrapping (`RSA-OAEP`)**: Each user held an `RSA-OAEP` 2048-bit asymmetric keypair generated in the browser:
+  - The user's **RSA Public Key** was used to wrap (encrypt) individual AES-256 file keys.
+  - The user's **RSA Private Key** was retained locally to unwrap (decrypt) file keys prior to payload decryption.
+- This design provided asymmetric key separation, establishing the foundational principle that the server should never possess unencrypted file keys.
 
-### 4. Ephemeral Transmission Keys for Sharing (`linkKey`)
-When sharing files (both In-Vault and external links), the sender's Master Key is **never exposed or shared**:
+### 4. Active Production Engine: Symmetric AES-GCM 256-bit Key Wrapping
+To maximize throughput, minimize browser memory overhead during large file transfers, and provide seamless cross-device synchronization, the active implementation utilizes **Symmetric AES-GCM 256-bit Key Wrapping**:
+- **Master Key (`sessionMasterKey`)**: Generated in the browser via `window.crypto.subtle.generateKey({ name: "AES-GCM", length: 256 }, true, ["encrypt", "decrypt", "wrapKey", "unwrapKey"])`.
+- **Key Serialization**: Exported as a standard JSON Web Key (`JWK`) string and synchronized to the user's secure account records (`users.client_master_key` and `user_keys.encryption_key`) to enable access across authorized sessions.
+- **File Key Wrapping (`encryptKey`)**: Each file is encrypted with a distinct 256-bit AES-GCM key (`fileKey`). The raw 32 bytes of `fileKey` are wrapped under the user's Master Key using a fresh 12-byte random IV:
+  - Format: `bytesToHex(keyIv) + ":" + arrayBufferToBase64(encryptedKey)`
+  - Stored in: `file_keys.encrypted_key`
+- **File Key Unwrapping (`decryptKey`)**: The client splits the string, decodes the IV and ciphertext, decrypts with `sessionMasterKey`, and imports the raw 32-byte key back into `crypto.subtle`.
+
+### 5. Ephemeral Transmission Protocol for Secure Sharing (`linkKey`)
+When sharing files (both In-Vault and external links), the owner's Master Key is never exposed:
 1. The sender's client unwraps the file's `fileKey` using their `sessionMasterKey`.
 2. A new ephemeral 256-bit AES-GCM key (`linkKey`) is generated.
-3. The `fileKey` is re-wrapped under `linkKey` with a new 12-byte random IV.
-4. The file metadata is re-encrypted under `linkKey` with a new 12-byte random IV.
+3. The `fileKey` is re-wrapped under `linkKey` with a fresh 12-byte random IV.
+4. The file metadata is re-encrypted under `linkKey` with a fresh 12-byte random IV.
 5. The `linkKey` is exported to raw bytes and converted into a **64-character hexadecimal Transmission Security Key** (`linkKeyHex`).
-6. The recipient uses this Transmission Security Key to unwrap the file key and decrypt the file.
+6. The recipient uses this Transmission Security Key to unwrap the file key and decrypt the payload.
 
 ---
 
@@ -95,11 +102,11 @@ When sharing files (both In-Vault and external links), the sender's Master Key i
 
 ### 📁 DataVault — Encrypted File & Folder Manager
 - **Contextual Uploads**: Upload any file type directly from the browser with real-time XHR upload progress indicators (`0%` to `100%`).
-- **Direct S3 Streaming**: Binary payloads bypass the backend server completely via 5-minute pre-signed S3 URLs.
-- **Folder Management**: Create virtual directories, rename folders, delete folders (files are unassigned to root, not deleted), and isolate views inside an expansive **Folder Hub Explorer**.
-- **Storage Quota Enforcement**: Client-side storage tracking actively enforces a **2.5 GB (2,684,354,560 bytes)** quota. Uploads exceeding quota are blocked before transmission.
+- **Direct S3 Streaming**: Binary payloads stream directly between the client browser and AWS S3 via 5-minute pre-signed S3 URLs.
+- **Folder Organization**: Create virtual directories, rename folders, delete folders (files are unassigned to Root Vault, not deleted), and explore directories within a dedicated **Folder Hub Explorer**.
+- **Storage Quota Enforcement**: Client-side storage tracking actively monitors and enforces a **2.5 GB (2,684,354,560 bytes)** quota. Uploads exceeding quota are prevented prior to transmission.
 - **Search Filtering**: Real-time client-side search filtering across files and folders with automatic file extension stripping for intuitive matching.
-- **Skeleton Loaders**: Custom pulsing skeleton screens render instantly on all tab switches, eliminating perceived loading latency.
+- **Skeleton Loaders**: Custom pulsing skeleton screens render instantly on all view switches, providing immediate visual feedback during async operations.
 
 ### 👁️ Frictionless Enclave Viewer (10 Universal Renderers)
 Files are decrypted into memory and rendered directly in-browser inside an edge-to-edge modal without saving decrypted files to disk:
@@ -107,7 +114,7 @@ Files are decrypted into memory and rendered directly in-browser inside an edge-
 | File Category | Extensions Supported | Implementation & Technology | Rendering Behavior |
 |---|---|---|---|
 | **PDF Documents** | `.pdf` | `PDF.js` (3.4.120) with Worker | Centered high-resolution canvas with warm gray gutters (`#E8E5E0`), compact floating zoom pill (`125%` default, `+` / `−` controls), and page counter. |
-| **Word Documents** | `.docx`, `.doc`, `.odt`, `.rtf`, `.pages` | `Mammoth.js` (1.6.0) | Clean HTML conversion formatted as simulated **A4 paginated sheets** (`816px` width, `1056px` min-height, page numbering, Word default typography). |
+| **Word Documents** | `.docx`, `.doc`, `.odt`, `.rtf`, `.pages` | `Mammoth.js` (1.6.0) | HTML conversion formatted as simulated **A4 paginated sheets** (`816px` width, `1056px` min-height, page numbering, Word default typography). |
 | **PowerPoint Slides** | `.pptx`, `.ppt` | `JSZip` (3.10.1) XML Parser | Extracts `ppt/slides/slide*.xml`, parses text blocks, extracts embedded images (`ppt/media/`), renders as **16:9 responsive slide cards** on dark canvas (`#1E1E2E`). |
 | **Spreadsheets** | `.xlsx`, `.xls`, `.csv`, `.ods`, `.tsv`, `.numbers` | `SheetJS (XLSX)` (0.18.5) | Decodes workbook sheets into an interactive, styled matrix table (`.matrix-table`). |
 | **ZIP Archives** | `.zip`, `.rar`, `.7z`, `.tar`, `.gz`, `.bz2`, `.xz`, `.iso` | `JSZip` (3.10.1) File Tree | Interactive **collapsible directory tree** with folder chevrons, individual file sizes, folder item counts, and file-type glyphs. |
@@ -124,13 +131,13 @@ Files are decrypted into memory and rendered directly in-browser inside an edge-
 - Generates an ephemeral `linkKeyHex` (Transmission Security Key).
 - Sender transmits the 64-character key to the recipient out-of-band.
 - Recipient accesses their **Incoming Data** tab, clicks **Unlock**, enters the Transmission Security Key, and confirms their personal **Security PIN**.
-- **Burn-After-Viewing**: Closing the viewer automatically calls `DELETE /api/share/:linkId` to purge the record from the recipient's incoming feed.
+- **Burn-After-Viewing**: Closing the viewer automatically calls `DELETE /api/share/:linkId` to remove the record from the recipient's incoming feed.
 
 #### Protocol 2: External Ghost Link Sharing
-- Generates a public link for unregistered external recipients (`recipientEmail = "protocol-link"`).
+- Generates a public link for external recipients (`recipientEmail = "protocol-link"`).
 - Creates an encrypted share token stored as a SHA-256 hash in `shared_links`.
 - Sender delivers the URL (`/?token=<raw_token>`) and the 64-character Transmission Security Key (`linkKeyHex`).
-- External recipient navigates to the URL, inputs the Transmission Key.
+- External recipient navigates to the URL and inputs the Transmission Key.
 - **Burn-After-Reading**: The backend marks the token as used (`is_used = TRUE`) upon first access; subsequent access attempts return HTTP 410.
 
 #### Permission Controls
@@ -139,7 +146,7 @@ Both sharing modes support granular role delegation:
 - **Vault Editor (Download)**: Full download privileges granted; recipient can save the decrypted file locally.
 
 ### 🗑️ Recycle Bin — 7-Day Retention Buffer
-- Soft-deleted records are moved to retention (`is_deleted = TRUE`, `deleted_at = NOW()`).
+- Soft-deleted records enter retention (`is_deleted = TRUE`, `deleted_at = NOW()`).
 - Real-time countdown timer displays remaining retention window (`X days Y hours left`).
 - Users can manually **Restore** records to Vault Base or **Permanently Delete** them.
 - Server-side background worker prunes records older than 7 days every hour from both S3 and PostgreSQL.
@@ -232,7 +239,7 @@ On screens $\le 768\text{px}$:
 | | `action` | `TEXT NOT NULL` | Action code (`UPLOAD_COMPLETED`, `SHARED_IN_APP`, etc.) |
 | | `details` | `TEXT` | Supplementary details |
 | | `created_at` | `TIMESTAMP DEFAULT NOW()` | Event timestamp |
-| `otp_store` | `email` | `TEXT PRIMARY KEY` | Dormant OTP table |
+| `otp_store` | `email` | `TEXT PRIMARY KEY` | Account verification store |
 | | `otp_hash` | `TEXT NOT NULL` | SHA-256 hash of OTP |
 | | `expires_at` | `TIMESTAMP NOT NULL` | OTP expiration timestamp |
 
